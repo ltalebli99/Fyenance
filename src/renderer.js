@@ -1,4 +1,3 @@
-
 // Add these chart instances at the top with other chart variables
 let balanceChartInstance;
 let incomeExpenseChartInstance;
@@ -165,30 +164,32 @@ async function fetchTotalBalance(accountId = 'all') {
       return txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
     });
 
-    // Calculate monthly income and expenses from transactions
-    const monthlyIncomeFromTransactions = monthlyTransactions
+    // Calculate this month's income and expenses
+    const thisMonthsTransactionIncome = monthlyTransactions
       .filter(tx => tx.type === 'income')
       .reduce((total, tx) => total + parseFloat(tx.amount), 0);
 
-    const monthlyExpensesFromTransactions = monthlyTransactions
+    const thisMonthsTransactionExpenses = monthlyTransactions
       .filter(tx => tx.type === 'expense')
       .reduce((total, tx) => total + parseFloat(tx.amount), 0);
 
-    // Calculate recurring income and expenses
-    const monthlyRecurringIncome = recurring
+    // Calculate this month's recurring amounts
+    const thisMonthsRecurringIncome = recurring
       .filter(r => r.is_active && r.type === 'income')
       .reduce((total, r) => total + parseFloat(r.amount), 0);
 
-    const monthlyRecurringExpenses = recurring
+    const thisMonthsRecurringExpenses = recurring
       .filter(r => r.is_active && r.type === 'expense')
       .reduce((total, r) => total + parseFloat(r.amount), 0);
 
+    // Calculate totals
+    const totalMonthlyIncome = thisMonthsTransactionIncome + thisMonthsRecurringIncome;
+    const totalMonthlyExpenses = thisMonthsTransactionExpenses + thisMonthsRecurringExpenses;
+
     // Update dashboard displays
     document.getElementById('total-balance').innerText = formatCurrency(totalBalance);
-    document.getElementById('monthly-income').innerText = 
-      formatCurrency(monthlyIncomeFromTransactions + monthlyRecurringIncome);
-    document.getElementById('monthly-expenses').innerText = 
-      formatCurrency(monthlyExpensesFromTransactions + monthlyRecurringExpenses);
+    document.getElementById('this-months-income').innerText = formatCurrency(totalMonthlyIncome);
+    document.getElementById('this-months-expenses').innerText = formatCurrency(totalMonthlyExpenses);
 
   } catch (error) {
     console.error('Failed to fetch total balance:', error);

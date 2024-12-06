@@ -4,7 +4,7 @@
     "name": "metromagic",
     "email": "support@metromagic.io"
   },
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Personal finance planning desktop app",
   "main": "src/main.js",
   "scripts": {
@@ -15,9 +15,7 @@
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "prebuild": "electron-rebuild -f -w better-sqlite3",
     "build": "electron-builder",
-    "dist": "electron-builder --win --mac --linux",
     "build:linux": "electron-builder build --linux --config.asar=true",
-    "deploy": "electron-builder -p always"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.46.2",
@@ -89,7 +87,8 @@
       "owner": "ltalebli99",
       "repo": "Fyenance",
       "private": true,
-      "releaseType": "release"
+      "releaseType": "release",
+      "force": true
     }
   },
   "homepage": "https://www.metromagic.io",
