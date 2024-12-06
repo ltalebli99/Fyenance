@@ -7,58 +7,84 @@ let expenseCategoriesChartInstance;
 let trendChartInstance;
 
 async function initializeApp() {
+  // Start with loader visible, license overlay hidden
+  const licenseOverlay = document.getElementById('license-overlay');
+  if (licenseOverlay) {
+    licenseOverlay.style.display = 'none';
+  }
 
-
+  // Theme initialization
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'dark') {
     document.body.classList.add('dark-mode');
   }
 
+  // Remove preload class
   setTimeout(() => {
     document.body.classList.remove('preload');
   }, 100);
 
-  setTimeout(() => {
+  // Check license while loader is showing
+  const hasLicense = await window.licenseApi.checkLicense();
+  console.log('License check result:', hasLicense);
+
+  // Handle loader animation
+  setTimeout(async () => {
     const loader = document.querySelector('.app-loader');
     if (loader) {
       loader.classList.add('fade-out');
       setTimeout(() => {
         loader.remove();
-      }, 500); 
+        
+        // After loader is gone, show license screen if needed
+        if (!hasLicense) {
+          console.log('No valid license found, showing overlay');
+          licenseOverlay.style.display = 'flex';
+          setupLicenseHandlers();
+          return; // Stop initialization here if no license
+        }
+        
+        // Continue with app initialization if license is valid
+        initializeMainApp();
+      }, 0);
     }
-  }, 2000); 
+  }, 2000);
+}
 
-    try {
-      // Check if database API is available
-      if (!window.databaseApi) {
-        throw new Error('Database API not available');
-      }
-  
-      // Initialize each component with proper error handling
-      await Promise.all([
-        fetchTotalBalance().catch(err => console.error('Failed to fetch balance:', err)),
-        fetchAccounts().catch(err => console.error('Failed to fetch accounts:', err)),
-        fetchCategories().catch(err => console.error('Failed to fetch categories:', err)),
-        populateAccountDropdowns().catch(err => console.error('Failed to populate dropdowns:', err)),
-        populateCategoryDropdowns().catch(err => console.error('Failed to populate category dropdowns:', err)),
-        fetchTransactions().catch(err => console.error('Failed to fetch transactions:', err)),
-        renderDashboardCharts().catch(err => console.error('Failed to render charts:', err)),
-        fetchRecurring().catch(err => console.error('Failed to fetch recurring:', err)),
-        fetchAndDisplayCategories().catch(err => console.error('Failed to fetch categories:', err)),
-        updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err))
-      ]);
-  
-    } catch (error) {
-      console.error('Failed to initialize app:', error);
-      // Display error to user
-      document.body.innerHTML = `
-        <div style="padding: 20px; color: red;">
-          Error initializing application: ${error.message}<br>
-          Please check your database configuration and restart the application.
-        </div>
-      `;
+// Separate function for main app initialization
+async function initializeMainApp() {
+  try {
+    // Check if database API is available
+    if (!window.databaseApi) {
+      throw new Error('Database API not available');
     }
+
+    // Initialize each component with proper error handling
+    await Promise.all([
+      updateLicenseInfo().catch(err => console.error('Failed to update license info:', err)),
+      fetchTotalBalance().catch(err => console.error('Failed to fetch balance:', err)),
+      fetchAccounts().catch(err => console.error('Failed to fetch accounts:', err)),
+      fetchCategories().catch(err => console.error('Failed to fetch categories:', err)),
+      populateAccountDropdowns().catch(err => console.error('Failed to populate dropdowns:', err)),
+      populateCategoryDropdowns().catch(err => console.error('Failed to populate category dropdowns:', err)),
+      fetchTransactions().catch(err => console.error('Failed to fetch transactions:', err)),
+      renderDashboardCharts().catch(err => console.error('Failed to render charts:', err)),
+      fetchRecurring().catch(err => console.error('Failed to fetch recurring:', err)),
+      fetchAndDisplayCategories().catch(err => console.error('Failed to fetch categories:', err)),
+      updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err))
+    ]);
+
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    document.body.innerHTML = `
+      <div style="padding: 20px; color: red;">
+        Error initializing application: ${error.message}<br>
+        Please check your database configuration and restart the application.
+      </div>
+    `;
   }
+}
+
 
 window.onload = () => {
   initializeNavigation();
@@ -2223,144 +2249,256 @@ function loadThemePreference() {
 document.addEventListener('DOMContentLoaded', loadThemePreference);
 
 
-window.addEventListener('DOMContentLoaded', () => {
-  // Update version number
-  const versionElement = document.getElementById('app-version');
-  if (versionElement) {
-      versionElement.textContent = window.versions.app;
-  }
-});
-
-
-// Update version check function to handle missing APIs
+// Update-related code
 async function checkForUpdates() {
   const updateStatus = document.getElementById('update-status');
-  if (!updateStatus) return;
+  const checkUpdatesBtn = document.getElementById('check-updates-btn');
+  const startUpdateBtn = document.getElementById('start-update-btn');
+  
+  if (!updateStatus || !checkUpdatesBtn) return;
 
-  updateStatus.textContent = 'Checking for updates...';
-  
-  if (!window.updateApi) {
-      updateStatus.textContent = 'Update checking not available';
-      return;
-  }
-  
   try {
-      const result = await window.updateApi.checkForUpdates();
-      if (result.status === 'development') {
-          updateStatus.textContent = 'Updates disabled in development mode';
-          return;
+      // Disable button and show checking status
+      checkUpdatesBtn.disabled = true;
+      updateStatus.textContent = 'Checking for updates...';
+      startUpdateBtn.style.display = 'none';
+      
+      // Check for updates
+      const currentVersion = await window.versions.app();
+      const updateCheck = await window.updateApi.checkForUpdates();
+      
+      // Re-enable button
+      checkUpdatesBtn.disabled = false;
+
+      if (!updateCheck) {
+          updateStatus.textContent = 'You are using the latest version.';
       }
   } catch (error) {
       console.error('Error checking for updates:', error);
-      updateStatus.textContent = 'Error checking for updates';
+      updateStatus.textContent = 'Error checking for updates. Please try again later.';
+      checkUpdatesBtn.disabled = false;
   }
 }
 
-
-// Add update message listener
-window.updateApi.onUpdateMessage((message) => {
-  const updateStatus = document.getElementById('update-status');
-  updateStatus.textContent = message;
-});
-
+// Handle update available
 window.updateApi.onUpdateAvailable((info) => {
   const updateStatus = document.getElementById('update-status');
-  updateStatus.innerHTML = `
-      New version ${info.version} available! 
-      <button class="settings-btn" onclick="startUpdate()">
-          <i class="fas fa-download"></i>
-          Download Update
-      </button>
-  `;
+  const startUpdateBtn = document.getElementById('start-update-btn');
+  
+  if (updateStatus && startUpdateBtn) {
+      updateStatus.textContent = `New version ${info.version} available!`;
+      startUpdateBtn.style.display = 'block';
+  }
 });
 
-// Add function to start update
+// Handle update messages
+window.updateApi.onUpdateMessage((message) => {
+  const updateStatus = document.getElementById('update-status');
+  if (updateStatus) {
+      updateStatus.textContent = message;
+  }
+});
+
+// Start update process
 async function startUpdate() {
   const updateStatus = document.getElementById('update-status');
-  updateStatus.textContent = 'Downloading update...';
+  const startUpdateBtn = document.getElementById('start-update-btn');
+  
+  if (!updateStatus || !startUpdateBtn) return;
+
   try {
+      updateStatus.textContent = 'Starting download...';
+      startUpdateBtn.style.display = 'none';
       await window.updateApi.startUpdate();
   } catch (error) {
       console.error('Error starting update:', error);
-      updateStatus.textContent = 'Error downloading update';
+      updateStatus.textContent = 'Error downloading update. Please try again later.';
+      startUpdateBtn.style.display = 'block';
   }
 }
 
-// Compare version numbers (returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal)
-function compareVersions(v1, v2) {
-  const v1Parts = v1.split('.').map(Number);
-  const v2Parts = v2.split('.').map(Number);
-  
-  for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
-      const v1Part = v1Parts[i] || 0;
-      const v2Part = v2Parts[i] || 0;
-      if (v1Part > v2Part) return 1;
-      if (v1Part < v2Part) return -1;
-  }
-  return 0;
-}
-
-// Auto-check for updates on app start
-async function checkUpdatesOnStart() {
-  // Wait for app to initialize
-  setTimeout(async () => {
-      try {
-          const hasUpdate = await checkForUpdates();
-          if (hasUpdate && window.Notification && Notification.permission === "granted") {
-              new Notification('Update Available', {
-                  body: 'A new version of Fyenance is available!'
-              });
-          }
-      } catch (error) {
-          console.error('Error in checkUpdatesOnStart:', error);
-      }
-  }, 5000); // 5 second delay
-}
-
-// Initialize update listeners only if updateApi is available
-function initializeUpdateListeners() {
-  if (window.updateApi) {
-      window.updateApi.onUpdateMessage((message) => {
-          const updateStatus = document.getElementById('update-status');
-          if (updateStatus) {
-              updateStatus.textContent = message;
-          }
-      });
-
-      window.updateApi.onUpdateAvailable((info) => {
-          const updateStatus = document.getElementById('update-status');
-          if (updateStatus) {
-              updateStatus.innerHTML = `
-                  New version ${info.version} available! 
-                  <button class="settings-btn" onclick="startUpdate()">
-                      <i class="fas fa-download"></i>
-                      Download Update
-                  </button>
-              `;
-          }
-      });
-  }
-}
-
-// Update version control initialization
+// Initialize version control
 function initializeVersionControl() {
-  // Update version number in settings
-  const versionElement = document.getElementById('app-version');
-  if (versionElement && window.versions) {
-      versionElement.textContent = window.versions.app || '1.0.0';
-  }
+  // Set version number
+  window.versions.app().then(version => {
+      const versionElement = document.getElementById('app-version');
+      if (versionElement) {
+          versionElement.textContent = version;
+      }
+  }).catch(err => {
+      console.error('Error getting app version:', err);
+      const versionElement = document.getElementById('app-version');
+      if (versionElement) {
+          versionElement.textContent = 'Unknown';
+      }
+  });
 
-  // Add event listener for check updates button
+  // Add event listeners
   const checkUpdatesBtn = document.getElementById('check-updates-btn');
+  const startUpdateBtn = document.getElementById('start-update-btn');
+
   if (checkUpdatesBtn) {
       checkUpdatesBtn.addEventListener('click', checkForUpdates);
   }
 
-  // Initialize update listeners
-  initializeUpdateListeners();
+  if (startUpdateBtn) {
+      startUpdateBtn.addEventListener('click', startUpdate);
+  }
 
-  // Check for updates on app start (if available)
-  if (window.updateApi) {
-      checkUpdatesOnStart();
+  // Check for updates after a delay
+  setTimeout(checkForUpdates, 5000);
+}
+
+// Call this in your existing DOMContentLoaded or tab switch handler
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('Settings').classList.contains('active')) {
+      initializeVersionControl();
+  }
+});
+
+// Add this to your tab switching logic
+function onTabChange(activeSection) {
+  if (activeSection === 'Settings') {
+      initializeVersionControl();
   }
 }
+
+
+
+function setupLicenseHandlers() {
+  const activateBtn = document.getElementById('activate-btn');
+  const licenseInput = document.getElementById('license-key-input');
+  const purchaseLink = document.getElementById('purchase-link');
+
+  if (activateBtn) {
+    activateBtn.addEventListener('click', async () => {
+      const licenseKey = licenseInput.value.trim().toUpperCase();
+      if (!licenseKey) {
+        showLicenseMessage('Please enter a license key', 'error');
+        return;
+      }
+  
+      try {
+        activateBtn.disabled = true;
+        activateBtn.textContent = 'Validating...';
+        
+        const result = await window.licenseApi.validateLicense(licenseKey);
+        
+        if (result.valid) {
+          showLicenseMessage('License activated successfully!', 'success');
+          setTimeout(() => {
+            document.getElementById('license-overlay').style.display = 'none';
+            // Force a complete page reload
+            window.location.reload();
+          }, 1500);
+        } else {
+          showLicenseMessage(result.error || 'Invalid license key', 'error');
+        }
+      } catch (error) {
+        showLicenseMessage('Error validating license', 'error');
+      } finally {
+        activateBtn.disabled = false;
+        activateBtn.textContent = 'Activate License';
+      }
+    });
+  }
+
+if (purchaseLink) {
+  purchaseLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    console.log('Purchase link clicked');
+    window.open('https://google.com', '_blank');
+  });
+}
+
+  // Format license key input
+  if (licenseInput) {
+    licenseInput.addEventListener('input', (e) => {
+      // Allow both letters and numbers, convert to uppercase
+      let value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (value.length > 16) value = value.slice(0, 16);
+      
+      // Add dashes
+      const parts = [];
+      for (let i = 0; i < value.length; i += 4) {
+        parts.push(value.slice(i, i + 4));
+      }
+      e.target.value = parts.join('-');
+    });
+  }
+
+
+
+  // Format license key input
+  licenseInput.addEventListener('input', (e) => {
+    let value = e.target.value.replace(/[^A-Z0-9]/g, '').toUpperCase();
+    if (value.length > 16) value = value.slice(0, 16);
+    
+    // Add dashes
+    const parts = [];
+    for (let i = 0; i < value.length; i += 4) {
+      parts.push(value.slice(i, i + 4));
+    }
+    e.target.value = parts.join('-');
+  });
+}
+
+async function updateLicenseInfo() {
+  try {
+    console.log('Fetching license info...'); // Debug log
+    const licenseInfo = await window.licenseApi.getLicenseInfo();
+    console.log('Received license info:', licenseInfo); // Debug log
+    
+    if (licenseInfo) {
+      const statusElement = document.querySelector('.license-status');
+      const keyElement = document.getElementById('current-license-key');
+      const dateElement = document.getElementById('license-activation-date');
+      
+      console.log('Updating DOM elements with:', { // Debug log
+        status: 'Active',
+        key: licenseInfo.key,
+        date: licenseInfo.activatedAt
+      });
+      
+      if (statusElement) {
+        statusElement.textContent = 'Active';
+        statusElement.classList.add('active');
+      }
+      if (keyElement) keyElement.textContent = licenseInfo.key;
+      if (dateElement) {
+        const activationDate = new Date(licenseInfo.activatedAt);
+        dateElement.textContent = activationDate.toLocaleDateString();
+      }
+    } else {
+      console.log('No license info found'); // Debug log
+      const statusElement = document.querySelector('.license-status');
+      if (statusElement) {
+        statusElement.textContent = 'Inactive';
+        statusElement.classList.remove('active');
+      }
+    }
+  } catch (error) {
+    console.error('Error updating license info:', error);
+  }
+}
+
+function showLicenseMessage(message, type) {
+  const statusMessage = document.getElementById('license-status-message');
+  statusMessage.textContent = message;
+  statusMessage.className = type;
+}
+
+async function clearLicense() {
+  try {
+    await window.licenseApi.clearLicense();
+    window.location.reload(); 
+  } catch (error) {
+    console.error('Failed to clear license:', error);
+  }
+}
+
+document.getElementById('clear-license-btn')?.addEventListener('click', async () => {
+  if (confirm('Are you sure you want to clear the license? This will require reactivation.')) {
+    await clearLicense();
+  }
+});

@@ -1,9 +1,14 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, shell } = require('electron');
 
 // Get version from process arguments
 const appVersion = process.argv
     .find(arg => arg.startsWith('--app-version='))
     ?.split('=')[1] || '1.0.0';
+
+// Expose protected APIs
+contextBridge.exposeInMainWorld('versions', {
+    app: () => ipcRenderer.invoke('get-app-version')
+});
 
 // Expose database API to renderer
 contextBridge.exposeInMainWorld('databaseApi', {
@@ -48,11 +53,7 @@ contextBridge.exposeInMainWorld('databaseApi', {
     importDatabase: (filePath) => ipcRenderer.invoke('db:import', filePath)
 });
 
-// Expose protected APIs
-contextBridge.exposeInMainWorld('versions', {
-    app: appVersion
-});
-
+// Expose update API
 contextBridge.exposeInMainWorld('updateApi', {
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
     startUpdate: () => ipcRenderer.invoke('start-update'),
@@ -61,6 +62,9 @@ contextBridge.exposeInMainWorld('updateApi', {
     },
     onUpdateAvailable: (callback) => {
         ipcRenderer.on('update-available', (_, info) => callback(info));
+    },
+    onUpdateProgress: (callback) => {
+        ipcRenderer.on('download-progress', (_, progressObj) => callback(progressObj));
     }
 });
 
@@ -68,7 +72,17 @@ contextBridge.exposeInMainWorld('updateApi', {
 contextBridge.exposeInMainWorld('electronAPI', {
     minimizeWindow: () => ipcRenderer.send('minimize-window'),
     closeWindow: () => ipcRenderer.send('close-window'),
+    toggleMaximizeWindow: () => ipcRenderer.send('toggle-maximize-window'),
     platform: process.platform,
-    showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
-    showOpenDialog: (options) => ipcRenderer.invoke('dialog:showOpenDialog', options)
+    showSaveDialog: () => ipcRenderer.invoke('dialog:showSaveDialog'),
+    showOpenDialog: () => ipcRenderer.invoke('dialog:showOpenDialog'),
+    isWindowMaximized: () => ipcRenderer.invoke('is-window-maximized'),
+    getWindowState: () => ipcRenderer.invoke('get-window-state'),
+    openExternal: (url) => shell.openExternal(url)
+});
+
+contextBridge.exposeInMainWorld('licenseApi', {
+    validateLicense: (key) => ipcRenderer.invoke('license:validate', key),
+    checkLicense: () => ipcRenderer.invoke('license:check'),
+    getLicenseInfo: () => ipcRenderer.invoke('license:info')
 });

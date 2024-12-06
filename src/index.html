@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self' https://api.github.com;">
+    <title>Fyenance</title>
+    
+    <!-- Favicons -->
     <link rel="apple-touch-icon" sizes="57x57" href="../assets/images/apple-icon-57x57.png">
     <link rel="apple-touch-icon" sizes="60x60" href="../assets/images/apple-icon-60x60.png">
     <link rel="apple-touch-icon" sizes="72x72" href="../assets/images/apple-icon-72x72.png">
@@ -10,99 +15,109 @@
     <link rel="apple-touch-icon" sizes="144x144" href="../assets/images/apple-icon-144x144.png">
     <link rel="apple-touch-icon" sizes="152x152" href="../assets/images/apple-icon-152x152.png">
     <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/apple-icon-180x180.png">
-    <link rel="icon" type="image/png" sizes="192x192"  href="../assets/images/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="../assets/images/android-icon-192x192.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="96x96" href="../assets/images/favicon-96x96.png">
     <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon-16x16.png">
     <link rel="manifest" href="../assets/images/manifest.json">
+    
+    <!-- Meta Tags -->
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="msapplication-TileImage" content="../assets/images/ms-icon-144x144.png">
     <meta name="theme-color" content="#ffffff">
-    <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self' https://api.github.com;">
-  <title>Fyenance</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="preload">
-  <div class="app-loader">
-    <div class="loader-animation">
-      <div class="coin"></div>
-    </div>
-  </div>
-  <header>
-    <div class="logo">
-      <img src="../assets/images/favicon-32x32.png" alt="Fyenance Logo" class="logo-icon">
-      <h1>Fyenance</h1>
-    </div>
-    <nav>
-      <button class="tablink active" data-section="Dashboard">
-        <i class="fas fa-home"></i>
-        <span>Dashboard</span>
-      </button>
-      <button class="tablink" data-section="Accounts">
-        <i class="fas fa-wallet"></i>
-        <span>Accounts</span>
-      </button>
-      <button class="tablink" data-section="Transactions">
-        <i class="fas fa-exchange-alt"></i>
-        <span>Transactions</span>
-      </button>
-      <button class="tablink" data-section="Recurring">
-        <i class="fas fa-sync"></i>
-        <span>Recurring</span>
-      </button>
-      <button class="tablink" data-section="Reports">
-        <i class="fas fa-chart-bar"></i>
-        <span>Reports</span>
-      </button>
-      <button class="tablink" data-section="Categories">
-        <i class="fas fa-tags"></i>
-        <span>Categories</span>
-      </button>
-      <button class="tablink" data-section="Settings">
-        <i class="fas fa-cog"></i>
-        <span>Settings</span>
-      </button>
-    </nav>
-    <div class="window-controls">
-      <button class="window-control-button minimize" id="minimizeButton">
-        <i class="fas fa-minus-circle"></i>
-      </button>
-      <button class="window-control-button close" id="closeButton">
-        <i class="fas fa-times-circle"></i>
-      </button>
-    </div>
-  </header>
-  <div id="content">
-    <!-- Dashboard Section -->
-    <div id="Dashboard" class="section active">
-      <div class="section-header">
-        <h2>Dashboard</h2>
-        <div class="account-selector">
-          <select id="dashboard-account-selector" class="select-styled">
-            <option value="all">All Accounts</option>
-          </select>
+    <!-- Loading Screen -->
+    <div class="app-loader">
+        <div class="loader-animation">
+            <div class="coin"></div>
         </div>
-      </div>
+    </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h3>Total Balance</h3>
-          <div class="value">$<span id="total-balance">0.00</span></div>
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <img src="../assets/images/favicon-96x96.png" alt="Fyenance Logo" class="logo-icon">
+            <h1>Fyenance</h1>
         </div>
-        <div class="stat-card">
-          <h3>Monthly Income</h3>
-          <div class="value positive">$<span id="monthly-income">0.00</span></div>
+        
+        <!-- Navigation -->
+        <nav>
+            <button class="tablink active" data-section="Dashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="tablink" data-section="Accounts">
+                <i class="fas fa-wallet"></i>
+                <span>Accounts</span>
+            </button>
+            <button class="tablink" data-section="Transactions">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Transactions</span>
+            </button>
+            <button class="tablink" data-section="Recurring">
+                <i class="fas fa-sync"></i>
+                <span>Recurring</span>
+            </button>
+            <button class="tablink" data-section="Reports">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reports</span>
+            </button>
+            <button class="tablink" data-section="Categories">
+                <i class="fas fa-tags"></i>
+                <span>Categories</span>
+            </button>
+            <button class="tablink" data-section="Settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </button>
+        </nav>
+        
+        <!-- Window Controls -->
+        <div class="window-controls">
+            <button class="window-control-button minimize" id="minimizeButton">
+                <i class="fas fa-minus-circle"></i>
+            </button>
+            <button class="window-control-button close" id="closeButton">
+                <i class="fas fa-times-circle"></i>
+            </button>
         </div>
-        <div class="stat-card">
-          <h3>Monthly Expenses</h3>
-          <div class="value negative">$<span id="monthly-expenses">0.00</span></div>
-        </div>
-      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div id="content">
+        <!-- Dashboard Section -->
+        <div id="Dashboard" class="section active">
+            <div class="section-header">
+                <h2>Dashboard</h2>
+                <div class="account-selector">
+                    <select id="dashboard-account-selector" class="select-styled">
+                        <option value="all">All Accounts</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Balance</h3>
+                    <div class="value">$<span id="total-balance">0.00</span></div>
+                </div>
+                <div class="stat-card">
+                    <h3>Monthly Income</h3>
+                    <div class="value positive">$<span id="monthly-income">0.00</span></div>
+                </div>
+                <div class="stat-card">
+                    <h3>Monthly Expenses</h3>
+                    <div class="value negative">$<span id="monthly-expenses">0.00</span></div>
+                </div>
+            </div>
 
       <div class="charts-grid">
         <div class="chart-container daily-spending">
@@ -576,57 +591,105 @@
       </div>
     </div>
 
-    <!-- Settings Section -->
-    <div id="Settings" class="section">
-      <div class="section-header">
-        <h2>Settings</h2>
-      </div>
+        <!-- Settings Section -->
+        <div id="Settings" class="section">
+            <div class="section-header">
+                <h2>Settings</h2>
+            </div>
 
-      <div class="settings-grid">
-        <div class="settings-card">
-          <h3>Data Management</h3>
-          <p class="settings-description">Export or import your financial data for backup or transfer to another device.</p>
-          <div class="settings-actions">
-            <button class="settings-btn" id="export-btn">
-              <i class="fas fa-download"></i>
-              Export Database
-            </button>
-            <button class="settings-btn" id="import-btn">
-              <i class="fas fa-upload"></i>
-              Import Database
-            </button>
-          </div>
-        </div>
+            <div class="settings-grid">
+                <!-- Data Management Card -->
+                <div class="settings-card">
+                    <h3>Data Management</h3>
+                    <p class="settings-description">Export or import your financial data for backup or transfer to another device.</p>
+                    <div class="settings-actions">
+                        <button class="settings-btn" id="export-btn">
+                            <i class="fas fa-download"></i>
+                            Export Database
+                        </button>
+                        <button class="settings-btn" id="import-btn">
+                            <i class="fas fa-upload"></i>
+                            Import Database
+                        </button>
+                    </div>
+                </div>
 
-        <div class="settings-card">
-            <h3>Appearance</h3>
-            <p class="settings-description">Switch between light and dark mode.</p>
-            <div class="settings-actions">
-                <button class="settings-btn" id="toggle-theme-btn">
-                    <i class="fas fa-adjust"></i>
-                    Toggle Theme
-                </button>
+                <!-- Appearance Card -->
+                <div class="settings-card">
+                    <h3>Appearance</h3>
+                    <p class="settings-description">Switch between light and dark mode.</p>
+                    <div class="settings-actions">
+                        <button class="settings-btn" id="toggle-theme-btn">
+                            <i class="fas fa-adjust"></i>
+                            Toggle Theme
+                        </button>
+                    </div>
+                </div>
+
+                <!-- About & Updates Card -->
+                <div class="settings-card">
+                    <h3>About & Updates</h3>
+                    <div class="version-info">
+                        <p class="settings-description">Current Version: <span id="app-version" class="version-number"></span></p>
+                    </div>
+                    
+                    <div class="update-section">
+                        <div class="settings-actions">
+                            <button class="settings-btn primary" id="check-updates-btn">
+                                <i class="fas fa-sync"></i>
+                                Check for Updates
+                            </button>
+                        </div>
+                        <div class="update-status-container">
+                            <p class="settings-description update-status" id="update-status"></p>
+                            <button class="settings-btn success" id="start-update-btn" style="display: none;">
+                                <i class="fas fa-download"></i>
+                                Download Update
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="about-section">
+                        <p class="settings-description">
+                            Created by <a href="https://metromagic.io" target="_blank" rel="noopener noreferrer">metromagic.io</a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- License Information Card -->
+                <div class="settings-card">
+                    <h3>License Information</h3>
+                    <div class="license-info">
+                        <p>Status: <span class="license-status active"></span></p>
+                        <p>License Key: <span id="current-license-key"></span></p>
+                        <p>Activated: <span id="license-activation-date"></span></p>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="settings-card">
-            <h3>About</h3>
-            <p class="settings-description">Version: <span id="app-version">1.0.0</span></p>
-            <div class="settings-actions">
-                <button class="settings-btn" id="check-updates-btn">
-                    <i class="fas fa-sync"></i>
-                    Check for Updates
-                </button>
-            </div>
-            <p class="settings-description update-status" id="update-status"></p>
-            <p class="settings-description">Created by <a href="https://metromagic.io" target="_blank">metromagic.io</a></p>
-        </div>
-      </div>
     </div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/date-fns"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-  <script src="./renderer.js" defer></script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="./renderer.js" defer></script>
+
+    <!-- Add this right after <body> -->
+    <div id="license-overlay" class="license-overlay">
+        <div class="license-modal">
+            <img src="../assets/images/fyenance.png" alt="Fyenance Logo" class="license-logo">
+            <h2>Welcome to Fyenance</h2>
+            <p>Please enter your license key to continue</p>
+            <div class="license-input-group">
+                <input type="text" id="license-key-input" placeholder="XXXX-XXXX-XXXX-XXXX">
+                <button id="activate-btn">Activate License</button>
+            </div>
+            <p id="license-status-message"></p>
+            <div class="license-footer">
+                <p>Don't have a license? <a href="#" id="purchase-link">Purchase Now</a></p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

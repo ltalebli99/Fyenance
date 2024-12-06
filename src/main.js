@@ -4,6 +4,7 @@ const path = require('path');
 const { initializeDatabase } = require('./services/initDatabase');
 const { autoUpdater } = require('electron-updater');
 const packageJson = require('../package.json');
+const licenseService = require('./services/licenseService');
 
 // Only load dotenv in development
 if (process.env.NODE_ENV === 'development') {
@@ -14,30 +15,13 @@ if (process.env.NODE_ENV === 'development') {
 autoUpdater.logger = require('electron-log');
 autoUpdater.logger.transports.file.level = 'debug';
 
-// Configure updater
+// Configure updater with more specific options
 autoUpdater.autoDownload = false;
+autoUpdater.allowPrerelease = false;
+autoUpdater.fullChangelog = true;
 
-// More detailed logging setup
-autoUpdater.logger.hooks.push({
-    level: 'info',
-    handler: (message, level) => {
-        console.log('Auto-updater:', level, message);
-    }
-});
-
-const updateConfig = {
-    provider: 'github',
-    owner: 'ltalebli99',
-    repo: 'Fyenance',
-    private: true
-};
-
-try {
-    console.log('Configuring auto-updater with update config');
-    autoUpdater.setFeedURL(updateConfig);
-} catch (error) {
-    console.error('Error configuring auto-updater:', error);
-}
+// electron-builder will handle the GitHub configuration during build
+console.log('Configuring auto-updater for updates');
 
 let mainWindow;
 let database;
@@ -279,6 +263,22 @@ function createWindow() {
     return result;
   });
 
+  ipcMain.handle('license:validate', async (event, licenseKey) => {
+    return await licenseService.validateLicense(licenseKey);
+  });
+
+  ipcMain.handle('license:check', () => {
+    return licenseService.checkLicenseExists();
+  });
+
+  ipcMain.handle('license:info', () => {
+    return licenseService.getLicenseInfo();
+  });
+
+  ipcMain.handle('license:clear', () => {
+    return licenseService.clearLicense();
+  });
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 800,
@@ -366,16 +366,22 @@ function sendStatusToWindow(text) {
   }
 }
 
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
 // IPC handlers for update actions
 ipcMain.handle('check-for-updates', async () => {
-  if (process.env.NODE_ENV === 'development') {
-    return { status: 'development', message: 'Updates disabled in development' };
-  }
   try {
-    return await autoUpdater.checkForUpdates();
+      console.log('Checking for updates...');
+      console.log('Current version:', app.getVersion());
+      
+      const result = await autoUpdater.checkForUpdates();
+      console.log('Check result:', result);
+      return result;
   } catch (error) {
-    console.error('Error checking for updates:', error);
-    return { status: 'error', message: error.message };
+      console.error('Update check error:', error);
+      throw error;
   }
 });
 

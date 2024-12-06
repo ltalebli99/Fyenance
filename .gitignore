@@ -10,6 +10,9 @@ linux-unpacked/
 *.yml
 *.yaml
 
+# License Server
+/license-server
+
 # Dependencies
 node_modules/
 

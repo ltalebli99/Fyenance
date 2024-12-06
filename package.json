@@ -4,8 +4,8 @@
     "name": "Lucas Talebli",
     "email": "lucas@metromagic.io"
   },
-  "version": "1.0.1",
-  "description": "Personal finance desktop app",
+  "version": "1.0.0",
+  "description": "Personal finance planning desktop app",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -26,7 +26,8 @@
     "dotenv": "^16.4.7",
     "electron-log": "^5.2.4",
     "electron-updater": "^6.3.9",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "axios": "^1.6.2"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -86,7 +87,8 @@
       "provider": "github",
       "owner": "ltalebli99",
       "repo": "Fyenance",
-      "private": true
+      "private": true,
+      "releaseType": "release"
     }
   },
   "homepage": "https://www.metromagic.io",
