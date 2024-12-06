@@ -145,13 +145,13 @@ async function fetchTotalBalance(accountId = 'all') {
     const { data: recurring, error: recurringError } = await window.databaseApi.fetchRecurring(accountId);
     if (recurringError) throw recurringError;
 
-    // Calculate total balance
-    let totalBalance;
+    // Calculate base balance from accounts
+    let accountBalance;
     if (accountId === 'all') {
-      totalBalance = accounts.reduce((acc, account) => acc + parseFloat(account.balance), 0);
+      accountBalance = accounts.reduce((acc, account) => acc + parseFloat(account.balance), 0);
     } else {
       const account = accounts.find(acc => acc.id === accountId);
-      totalBalance = account ? parseFloat(account.balance) : 0;
+      accountBalance = account ? parseFloat(account.balance) : 0;
     }
 
     // Get current month's transactions
@@ -185,9 +185,12 @@ async function fetchTotalBalance(accountId = 'all') {
     // Calculate totals
     const totalMonthlyIncome = thisMonthsTransactionIncome + thisMonthsRecurringIncome;
     const totalMonthlyExpenses = thisMonthsTransactionExpenses + thisMonthsRecurringExpenses;
+    
+    // Calculate this month's balance (account balance + all income - all expenses)
+    const thisMonthsBalance = accountBalance + totalMonthlyIncome - totalMonthlyExpenses;
 
     // Update dashboard displays
-    document.getElementById('total-balance').innerText = formatCurrency(totalBalance);
+    document.getElementById('this-months-balance').innerText = formatCurrency(thisMonthsBalance);
     document.getElementById('this-months-income').innerText = formatCurrency(totalMonthlyIncome);
     document.getElementById('this-months-expenses').innerText = formatCurrency(totalMonthlyExpenses);
 
