@@ -1425,11 +1425,37 @@ async function updateReports(period = 'month', accountId = 'all') {
     if (txError) throw txError;
     if (recError) throw recError;
 
+    console.log('All transactions:', transactions);
+
     // Filter transactions based on selected period
     const filteredTransactions = filterTransactionsByPeriod(transactions, period);
+    console.log('Filtered transactions for period:', filteredTransactions);
+    
+    // Get active recurring items
+    const activeRecurring = recurring.filter(r => r.is_active);
+    console.log('Active recurring items:', activeRecurring);
+    
+    // Calculate one-time transactions
+    const expenseTransactions = filteredTransactions.filter(tx => tx.type === 'expense');
+    console.log('Expense transactions:', expenseTransactions);
+    
+    const oneTimeIncome = filteredTransactions
+      .filter(tx => tx.type === 'income')
+      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+    
+    const oneTimeExpenses = expenseTransactions
+      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+    
+    console.log('One-time expenses calculation:', {
+      expenseTransactions: expenseTransactions.map(tx => ({
+        amount: tx.amount,
+        date: tx.date,
+        type: tx.type
+      })),
+      total: oneTimeExpenses
+    });
     
     // Calculate recurring amounts for the period
-    const activeRecurring = recurring.filter(r => r.is_active);
     const recurringExpenses = calculateRecurringForPeriod(
       activeRecurring.filter(r => r.type === 'expense'),
       period
@@ -1438,19 +1464,19 @@ async function updateReports(period = 'month', accountId = 'all') {
       activeRecurring.filter(r => r.type === 'income'),
       period
     );
+
+    console.log('Detailed Report Calculations:', {
+      oneTimeIncome,
+      recurringIncome,
+      oneTimeExpenses,
+      recurringExpenses,
+      period,
+      accountId
+    });
     
-    // Calculate totals
-    const transactionIncome = filteredTransactions
-      .filter(tx => tx.type === 'income')
-      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-    
-    const transactionExpenses = filteredTransactions
-      .filter(tx => tx.type === 'expense')
-      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-    
-    // Calculate total income and expenses including recurring
-    const totalIncome = transactionIncome + recurringIncome;
-    const totalExpenses = transactionExpenses + recurringExpenses;
+    // Calculate total income and expenses including both one-time and recurring
+    const totalIncome = oneTimeIncome + recurringIncome;
+    const totalExpenses = oneTimeExpenses + recurringExpenses;
     const netSavings = totalIncome - totalExpenses;
     const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
 
@@ -1884,26 +1910,31 @@ document.getElementById('cancel-edit-recurring')?.addEventListener('click', () =
 function filterTransactionsByPeriod(transactions, period) {
   const now = new Date();
   const startDate = new Date();
+  let endDate = new Date();
   
   switch (period) {
     case 'month':
-      startDate.setMonth(now.getMonth(), 1);
+      startDate.setMonth(now.getMonth(), 1); // First day of current month
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of current month
       break;
     case 'quarter':
       startDate.setMonth(now.getMonth() - 3);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       break;
     case 'year':
-      startDate.setFullYear(now.getFullYear(), 0, 1);
+      startDate.setFullYear(now.getFullYear(), 0, 1); // First day of current year
+      endDate.setFullYear(now.getFullYear(), 11, 31); // Last day of current year
       break;
     case 'all':
       return transactions;
     default:
       startDate.setMonth(now.getMonth(), 1); // Default to current month
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   }
   
   return transactions.filter(tx => {
     const txDate = new Date(tx.date);
-    return txDate >= startDate && txDate <= now;
+    return txDate >= startDate && txDate <= endDate;
   });
 }
 
