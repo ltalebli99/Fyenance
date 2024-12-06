@@ -6,13 +6,8 @@ on:
       - 'v*'
 
 jobs:
-  release:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest]
-
+  release-mac:
+    runs-on: macos-latest
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
@@ -30,3 +25,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          args: --mac
