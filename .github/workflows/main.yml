@@ -66,7 +66,7 @@ jobs:
           release: true
           skip_build: true
           args: >
-            -p always
+            --publish always
             ${{ matrix.os == 'macos-latest' && '--mac' ||
                 matrix.os == 'windows-latest' && '--win' ||
                 matrix.os == 'ubuntu-latest' && '--linux' }}
