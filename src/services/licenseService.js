@@ -27,7 +27,7 @@ class LicenseService {
     try {
       console.log('Validating license:', licenseKey);
 
-      const response = await axios.post('http://localhost:3000/api/validate-license', {
+      const response = await axios.post('https://api.fyenanceapp.com/v1/validate-license', {
         licenseKey,
         machineId: this.generateMachineId()
       });
@@ -83,7 +83,7 @@ class LicenseService {
         console.log('Found license data:', licenseData);
         
         try {
-          const response = await axios.post('http://localhost:3000/api/validate-license', {
+          const response = await axios.post('https://api.fyenanceapp.com/v1/validate-license', {
             licenseKey: licenseData.key,
             machineId: this.generateMachineId()
           });

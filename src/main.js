@@ -279,6 +279,20 @@ function createWindow() {
     return licenseService.clearLicense();
   });
 
+  ipcMain.handle('db:delete', async () => {
+    try {
+      database.deleteDatabase();
+      return { success: true, error: null };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.on('relaunch-app', () => {
+    app.relaunch();
+    app.exit();
+  });
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 800,

@@ -512,6 +512,41 @@ class DatabaseService {
       throw error;
     }
   }
+
+  deleteDatabase() {
+    try {
+      // Close the current database connection
+      this.db.close();
+
+      // Clear all data
+      this.db = new Database(this.dbPath);
+      this.db.prepare('BEGIN TRANSACTION').run();
+
+      try {
+        // Delete all data from tables in reverse order of dependencies
+        this.db.prepare('DELETE FROM recurring').run();
+        this.db.prepare('DELETE FROM transactions').run();
+        this.db.prepare('DELETE FROM categories').run();
+        this.db.prepare('DELETE FROM accounts').run();
+
+        // Reset all auto-increment counters
+        this.db.prepare('DELETE FROM sqlite_sequence').run();
+
+        this.db.prepare('COMMIT').run();
+
+        // Re-initialize the database structure
+        this.initDatabase();
+
+        return true;
+      } catch (error) {
+        this.db.prepare('ROLLBACK').run();
+        throw error;
+      }
+    } catch (error) {
+      console.error('Delete database error:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = DatabaseService;

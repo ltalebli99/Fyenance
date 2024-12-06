@@ -50,7 +50,8 @@ contextBridge.exposeInMainWorld('databaseApi', {
     getExpenseCategoriesData: (accountId, period) => 
         ipcRenderer.invoke('db:getExpenseCategoriesData', accountId, period),
     exportDatabase: (filePath) => ipcRenderer.invoke('db:export', filePath),
-    importDatabase: (filePath) => ipcRenderer.invoke('db:import', filePath)
+    importDatabase: (filePath) => ipcRenderer.invoke('db:import', filePath),
+    deleteDatabase: () => ipcRenderer.invoke('db:delete')
 });
 
 // Expose update API
@@ -78,7 +79,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     showOpenDialog: () => ipcRenderer.invoke('dialog:showOpenDialog'),
     isWindowMaximized: () => ipcRenderer.invoke('is-window-maximized'),
     getWindowState: () => ipcRenderer.invoke('get-window-state'),
-    openExternal: (url) => shell.openExternal(url)
+    openExternal: (url) => shell.openExternal(url),
+    relaunchApp: () => ipcRenderer.send('relaunch-app')
 });
 
 contextBridge.exposeInMainWorld('licenseApi', {

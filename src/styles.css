@@ -1440,3 +1440,48 @@
   color: var(--accent-color);
   text-decoration: none;
 }
+
+.license-window-controls {
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 1rem;
+    z-index: 10000;
+}
+
+/* Ensure the license overlay doesn't cover the controls */
+.license-overlay {
+    padding-top: 3rem;
+}
+
+.warning-text {
+  color: var(--danger);
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.danger-btn {
+  background-color: var(--danger);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.danger-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-btn.danger {
+  color: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+.settings-btn.danger:hover {
+  background-color: var(--danger);
+  color: white !important;
+}
+
+

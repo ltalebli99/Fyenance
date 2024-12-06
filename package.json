@@ -1,8 +1,8 @@
 {
   "name": "fyenance",
   "author": {
-    "name": "Lucas Talebli",
-    "email": "lucas@metromagic.io"
+    "name": "metromagic",
+    "email": "support@metromagic.io"
   },
   "version": "1.0.0",
   "description": "Personal finance planning desktop app",
@@ -10,6 +10,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "cross-env NODE_ENV=development electron .",
+    "dev:pwa": "cd pwa && npm run dev",
+    "build:pwa": "cd pwa && npm run build",
     "migrate": "electron scripts/migrate.js",
     "postinstall": "electron-builder install-app-deps",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
@@ -48,7 +50,8 @@
     ],
     "mac": {
       "icon": "assets/images/favicon.icns",
-      "category": "public.app-category.finance"
+      "category": "public.app-category.finance",
+      "target": ["dmg", "zip"]
     },
     "win": {
       "icon": "assets/images/favicon.ico",

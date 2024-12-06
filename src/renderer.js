@@ -2215,9 +2215,9 @@ async function handleImport() {
   if (filePaths && filePaths[0]) {
       const { success, error } = await window.databaseApi.importDatabase(filePaths[0]);
       if (success) {
-          alert('Database imported successfully!');
+          alert('Database imported successfully! The application will now restart.');
           // Refresh data
-          await initializeApp();
+          window.electronAPI.relaunchApp();
       } else {
           console.error('Error importing database:', error);
       }
@@ -2500,5 +2500,45 @@ async function clearLicense() {
 document.getElementById('clear-license-btn')?.addEventListener('click', async () => {
   if (confirm('Are you sure you want to clear the license? This will require reactivation.')) {
     await clearLicense();
+  }
+});
+
+document.getElementById('close-license-btn').addEventListener('click', () => {
+  window.electronAPI.closeWindow();
+});
+
+
+document.getElementById('delete-db-btn').addEventListener('click', () => {
+  openModal('delete-db-modal');
+});
+
+document.getElementById('close-delete-db').addEventListener('click', () => {
+  closeModal('delete-db-modal');
+});
+
+document.getElementById('cancel-delete-db').addEventListener('click', () => {
+  closeModal('delete-db-modal');
+});
+
+// Handle the confirmation input
+document.getElementById('delete-db-confirm').addEventListener('input', (e) => {
+  const confirmBtn = document.getElementById('confirm-delete-db');
+  confirmBtn.disabled = e.target.value !== 'DELETE';
+});
+
+// Handle the delete confirmation
+document.getElementById('confirm-delete-db').addEventListener('click', async () => {
+  try {
+      const { success, error } = await window.databaseApi.deleteDatabase();
+      if (success) {
+          closeModal('delete-db-modal');
+          alert('Database has been deleted. The application will now restart.');
+          window.electronAPI.relaunchApp();
+      } else {
+          alert(`Failed to delete database: ${error}`);
+      }
+  } catch (error) {
+      console.error('Error deleting database:', error);
+      alert('An error occurred while deleting the database.');
   }
 });
