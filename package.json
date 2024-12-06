@@ -88,7 +88,7 @@
       "repo": "Fyenance",
       "private": true,
       "releaseType": "release",
-      "force": true
+      "publishAutoUpdate": true
     }
   },
   "homepage": "https://www.metromagic.io",
