@@ -94,7 +94,6 @@ jobs:
           skip_build: true
           args: >
             -p always
-            --force
             ${{ matrix.os == 'macos-latest' && '--mac' ||
                 matrix.os == 'windows-latest' && '--win' ||
                 matrix.os == 'ubuntu-latest' && '--linux' }}
