@@ -2403,13 +2403,23 @@ function setupLicenseHandlers() {
     });
   }
 
-if (purchaseLink) {
-  purchaseLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Purchase link clicked');
-    window.open('https://google.com', '_blank');
-  });
-}
+  if (purchaseLink) {
+    purchaseLink.addEventListener('click', async (e) => {
+      e.preventDefault();
+      console.log('Purchase link clicked');
+      
+      // Debug logs
+      console.log('electronAPI available:', !!window.electronAPI);
+      console.log('openExternal available:', !!window.electronAPI?.openExternal);
+      
+      try {
+        await window.electronAPI.openExternal('https://www.fyenanceapp.com/buy');
+        console.log('Link opened successfully');
+      } catch (error) {
+        console.error('Error opening link:', error);
+      }
+    });
+  }
 
   // Format license key input
   if (licenseInput) {

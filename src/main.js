@@ -1,5 +1,5 @@
 require('./moduleResolver');
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const { initializeDatabase } = require('./services/initDatabase');
 const { autoUpdater } = require('electron-updater');
@@ -291,6 +291,10 @@ function createWindow() {
   ipcMain.on('relaunch-app', () => {
     app.relaunch();
     app.exit();
+  });
+
+  ipcMain.handle('open-external', async (_, url) => {
+    return shell.openExternal(url);
   });
 
   mainWindow = new BrowserWindow({

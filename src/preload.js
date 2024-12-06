@@ -79,7 +79,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     showOpenDialog: () => ipcRenderer.invoke('dialog:showOpenDialog'),
     isWindowMaximized: () => ipcRenderer.invoke('is-window-maximized'),
     getWindowState: () => ipcRenderer.invoke('get-window-state'),
-    openExternal: (url) => shell.openExternal(url),
+    openExternal: (url) => ipcRenderer.invoke('open-external', url),
     relaunchApp: () => ipcRenderer.send('relaunch-app')
 });
 
