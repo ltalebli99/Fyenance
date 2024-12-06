@@ -23,7 +23,7 @@ jobs:
       - name: Create or Update Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.get-version.outputs.version }}
+          tag_name: v${{ steps.get-version.outputs.version }}
           name: Release ${{ steps.get-version.outputs.version }}
           draft: false
           prerelease: false
