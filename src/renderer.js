@@ -2253,6 +2253,7 @@ function loadThemePreference() {
 document.addEventListener('DOMContentLoaded', loadThemePreference);
 
 
+// Update-related code
 async function checkForUpdates() {
   const updateStatus = document.getElementById('update-status');
   const checkUpdatesBtn = document.getElementById('check-updates-btn');
@@ -2261,35 +2262,25 @@ async function checkForUpdates() {
   if (!updateStatus || !checkUpdatesBtn) return;
 
   try {
-    // Disable button and show checking status
-    checkUpdatesBtn.disabled = true;
-    updateStatus.textContent = 'Checking for updates...';
-    startUpdateBtn.style.display = 'none';
-    
-    // Check for updates
-    const currentVersion = await window.versions.app();
-    console.log('Current version:', currentVersion); // Debug log
-    
-    // Ensure version string starts with 'v' if needed
-    const formattedVersion = currentVersion.startsWith('v') 
-      ? currentVersion 
-      : `v${currentVersion}`;
-    
-    console.log('Formatted version:', formattedVersion); // Debug log
-    
-    const updateCheck = await window.updateApi.checkForUpdates();
-    console.log('Update check result:', updateCheck); // Debug log
-    
-    // Re-enable button
-    checkUpdatesBtn.disabled = false;
+      // Disable button and show checking status
+      checkUpdatesBtn.disabled = true;
+      updateStatus.textContent = 'Checking for updates...';
+      startUpdateBtn.style.display = 'none';
+      
+      // Check for updates
+      const currentVersion = await window.versions.app();
+      const updateCheck = await window.updateApi.checkForUpdates();
+      
+      // Re-enable button
+      checkUpdatesBtn.disabled = false;
 
-    if (!updateCheck) {
-      updateStatus.textContent = `You are using the latest version (${currentVersion}).`;
-    }
+      if (!updateCheck) {
+          updateStatus.textContent = 'You are using the latest version.';
+      }
   } catch (error) {
-    console.error('Error checking for updates:', error);
-    updateStatus.textContent = 'Error checking for updates. Please try again later.';
-    checkUpdatesBtn.disabled = false;
+      console.error('Error checking for updates:', error);
+      updateStatus.textContent = 'Error checking for updates. Please try again later.';
+      checkUpdatesBtn.disabled = false;
   }
 }
 
