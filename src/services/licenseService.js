@@ -41,7 +41,10 @@ class LicenseService {
       return { valid: false, error: response.data.error || 'Invalid license key' };
     } catch (error) {
       console.error('License validation error:', error);
-      return { valid: false, error: 'Failed to validate license' };
+      return { 
+        valid: false, 
+        error: 'Internet connection required for initial license activation'
+      };
     }
   }
 
@@ -82,23 +85,28 @@ class LicenseService {
         const licenseData = JSON.parse(fs.readFileSync(this.licenseFilePath));
         console.log('Found license data:', licenseData);
         
+        const currentMachineId = this.generateMachineId();
+        if (licenseData.machineId !== currentMachineId) {
+          console.log('Machine ID mismatch');
+          return false;
+        }
+
         try {
           const response = await axios.post('https://api.fyenanceapp.com/v1/validate-license', {
             licenseKey: licenseData.key,
-            machineId: this.generateMachineId()
+            machineId: currentMachineId
           });
           
           console.log('Server validation response:', response.data);
-          
           if (!response.data.valid) {
             console.log('License is no longer valid:', response.data.error);
             return false;
           }
           
-          return true;
+          return response.data.valid;
         } catch (error) {
-          console.error('Error validating license with server:', error);
-          return false;
+          console.log('Offline mode - using local license validation');
+          return true;
         }
       }
       console.log('No license file found');
