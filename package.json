@@ -15,7 +15,7 @@
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "prebuild": "electron-rebuild -f -w better-sqlite3",
     "build": "electron-builder",
-    "build:linux": "electron-builder build --linux --config.asar=true",
+    "build:linux": "electron-builder build --linux --config.asar=true"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.46.2",
