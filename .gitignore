@@ -13,6 +13,8 @@ linux-unpacked/
 # License Server & Site
 /license-server
 /site
+/scripts
+/screenshots
 
 # Dependencies
 node_modules/
