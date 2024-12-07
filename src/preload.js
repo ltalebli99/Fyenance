@@ -56,6 +56,10 @@ contextBridge.exposeInMainWorld('databaseApi', {
     getMonthlyComparison: () => ipcRenderer.invoke('db:getMonthlyComparison'),
     getUpcomingPayments: () => ipcRenderer.invoke('db:getUpcomingPayments'),
     exportCSV: (folderPath) => ipcRenderer.invoke('db:exportCSV', folderPath),
+    fetchTemplates: () => ipcRenderer.invoke('db:getTemplates'),
+    addTemplate: (template) => ipcRenderer.invoke('db:addTemplate', template),
+    deleteTemplate: (id) => ipcRenderer.invoke('db:deleteTemplate', id),
+    checkEmptyStates: () => ipcRenderer.invoke('db:checkEmptyStates'),
 });
 
 // Expose update API
@@ -92,4 +96,10 @@ contextBridge.exposeInMainWorld('licenseApi', {
     validateLicense: (key) => ipcRenderer.invoke('license:validate', key),
     checkLicense: () => ipcRenderer.invoke('license:check'),
     getLicenseInfo: () => ipcRenderer.invoke('license:info')
+});
+
+contextBridge.exposeInMainWorld('tutorialAPI', {
+    getTutorialStatus: () => ipcRenderer.invoke('tutorial:getStatus'),
+    setTutorialComplete: () => ipcRenderer.invoke('tutorial:complete'),
+    resetTutorial: () => ipcRenderer.invoke('tutorial:reset')
 });

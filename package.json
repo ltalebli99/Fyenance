@@ -4,7 +4,7 @@
     "name": "metromagic",
     "email": "support@metromagic.io"
   },
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Personal finance planning desktop app",
   "main": "src/main.js",
   "scripts": {
@@ -19,13 +19,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.46.2",
+    "axios": "^1.6.2",
     "better-sqlite3": "^11.6.0",
     "chart.js": "^3.9.1",
     "dotenv": "^16.4.7",
     "electron-log": "^5.2.4",
     "electron-updater": "^6.3.9",
-    "path": "^0.12.7",
-    "axios": "^1.6.2"
+    "path": "^0.12.7"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -47,7 +47,10 @@
     "mac": {
       "icon": "assets/images/favicon.icns",
       "category": "public.app-category.finance",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "icon": "assets/images/favicon.ico",

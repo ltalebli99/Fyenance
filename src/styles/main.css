@@ -1616,3 +1616,291 @@
     font-size: 1rem;
 }
 
+.templates-section {
+  margin-top: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.templates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.templates-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.template-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+}
+
+.template-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.template-name {
+  flex: 1;
+}
+
+.template-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.template-actions button {
+  padding: 0.25rem 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.template-actions button:hover {
+  color: var(--primary);
+}
+
+.use-template {
+  color: var(--success) !important;
+}
+
+.delete-template {
+  color: var(--danger) !important;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.section-divider {
+  margin: 1.5rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.templates-section {
+  margin-top: 1rem;
+}
+
+.templates-list .empty-state {
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+
+.modal p {
+  margin: 1rem 0;
+  color: var(--text);
+  text-align: center;
+}
+
+.first-item-modal .modal-content {
+  max-width: 400px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.first-item-modal .modal-icon {
+  background: var(--primary-light);
+  color: var(--primary);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.first-item-modal .modal-icon i {
+  font-size: 1.8rem;
+}
+
+.first-item-modal h3 {
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  font-size: 1.4rem;
+}
+
+.first-item-modal p {
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.first-item-modal .form-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.first-item-modal .form-actions button {
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.first-item-modal .modal-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+
+.empty-state {
+  display: none; /* Hidden by default, shown via JS when needed */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem;
+  margin: 2rem auto;
+  max-width: 400px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.empty-state-icon i {
+  font-size: 2rem;
+}
+
+.empty-state h3 {
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.empty-state p {
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.empty-state button {
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.empty-state button i {
+  font-size: 0.9rem;
+}
+
+/* Animation for empty states */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.empty-state.show {
+  display: flex;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Quick Entry Styles */
+.quick-entry-container {
+  display: flex;
+  gap: 1rem;
+}
+
+.quick-entry-input {
+  min-width: 300px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+}
+
+/* Bulk Entry Styles */
+.wide-modal .modal-content {
+  width: 90%;
+  max-width: 1200px;
+}
+
+.bulk-entry-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bulk-entry-table {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.bulk-entry-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bulk-entry-table th,
+.bulk-entry-table td {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+}
+
+.bulk-entry-table input,
+.bulk-entry-table select {
+  width: 100%;
+  padding: 0.25rem;
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.bulk-entry-table tr:hover input,
+.bulk-entry-table tr:hover select {
+  border-color: var(--border);
+}
+
+
+.entry-tools {
+  gap: 1rem;
+  width: 100%;
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+  padding: 0rem 1rem;
+}
+
+#quick-entry-input {
+  flex: 1;
+}
+
+.bulk-entry-btn {
+  white-space: nowrap;
+}

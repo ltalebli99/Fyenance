@@ -31,7 +31,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/tutorial.css">
 </head>
 <body class="preload">
     <!-- Loading Screen -->
@@ -66,13 +67,13 @@
                 <i class="fas fa-sync"></i>
                 <span>Recurring</span>
             </button>
-            <button class="tablink" data-section="Reports">
-                <i class="fas fa-chart-bar"></i>
-                <span>Reports</span>
-            </button>
             <button class="tablink" data-section="Categories">
                 <i class="fas fa-tags"></i>
                 <span>Categories</span>
+            </button>
+            <button class="tablink" data-section="Reports">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reports</span>
             </button>
             <button class="tablink" data-section="Settings">
                 <i class="fas fa-cog"></i>
@@ -104,528 +105,669 @@
                 </div>
             </div>
 
-            <!-- Add the new banner -->
-            <div class="dashboard-banner">
-                <div class="banner-content">
-                    <div class="banner-stat">
-                        <span class="banner-label">Net Worth</span>
-                        <h2>$<span id="total-net-worth">0.00</span></h2>
-                    </div>
-                    <div class="banner-insights">
-                        <div class="insight">
-                            <i class="fas fa-chart-line"></i>
-                            <span id="monthly-trend">Your spending is 12% lower than last month</span>
+            <div id="dashboard-content" class="content">
+                <!-- Move all dashboard content here (banner, stats-grid, charts-grid) -->
+                <div class="dashboard-banner">
+                    <div class="banner-content">
+                        <div class="banner-stat">
+                            <span class="banner-label">Net Worth</span>
+                            <h2>$<span id="total-net-worth">0.00</span></h2>
                         </div>
-                        <div class="insight">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span id="upcoming-payments">3 recurring payments due this week</span>
+                        <div class="banner-insights">
+                            <div class="insight">
+                                <i class="fas fa-chart-line"></i>
+                                <span id="monthly-trend">Your spending is 12% lower than last month</span>
+                            </div>
+                            <div class="insight">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span id="upcoming-payments">3 recurring payments due this week</span>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>This Month's Balance</h3>
+                        <div class="value">$<span id="this-month-balance">0.00</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>This Month's Income</h3>
+                        <div class="value positive">$<span id="this-month-income">0.00</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>This Month's Expenses</h3>
+                        <div class="value negative">$<span id="this-month-expenses">0.00</span></div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-container daily-spending">
+                        <h3>Daily Spending</h3>
+                        <canvas id="dailySpendingChart"></canvas>
+                    </div>
+                    <div class="chart-container upcoming-expenses">
+                        <div id="upcomingExpensesCalendar" class="calendar-view"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dashboard-empty-state" class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Welcome to Your Financial Dashboard</h3>
+                <p>Start by adding your first account to track your finances</p>
+                <button class="primary-btn" id="add-first-account-btn">
+                    <i class="fas fa-plus"></i> Add Your First Account
+                </button>
+            </div>
+        </div>
+
+        <!-- Accounts Section -->
+        <div id="Accounts" class="section">
+            <div class="section-header">
+                <h2>Accounts</h2>
+                <button class="add-btn" id="show-add-account">+ Add Account</button>
+            </div>
+
+            <div id="accounts-content" class="content">
+                
+
+                
+
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th>Balance</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accounts-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="add-account-modal" class="modal">
+              <div class="modal-backdrop"></div>
+              <div class="modal-content">
+                  <span class="close" id="close-add-account">&times;</span>
+                  <h3>Add New Account</h3>
+                  <form id="add-account-form">
+                      <div class="form-group">
+                          <label for="account-name">Account Name</label>
+                          <input type="text" id="account-name" placeholder="e.g., Checking Account" required>
+                      </div>
+                      <div class="form-group">
+                          <label for="account-balance">Initial Balance</label>
+                          <input type="number" id="account-balance" placeholder="0.00" step="0.01" required>
+                      </div>
+                      <div class="form-actions">
+                          <button type="submit" class="primary-btn">Add Account</button>
+                          <button type="button" class="secondary-btn" id="cancel-add-account">Cancel</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+
+            <div id="accounts-empty-state" class="empty-state">
+              <div class="empty-state-icon">
+                  <i class="fas fa-wallet"></i>
+              </div>
+              <h3>No Accounts Yet</h3>
+              <p>Add your bank accounts, credit cards, or cash to start tracking</p>
+              <button class="primary-btn" onclick="document.getElementById('show-add-account').click()">
+                  <i class="fas fa-plus"></i> Add Account
+              </button>
+          </div>
+        </div>
+
+        <div id="Transactions" class="section">
+          <!-- Header Section -->
+          <div class="section-header">
+              <h2>Transactions</h2>
+              <div class="table-controls">
+                  <div class="filter-group">
+                      <select id="transaction-type-filter" class="select-styled">
+                          <option value="all">All Types</option>
+                          <option value="income">Income</option>
+                          <option value="expense">Expense</option>
+                      </select>
+                      <select id="transaction-category-filter" class="select-styled">
+                          <option value="all">All Categories</option>
+                      </select>
+                  </div>
+                  <div class="sort-group">
+                      <select id="transaction-sort" class="select-styled">
+                          <option value="date-desc">Date (Newest)</option>
+                          <option value="date-asc">Date (Oldest)</option>
+                          <option value="amount-desc">Amount (Highest)</option>
+                          <option value="amount-asc">Amount (Lowest)</option>
+                      </select>
+                  </div>
+                  <button class="add-btn" id="add-transaction-btn">+ Add Transaction</button>
+              </div>
+          </div>
+          
+          <div class="entry-tools">
+            <div class="quick-entry-container">
+                <input type="text" id="quick-entry-input" placeholder="Quick entry (e.g. '25.99 groceries')" class="quick-entry-input">
+                <button class="secondary-btn" id="show-bulk-entry">Bulk Entry</button>
+            </div>
+          </div>
+          
+          <!-- Bulk Entry Modal -->
+          <div id="bulk-entry-modal" class="modal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content wide-modal">
+              <span class="close" id="close-bulk-entry">&times;</span>
+              <h3>Bulk Transaction Entry</h3>
+              
+              <div class="bulk-entry-controls">
+                <select id="bulk-entry-account" class="select-styled">
+                  
+                </select>
+                <button id="bulk-entry-add-row" class="secondary-btn">Add Row</button>
+                <button id="bulk-entry-submit" class="primary-btn">Save All</button>
+              </div>
+          
+              <div class="bulk-entry-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Type</th>
+                      <th>Category</th>
+                      <th>Description</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bulk-entry-tbody">
+                    <!-- Rows will be added dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- Empty State -->
+          <div id="transactions-empty-state" class="empty-state">
+              <div class="empty-state-icon">
+                  <i class="fas fa-exchange-alt"></i>
+              </div>
+              <h3>No Transactions Yet</h3>
+              <p>Start tracking your income and expenses</p>
+              <button class="primary-btn" onclick="document.getElementById('add-transaction-btn').click()">
+                  <i class="fas fa-plus"></i> Add Transaction
+              </button>
+          </div>
+      
+          <!-- Add Transaction Modal -->
+          <div id="add-transaction-modal" class="modal">
+              <div class="modal-backdrop"></div>
+              <div class="modal-content">
+                  <span class="close" id="close-add-transaction">&times;</span>
+                  <h3>Add Transaction</h3>
+                  
+                  <div class="form-row">
+                      <div class="form-group">
+                          <label for="add-transaction-account">Account</label>
+                          <select id="add-transaction-account" required></select>
+                      </div>
+                      <div class="form-group">
+                          <label for="add-transaction-type">Type</label>
+                          <select id="add-transaction-type" required>
+                              <option value="income">Income</option>
+                              <option value="expense">Expense</option>
+                          </select>
+                      </div>
+                      <div class="form-group">
+                          <label for="add-transaction-date">Date</label>
+                          <input type="date" id="add-transaction-date" required>
+                      </div>
+                  </div>
+      
+                  <div class="form-row">
+                      <div class="form-group">
+                          <label for="add-transaction-category">Category</label>
+                          <select id="add-transaction-category" required></select>
+                      </div>
+                      <div class="form-group">
+                          <label for="add-transaction-amount">Amount</label>
+                          <input type="number" id="add-transaction-amount" placeholder="0.00" step="0.01" required>
+                      </div>
+                  </div>
+      
+                  <div class="form-group full-width">
+                      <label for="add-transaction-description">Description</label>
+                      <input type="text" id="add-transaction-description" placeholder="Optional description">
+                  </div>
+      
+                  <hr class="section-divider">
+      
+                  <div class="templates-section">
+                      <div class="templates-header">
+                          <h4>Templates</h4>
+                          <button type="button" id="save-as-template" class="secondary-btn">
+                              <i class="fas fa-save"></i> Save as Template
+                          </button>
+                      </div>
+                      <div id="templates-list" class="templates-list">
+                          <!-- Templates will be dynamically inserted here -->
+                      </div>
+                  </div>
+      
+                  <div class="form-actions full-width">
+                      <button type="submit" class="primary-btn">Add Transaction</button>
+                      <button type="button" class="secondary-btn" id="cancel-add-transaction">Cancel</button>
+                  </div>
+              </div>
+          </div>
+      
+          <!-- Edit Transaction Modal -->
+          <div id="edit-transaction-modal" class="modal">
+              <div class="modal-backdrop"></div>
+              <div class="modal-content">
+                  <span class="close" id="close-edit-transaction">&times;</span>
+                  <h3>Edit Transaction</h3>
+                  <form id="edit-transaction-form">
+                    <div class="form-row">
+                      <div class="form-group">
+                          <label for="edit-transaction-account">Account</label>
+                          <select id="edit-transaction-account" required></select>
+                      </div>
+                      <div class="form-group">
+                          <label for="edit-transaction-type">Type</label>
+                          <select id="edit-transaction-type" required>
+                              <option value="income">Income</option>
+                              <option value="expense">Expense</option>
+                          </select>
+                      </div>
+                      <div class="form-group">
+                          <label for="edit-transaction-date">Date</label>
+                          <input type="date" id="edit-transaction-date" required>
+                      </div>
+                  </div>
+      
+                  <div class="form-row">
+                      <div class="form-group">
+                          <label for="edit-transaction-category">Category</label>
+                          <select id="edit-transaction-category" required></select>
+                      </div>
+                      <div class="form-group">
+                          <label for="edit-transaction-amount">Amount</label>
+                          <input type="number" id="edit-transaction-amount" placeholder="0.00" step="0.01" required>
+                      </div>
+                  </div>
+      
+                  <div class="form-group full-width">
+                      <label for="edit-transaction-description">Description</label>
+                      <input type="text" id="edit-transaction-description" placeholder="Optional description">
+                  </div>
+      
+                  <input type="hidden" id="edit-transaction-id">
+      
+      
+                  <div class="form-actions full-width">
+                      <button type="submit" class="primary-btn">Update Transaction</button>
+                      <button type="button" class="secondary-btn" id="cancel-edit-transaction">Cancel</button>
+                  </div>
+              </div>
+          </div>
+      
+          <!-- Transactions Table -->
+          <div id="transactions-content" class="content">
+              <div class="card">
+                  <table>
+                      <thead>
+                          <tr>
+                              <th>Date</th>
+                              <th>Type</th>
+                              <th>Category</th>
+                              <th>Amount</th>
+                              <th>Description</th>
+                              <th class="text-right">Actions</th>
+                          </tr>
+                      </thead>
+                      <tbody id="transactions-table-body"></tbody>
+                  </table>
+              </div>
+          </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div id="Reports" class="section">
+            <div class="section-header">
+                <h2>Financial Reports</h2>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <select id="reports-period-selector" class="select-styled">
+                        <option value="month">This Month</option>
+                        <option value="quarter">This Quarter</option>
+                        <option value="year">This Year</option>
+                        <option value="all">All Time</option>
+                    </select>
+                    <select id="reports-account-selector" class="select-styled">
+                        <option value="all">All Accounts</option>
+                    </select>
                 </div>
             </div>
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>This Month's Balance</h3>
-                    <div class="value">$<span id="this-month-balance">0.00</span></div>
+                    <h3>Total Income</h3>
+                    <div class="value positive">$<span id="reports-total-income">0.00</span></div>
                 </div>
                 <div class="stat-card">
-                    <h3>This Month's Income</h3>
-                    <div class="value positive">$<span id="this-month-income">0.00</span></div>
+                    <h3>Total Expenses</h3>
+                    <div class="value negative">$<span id="reports-total-expenses">0.00</span></div>
                 </div>
                 <div class="stat-card">
-                    <h3>This Month's Expenses</h3>
-                    <div class="value negative">$<span id="this-month-expenses">0.00</span></div>
+                    <h3>Net Savings</h3>
+                    <div class="value" id="reports-savings-value">$<span id="reports-net-savings">0.00</span></div>
+                </div>
+                <div class="stat-card">
+                    <h3>Savings Rate</h3>
+                    <div class="value"><span id="reports-savings-rate">0</span>%</div>
                 </div>
             </div>
 
-      <div class="charts-grid">
-        <div class="chart-container daily-spending">
-          <h3>Daily Spending</h3>
-          <canvas id="dailySpendingChart"></canvas>
-        </div>
-        <div class="chart-container upcoming-expenses">
-          <div id="upcomingExpensesCalendar" class="calendar-view"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Accounts Section -->
-    <div id="Accounts" class="section">
-      <div class="section-header">
-        <h2>Accounts</h2>
-        <button class="add-btn" id="show-add-account">+ Add Account</button>
-      </div>
-
-      <div id="add-account-modal" class="modal">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-          <span class="close" id="close-add-account">&times;</span>
-          <h3>Add New Account</h3>
-          <form id="add-account-form">
-            <div class="form-group">
-              <label for="account-name">Account Name</label>
-              <input type="text" id="account-name" placeholder="e.g., Checking Account" required>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Monthly Comparison</h3>
+                    <canvas id="monthlyComparisonChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Expense Categories</h3>
+                    <canvas id="expenseCategoriesChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Income vs Expenses Trend</h3>
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Top Spending Categories</h3>
+                    <div id="top-spending-list" class="spending-list"></div>
+                </div>
             </div>
-            <div class="form-group">
-              <label for="account-balance">Initial Balance</label>
-              <input type="number" id="account-balance" placeholder="0.00" step="0.01" required>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="primary-btn">Add Account</button>
-              <button type="button" class="secondary-btn" id="cancel-add-account">Cancel</button>
-            </div>
-          </form>
         </div>
-      </div>
 
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Account Name</th>
-              <th>Balance</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="accounts-table-body">
-          </tbody>
-        </table>
-      </div>
-    </div>
+        <!-- Categories Section -->
+        <div id="Categories" class="section">
+            <div class="section-header">
+                <h2>Categories</h2>
+                <div class="table-controls">
+                    <div class="filter-group">
+                        <select id="category-type-filter" class="select-styled">
+                            <option value="all">All Types</option>
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                        </select>
+                        <select id="category-usage-filter" class="select-styled">
+                            <option value="all">All Categories</option>
+                            <option value="active">In Use</option>
+                            <option value="unused">Unused</option>
+                        </select>
+                    </div>
+                    <div class="sort-group">
+                        <select id="category-sort" class="select-styled">
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                            <option value="usage-desc">Most Used</option>
+                            <option value="usage-asc">Least Used</option>
+                        </select>
+                    </div>
+                    <button class="add-btn" id="show-add-category">+ Add Category</button>
+                </div>
+            </div>
 
-    <!-- Transactions Section -->
-    <div id="Transactions" class="section">
-      <div class="section-header">
-        <h2>Transactions</h2>
-        <div class="table-controls">
-          <div class="filter-group">
-            <select id="transaction-type-filter" class="select-styled">
-              <option value="all">All Types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-            <select id="transaction-category-filter" class="select-styled">
-              <option value="all">All Categories</option>
-            </select>
+            <div id="categories-content" class="content">
+                
+
+                
+
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Usage Count</th>
+                                <th>Last Used</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categories-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="add-category-modal" class="modal">
+              <div class="modal-backdrop"></div>
+              <div class="modal-content">
+                  <span class="close" id="close-add-category">&times;</span>
+                  <h3>Add Category</h3>
+                  <form id="add-category-form">
+                      <div class="form-group">
+                          <label for="add-category-name">Name</label>
+                          <input type="text" id="add-category-name" required>
+                      </div>
+                      <div class="form-group">
+                          <label for="add-category-type">Type</label>
+                          <select id="add-category-type" required>
+                              <option value="income">Income</option>
+                              <option value="expense">Expense</option>
+                          </select>
+                      </div>
+                      <div class="form-actions">
+                          <button type="submit" class="primary-btn">Add Category</button>
+                          <button type="button" class="secondary-btn" id="cancel-add-category">Cancel</button>
+                      </div>
+                  </form>
+              </div>
           </div>
-          <div class="sort-group">
-            <select id="transaction-sort" class="select-styled">
-              <option value="date-desc">Date (Newest)</option>
-              <option value="date-asc">Date (Oldest)</option>
-              <option value="amount-desc">Amount (Highest)</option>
-              <option value="amount-asc">Amount (Lowest)</option>
-            </select>
+
+          <!-- Edit Category Modal -->
+          <div id="edit-category-modal" class="modal">
+              <div class="modal-backdrop"></div>
+              <div class="modal-content">
+                  <span class="close" id="close-edit-category">&times;</span>
+                  <h3>Edit Category</h3>
+                  <form id="edit-category-form">
+                      <div class="form-group">
+                          <label for="edit-category-name">Name</label>
+                          <input type="text" id="edit-category-name" required>
+                      </div>
+                      <div class="form-group">
+                          <label for="edit-category-type">Type</label>
+                          <select id="edit-category-type" required>
+                              <option value="income">Income</option>
+                              <option value="expense">Expense</option>
+                          </select>
+                      </div>
+                      <input type="hidden" id="edit-category-id">
+                      <div class="form-actions">
+                          <button type="submit" class="primary-btn">Update Category</button>
+                          <button type="button" class="secondary-btn" id="cancel-edit-category">Cancel</button>
+                      </div>
+                  </form>
+              </div>
           </div>
-          <button class="add-btn" id="add-transaction-btn">+ Add Transaction</button>
-        </div>
-      </div>
-
-      <!-- Add Transaction Modal -->
-      <div id="add-transaction-modal" class="modal">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-          <span class="close" id="close-add-transaction">&times;</span>
-          <h3>Add Transaction</h3>
-          <form id="add-transaction-form" class="two-column-form">
-            <div class="form-group">
-              <label for="add-transaction-account">Account</label>
-              <select id="add-transaction-account" required></select>
-            </div>
-            <div class="form-group">
-              <label for="add-transaction-type">Type</label>
-              <select id="add-transaction-type" required>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="add-transaction-category">Category</label>
-              <select id="add-transaction-category" required></select>
-            </div>
-            <div class="form-group">
-              <label for="add-transaction-amount">Amount</label>
-              <input type="number" id="add-transaction-amount" placeholder="0.00" step="0.01" required>
-            </div>
-            <div class="form-group">
-              <label for="add-transaction-date">Date</label>
-              <input type="date" id="add-transaction-date" required>
-            </div>
-            <div class="form-group full-width">
-              <label for="add-transaction-description">Description</label>
-              <input type="text" id="add-transaction-description" placeholder="Optional description">
-            </div>
-            <div class="form-actions full-width">
-              <button type="submit" class="primary-btn">Add Transaction</button>
-              <button type="button" class="secondary-btn" id="cancel-add-transaction">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Category</th>
-              <th>Amount</th>
-              <th>Description</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="transactions-table-body">
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Edit Transaction Modal -->
-      <div id="edit-transaction-modal" class="modal">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-          <span class="close" id="close-edit-transaction">&times;</span>
-          <h3>Edit Transaction</h3>
-          <form id="edit-transaction-form" class="two-column-form">
-            <div class="form-group">
-              <label for="edit-transaction-account">Account</label>
-              <select id="edit-transaction-account" required></select>
-            </div>
-            <div class="form-group">
-              <label for="edit-transaction-type">Type</label>
-              <select id="edit-transaction-type" required>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="edit-transaction-category">Category</label>
-              <select id="edit-transaction-category" required></select>
-            </div>
-            <div class="form-group">
-              <label for="edit-transaction-amount">Amount</label>
-              <input type="number" id="edit-transaction-amount" placeholder="0.00" step="0.01" required>
-            </div>
-            <div class="form-group">
-              <label for="edit-transaction-date">Date</label>
-              <input type="date" id="edit-transaction-date" required>
-            </div>
-            <div class="form-group full-width">
-              <label for="edit-transaction-description">Description</label>
-              <input type="text" id="edit-transaction-description" placeholder="Optional description">
-            </div>
-            <input type="hidden" id="edit-transaction-id">
-            <div class="form-actions full-width">
-              <button type="submit" class="primary-btn">Update Transaction</button>
-              <button type="button" class="secondary-btn" id="cancel-edit-transaction">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Reports Section -->
-    <div id="Reports" class="section">
-      <div class="section-header">
-        <h2>Financial Reports</h2>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-          <select id="reports-period-selector" class="select-styled">
-            <option value="month">This Month</option>
-            <option value="quarter">This Quarter</option>
-            <option value="year">This Year</option>
-            <option value="all">All Time</option>
-          </select>
-          <select id="reports-account-selector" class="select-styled">
-            <option value="all">All Accounts</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card">
-          <h3>Total Income</h3>
-          <div class="value positive">$<span id="reports-total-income">0.00</span></div>
-        </div>
-        <div class="stat-card">
-          <h3>Total Expenses</h3>
-          <div class="value negative">$<span id="reports-total-expenses">0.00</span></div>
-        </div>
-        <div class="stat-card">
-          <h3>Net Savings</h3>
-          <div class="value" id="reports-savings-value">$<span id="reports-net-savings">0.00</span></div>
-        </div>
-        <div class="stat-card">
-          <h3>Savings Rate</h3>
-          <div class="value"><span id="reports-savings-rate">0</span>%</div>
-        </div>
-      </div>
-
-      <div class="charts-grid">
-        <div class="chart-container">
-          <h3>Monthly Comparison</h3>
-          <canvas id="monthlyComparisonChart"></canvas>
-        </div>
-        <div class="chart-container">
-          <h3>Expense Categories</h3>
-          <canvas id="expenseCategoriesChart"></canvas>
-        </div>
-        <div class="chart-container">
-          <h3>Income vs Expenses Trend</h3>
-          <canvas id="trendChart"></canvas>
-        </div>
-        <div class="chart-container">
-          <h3>Top Spending Categories</h3>
-          <div id="top-spending-list" class="spending-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Categories Section -->
-    <div id="Categories" class="section">
-      <div class="section-header">
-        <h2>Categories</h2>
-        <div class="table-controls">
-          <div class="filter-group">
-            <select id="category-type-filter" class="select-styled">
-              <option value="all">All Types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-            <select id="category-usage-filter" class="select-styled">
-              <option value="all">All Categories</option>
-              <option value="active">In Use</option>
-              <option value="unused">Unused</option>
-            </select>
+            <div id="categories-empty-state" class="empty-state">
+              <div class="empty-state-icon">
+                  <i class="fas fa-tags"></i>
+              </div>
+              <h3>No Categories Yet</h3>
+              <p>Create categories to organize your transactions</p>
+              <button class="primary-btn" onclick="document.getElementById('show-add-category').click()">
+                  <i class="fas fa-plus"></i> Add Category
+              </button>
           </div>
-          <div class="sort-group">
-            <select id="category-sort" class="select-styled">
-              <option value="name-asc">Name (A-Z)</option>
-              <option value="name-desc">Name (Z-A)</option>
-              <option value="usage-desc">Most Used</option>
-              <option value="usage-asc">Least Used</option>
-            </select>
+        </div>
+
+        <!-- Recurring Section -->
+        <div id="Recurring" class="section">
+            <div class="section-header">
+                <h2>Recurring</h2>
+                <div class="table-controls">
+                    <div class="account-selector-container">
+                        <select id="recurring-account-selector" class="form-select">
+                            <option value="">All Accounts</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="recurring-type-filter" class="select-styled">
+                            <option value="all">All Types</option>
+                            <option value="income">Income</option>
+                            <option value="expense">Expense</option>
+                        </select>
+                        <select id="recurring-category-filter" class="select-styled">
+                            <option value="all">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="sort-group">
+                        <select id="recurring-sort" class="select-styled">
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                            <option value="amount-desc">Amount (Highest)</option>
+                            <option value="amount-asc">Amount (Lowest)</option>
+                            <option value="date-desc">Date (Latest)</option>
+                            <option value="date-asc">Date (Earliest)</option>
+                        </select>
+                    </div>
+                    <button class="add-btn" id="add-recurring-btn">+ Add Recurring</button>
+                </div>
+            </div>
+
+            <div id="recurring-content" class="content">
+                
+
+                <div id="add-recurring-modal" class="modal">
+                    <div class="modal-backdrop"></div>
+                    <div class="modal-content">
+                        <span class="close" id="close-add-recurring">&times;</span>
+                        <h3>Add Recurring</h3>
+                        <form id="add-recurring-form" class="two-column-form">
+                            <div class="form-group">
+                                <label for="add-recurring-account">Account</label>
+                                <select id="add-recurring-account" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="add-recurring-name">Name</label>
+                                <input type="text" id="add-recurring-name" required placeholder="Netflix, Spotify, etc.">
+                            </div>
+                            <div class="form-group">
+                                <label for="add-recurring-amount">Amount</label>
+                                <input type="number" id="add-recurring-amount" placeholder="0.00" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="add-recurring-category">Category</label>
+                                <select id="add-recurring-category" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="add-recurring-billing-date">Billing Date</label>
+                                <input type="number" id="add-recurring-billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
+                            </div>
+                            <div class="form-group">
+                                <label for="add-recurring-type">Type</label>
+                                <select id="add-recurring-type" required>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="add-recurring-description">Description</label>
+                                <input type="text" id="add-recurring-description" placeholder="Optional description">
+                            </div>
+                            <div class="form-actions full-width">
+                                <button type="submit" class="primary-btn">Add Recurring</button>
+                                <button type="button" class="secondary-btn" id="cancel-add-recurring">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Billing Date</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recurring-table-body">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Edit Recurring Modal -->
+                <div id="edit-recurring-modal" class="modal">
+                    <div class="modal-backdrop"></div>
+                    <div class="modal-content">
+                        <span class="close" id="close-edit-recurring">&times;</span>
+                        <h3>Edit Recurring</h3>
+                        <form id="edit-recurring-form" class="two-column-form">
+                            <div class="form-group">
+                                <label for="edit-recurring-account">Account</label>
+                                <select id="edit-recurring-account" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-recurring-name">Name</label>
+                                <input type="text" id="edit-recurring-name" required placeholder="Netflix, Spotify, etc.">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-recurring-amount">Amount</label>
+                                <input type="number" id="edit-recurring-amount" placeholder="0.00" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-recurring-category">Category</label>
+                                <select id="edit-recurring-category" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-recurring-billing-date">Billing Date</label>
+                                <input type="number" id="edit-recurring-billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-recurring-type">Type</label>
+                                <select id="edit-recurring-type" required>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label for="edit-recurring-description">Description</label>
+                                <input type="text" id="edit-recurring-description" placeholder="Optional description">
+                            </div>
+                            <input type="hidden" id="edit-recurring-id">
+                            <div class="form-actions full-width">
+                                <button type="submit" class="primary-btn">Update Recurring</button>
+                                <button type="button" class="secondary-btn" id="cancel-edit-recurring">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="recurring-empty-state" class="empty-state">
+              <div class="empty-state-icon">
+                  <i class="fas fa-sync"></i>
+              </div>
+              <h3>No Recurring Transactions</h3>
+              <p>Set up recurring payments and income for better tracking</p>
+              <button class="primary-btn" onclick="document.getElementById('add-recurring-btn').click()">
+                  <i class="fas fa-plus"></i> Add Recurring Transaction
+              </button>
           </div>
-          <button class="add-btn" id="add-category-btn">+ Add Category</button>
         </div>
-      </div>
-
-      <div id="add-category-modal" class="modal">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-          <span class="close" id="close-add-category">&times;</span>
-          <h3>Add Category</h3>
-          <form id="add-category-form">
-            <div class="form-group">
-              <label for="add-category-name">Name</label>
-              <input type="text" id="add-category-name" required>
-            </div>
-            <div class="form-group">
-              <label for="add-category-type">Type</label>
-              <select id="add-category-type" required>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="primary-btn">Add Category</button>
-              <button type="button" class="secondary-btn" id="cancel-add-category">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Edit Category Modal -->
-      <div id="edit-category-modal" class="modal">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-          <span class="close" id="close-edit-category">&times;</span>
-          <h3>Edit Category</h3>
-          <form id="edit-category-form">
-            <div class="form-group">
-              <label for="edit-category-name">Name</label>
-              <input type="text" id="edit-category-name" required>
-            </div>
-            <div class="form-group">
-              <label for="edit-category-type">Type</label>
-              <select id="edit-category-type" required>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-            <input type="hidden" id="edit-category-id">
-            <div class="form-actions">
-              <button type="submit" class="primary-btn">Update Category</button>
-              <button type="button" class="secondary-btn" id="cancel-edit-category">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Usage Count</th>
-              <th>Last Used</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="categories-table-body">
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Recurring Section -->
-    <div id="Recurring" class="section">
-      <div class="section-header">
-        <h2>Recurring</h2>
-        <div class="table-controls">
-          <div class="account-selector-container">
-            <select id="recurring-account-selector" class="form-select">
-              <option value="">All Accounts</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <select id="recurring-type-filter" class="select-styled">
-              <option value="all">All Types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-            <select id="recurring-category-filter" class="select-styled">
-              <option value="all">All Categories</option>
-            </select>
-          </div>
-          <div class="sort-group">
-            <select id="recurring-sort" class="select-styled">
-              <option value="name-asc">Name (A-Z)</option>
-              <option value="name-desc">Name (Z-A)</option>
-              <option value="amount-desc">Amount (Highest)</option>
-              <option value="amount-asc">Amount (Lowest)</option>
-              <option value="date-desc">Date (Latest)</option>
-              <option value="date-asc">Date (Earliest)</option>
-            </select>
-          </div>
-          <button class="add-btn" id="add-recurring-btn">+ Add Recurring</button>
-        </div>
-      </div>
-
-      <div id="add-recurring-modal" class="modal">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-          <span class="close" id="close-add-recurring">&times;</span>
-          <h3>Add Recurring</h3>
-          <form id="add-recurring-form" class="two-column-form">
-            <div class="form-group">
-              <label for="add-recurring-account">Account</label>
-              <select id="add-recurring-account" required></select>
-            </div>
-            <div class="form-group">
-              <label for="add-recurring-name">Name</label>
-              <input type="text" id="add-recurring-name" required placeholder="Netflix, Spotify, etc.">
-            </div>
-            <div class="form-group">
-              <label for="add-recurring-amount">Amount</label>
-              <input type="number" id="add-recurring-amount" placeholder="0.00" step="0.01" required>
-            </div>
-            <div class="form-group">
-              <label for="add-recurring-category">Category</label>
-              <select id="add-recurring-category" required></select>
-            </div>
-            <div class="form-group">
-              <label for="add-recurring-billing-date">Billing Date</label>
-              <input type="number" id="add-recurring-billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
-            </div>
-            <div class="form-group">
-              <label for="add-recurring-type">Type</label>
-              <select id="add-recurring-type" required>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-            <div class="form-group full-width">
-              <label for="add-recurring-description">Description</label>
-              <input type="text" id="add-recurring-description" placeholder="Optional description">
-            </div>
-            <div class="form-actions full-width">
-              <button type="submit" class="primary-btn">Add Recurring</button>
-              <button type="button" class="secondary-btn" id="cancel-add-recurring">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Amount</th>
-              <th>Type</th>
-              <th>Category</th>
-              <th>Billing Date</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th class="text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="recurring-table-body">
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Edit Recurring Modal -->
-      <div id="edit-recurring-modal" class="modal">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-          <span class="close" id="close-edit-recurring">&times;</span>
-          <h3>Edit Recurring</h3>
-          <form id="edit-recurring-form" class="two-column-form">
-            <div class="form-group">
-              <label for="edit-recurring-account">Account</label>
-              <select id="edit-recurring-account" required></select>
-            </div>
-            <div class="form-group">
-              <label for="edit-recurring-name">Name</label>
-              <input type="text" id="edit-recurring-name" required placeholder="Netflix, Spotify, etc.">
-            </div>
-            <div class="form-group">
-              <label for="edit-recurring-amount">Amount</label>
-              <input type="number" id="edit-recurring-amount" placeholder="0.00" step="0.01" required>
-            </div>
-            <div class="form-group">
-              <label for="edit-recurring-category">Category</label>
-              <select id="edit-recurring-category" required></select>
-            </div>
-            <div class="form-group">
-              <label for="edit-recurring-billing-date">Billing Date</label>
-              <input type="number" id="edit-recurring-billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
-            </div>
-            <div class="form-group">
-              <label for="edit-recurring-type">Type</label>
-              <select id="edit-recurring-type" required>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-            
-            <div class="form-group full-width">
-              <label for="edit-recurring-description">Description</label>
-              <input type="text" id="edit-recurring-description" placeholder="Optional description">
-            </div>
-            <input type="hidden" id="edit-recurring-id">
-            <div class="form-actions full-width">
-              <button type="submit" class="primary-btn">Update Recurring</button>
-              <button type="button" class="secondary-btn" id="cancel-edit-recurring">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-
 
         <!-- Settings Section -->
         <div id="Settings" class="section">
@@ -759,5 +901,25 @@
             </div>
         </div>
     </div>
-</body>
+
+    <!-- Add this after your other modals -->
+    <div id="save-template-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <span class="close" id="close-save-template">&times;</span>
+            <h3>Save as Template</h3>
+            
+            <div class="form-group">
+                <label for="template-name-input">Template Name</label>
+                <input type="text" id="template-name-input" placeholder="Enter template name">
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="primary-btn" id="save-template-confirm">Save</button>
+                <button type="button" class="secondary-btn" id="cancel-save-template">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="tutorial.js"></script>
 </html>

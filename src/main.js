@@ -309,19 +309,54 @@ function createWindow() {
 
   ipcMain.handle('db:getMonthlyComparison', async () => {
     try {
-      const currentMonth = new Date();
-      const lastMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
+      // Get all transactions
+      const transactions = database.getTransactions();
       
-      const currentMonthData = database.getIncomeExpenseData('all', 'month');
-      const lastMonthData = database.getIncomeExpenseData('all', 'lastMonth');
-      
-      const currentExpenses = currentMonthData.expenses || 0;
-      const lastExpenses = lastMonthData.expenses || 0;
-      
-      const percentChange = lastExpenses ? ((lastExpenses - currentExpenses) / lastExpenses) * 100 : 0;
-      
-      return { data: { percentChange, trend: percentChange >= 0 ? 'lower' : 'higher' }, error: null };
+      // Get current and last month dates
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+  
+      // Calculate expenses for current month
+      const currentMonthExpenses = transactions
+        .filter(t => {
+          const date = new Date(t.date);
+          return date.getMonth() === currentMonth && 
+                 date.getFullYear() === currentYear && 
+                 t.type === 'expense';
+        })
+        .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+  
+      // Calculate expenses for last month
+      const lastMonthExpenses = transactions
+        .filter(t => {
+          const date = new Date(t.date);
+          return date.getMonth() === lastMonth && 
+                 date.getFullYear() === lastMonthYear && 
+                 t.type === 'expense';
+        })
+        .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+  
+      console.log('Current month expenses:', currentMonthExpenses);
+      console.log('Last month expenses:', lastMonthExpenses);
+  
+      // Calculate the percentage change
+      const percentChange = lastMonthExpenses ? 
+        ((lastMonthExpenses - currentMonthExpenses) / lastMonthExpenses) * 100 : 0;
+  
+      return { 
+        data: { 
+          percentChange, 
+          trend: percentChange >= 0 ? 'lower' : 'higher',
+          currentMonthExpenses,
+          lastMonthExpenses
+        }, 
+        error: null 
+      };
     } catch (error) {
+      console.error('Monthly comparison error:', error);
       return { data: null, error: error.message };
     }
   });
@@ -329,12 +364,34 @@ function createWindow() {
   ipcMain.handle('db:getUpcomingPayments', async () => {
     try {
       const recurring = database.getRecurring();
-      const now = new Date();
-      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      
-      const upcoming = recurring.filter(item => {
-        const nextDate = new Date(item.nextDate);
-        return nextDate >= now && nextDate <= weekFromNow;
+      if (!Array.isArray(recurring)) return { data: 0, error: null };
+
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const nextMonth = (currentMonth + 1) % 12;
+      const currentYear = today.getFullYear();
+      const currentDay = today.getDate();
+
+      // Filter recurring expenses that are active and are expenses
+      const upcoming = recurring.filter(expense => {
+        if (!expense.is_active || expense.type !== 'expense') return false;
+
+        // If the billing date has already passed this month,
+        // we should look at next month's billing date instead
+        const expenseMonth = expense.billing_date < currentDay ? nextMonth : currentMonth;
+        const expenseYear = expenseMonth === 11 && currentMonth === 0 ? currentYear - 1 : currentYear;
+        
+        const expenseDate = new Date(expenseYear, expenseMonth, expense.billing_date);
+        
+        // Get the week boundaries (5 days from today)
+        const startOfWeek = new Date(today);
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        const endOfWeek = new Date(today);
+        endOfWeek.setDate(today.getDate() + 4);
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        return expenseDate >= startOfWeek && expenseDate <= endOfWeek;
       });
       
       return { data: upcoming.length, error: null };
@@ -377,6 +434,58 @@ function createWindow() {
       properties: ['openDirectory']
     });
     return result;
+  });
+
+  ipcMain.handle('db:getTemplates', () => {
+    try {
+      return { data: database.getTemplates(), error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+
+  ipcMain.handle('db:addTemplate', (event, template) => {
+    try {
+      return { data: database.addTemplate(template), error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+
+  ipcMain.handle('db:deleteTemplate', (event, id) => {
+    try {
+      return { data: database.deleteTemplate(id), error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+
+  ipcMain.handle('db:checkEmptyStates', async () => {
+    try {
+      const emptyStates = {
+        accounts: database.getAccounts().length === 0,
+        transactions: database.getTransactions().length === 0,
+        categories: database.getCategories().length === 0,
+        recurring: database.getRecurring().length === 0
+      };
+      
+      return { data: emptyStates, error: null };
+    } catch (error) {
+      console.error('Error checking empty states:', error);
+      return { data: null, error: error.message };
+    }
+  });
+
+  ipcMain.handle('tutorial:getStatus', () => {
+    return database.getTutorialStatus();
+  });
+
+  ipcMain.handle('tutorial:complete', () => {
+    return database.setTutorialComplete();
+  });
+
+  ipcMain.handle('tutorial:reset', () => {
+    return database.resetTutorialStatus();
   });
 
   mainWindow = new BrowserWindow({

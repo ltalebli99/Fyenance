@@ -70,8 +70,12 @@ async function initializeMainApp() {
       renderDashboardCharts().catch(err => console.error('Failed to render charts:', err)),
       fetchRecurring().catch(err => console.error('Failed to fetch recurring:', err)),
       updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err)),
-      updateBannerData().catch(err => console.error('Failed to update banner data:', err))
+      updateBannerData().catch(err => console.error('Failed to update banner data:', err)),
+      updateEmptyStates()
     ]);
+
+    const tutorial = new Tutorial();
+    await tutorial.start();
 
   } catch (error) {
     console.error('Failed to initialize app:', error);
@@ -86,6 +90,8 @@ async function initializeMainApp() {
 
 
 window.onload = () => {
+  initializeQuickEntry();
+  initializeBulkEntry();
   initializeNavigation();
   initializeAccountSelectors();
   initializeVersionControl();
@@ -113,6 +119,7 @@ function openSection(evt, sectionName) {
   // Show the current section and add an "active" class to the button
   document.getElementById(sectionName).classList.add('active');
   evt.currentTarget.classList.add('active');
+  
 }
 
 // Add this new function to calculate monthly recurring totals
@@ -680,7 +687,7 @@ async function handleDeleteCategory(categoryId) {
 }
 
 // Add Category button click handler
-document.getElementById('add-category-btn')?.addEventListener('click', () => {
+document.getElementById('show-add-category')?.addEventListener('click', () => {
   // Reset the form in case it has old data
   document.getElementById('add-category-form').reset();
   openModal('add-category-modal');
@@ -927,24 +934,39 @@ async function updateBannerData() {
   try {
     // Get net worth
     const { data: netWorth } = await window.databaseApi.getNetWorth();
+    console.log('Net Worth:', netWorth);
     document.getElementById('total-net-worth').textContent = formatCurrency(netWorth || 0);
 
     // Get monthly comparison
     const { data: monthlyComparison } = await window.databaseApi.getMonthlyComparison();
-    const trendText = monthlyComparison.trend === 'lower' ? 'lower' : 'higher';
-    document.getElementById('monthly-trend').textContent = 
-      `Your spending is ${Math.abs(monthlyComparison.percentChange).toFixed(1)}% ${trendText} than last month`;
+    console.log('Monthly Comparison:', monthlyComparison);
+    
+    if (monthlyComparison && typeof monthlyComparison.percentChange === 'number') {
+      const trendText = monthlyComparison.trend === 'lower' ? 'lower' : 'higher';
+      document.getElementById('monthly-trend').textContent = 
+        `Your spending is ${Math.abs(monthlyComparison.percentChange).toFixed(1)}% ${trendText} than last month`;
+    } else {
+      document.getElementById('monthly-trend').textContent = 
+        'No spending comparison available yet';
+    }
 
     // Get upcoming payments
     const { data: upcomingCount } = await window.databaseApi.getUpcomingPayments();
-    document.getElementById('upcoming-payments').textContent = 
-      `${upcomingCount} recurring payments due this week`;
+    console.log('Upcoming Payments:', upcomingCount);
+    
+    if (typeof upcomingCount === 'number') {
+      const paymentText = upcomingCount === 1 ? 'payment' : 'payments';
+      document.getElementById('upcoming-payments').textContent = 
+        `${upcomingCount} recurring ${paymentText} due this week`;
+    } else {
+      document.getElementById('upcoming-payments').textContent = 
+        'No upcoming payments this week';
+    }
 
   } catch (error) {
     console.error('Error updating banner data:', error);
   }
 }
-
 // Add this after your existing code but before the window.onload
 function initializeNavigation() {
   const buttons = document.querySelectorAll('.tablink');
@@ -990,7 +1012,8 @@ async function populateAccountDropdowns() {
     'add-transaction-account',
     'edit-transaction-account',
     'add-recurring-account',
-    'edit-recurring-account'
+    'edit-recurring-account',
+    'bulk-entry-account'
   ].map(id => document.getElementById(id));
   
   // Populate each selector
@@ -1014,17 +1037,152 @@ async function populateAccountDropdowns() {
 }
 
 
-// Add event listeners for opening modals
 document.getElementById('add-transaction-btn')?.addEventListener('click', async () => {
-  await populateAccountDropdowns();
-  await populateCategoryDropdowns();
-  openModal('add-transaction-modal');
+  try {
+    // Check for accounts first
+    const { data: accounts, error: accountsError } = await window.databaseApi.fetchAccounts();
+    if (accountsError) throw accountsError;
+    
+    if (!accounts || accounts.length === 0) {
+      showCreateFirstModal('account');
+      return;
+    }
+
+    // Then check for categories
+    const { data: categories, error: categoriesError } = await window.databaseApi.fetchCategories();
+    if (categoriesError) throw categoriesError;
+    
+    if (!categories || categories.length === 0) {
+      showCreateFirstModal('category');
+      return;
+    }
+
+    // If we have both, populate dropdowns and show modal
+    await populateAccountDropdowns();
+    await populateCategoryDropdowns();
+    
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('add-transaction-date').value = today;
+    
+    openModal('add-transaction-modal');
+  } catch (error) {
+    console.error('Error checking accounts/categories:', error);
+    showError('An error occurred. Please try again.');
+  }
+});
+
+function showCreateFirstModal(type) {
+  // Close the transaction modal if it's open
+  closeModal('add-transaction-modal');
+  
+  const messages = {
+    account: {
+      title: 'No Accounts Found',
+      message: 'You need to create an account before adding transactions.',
+      action: 'Create Account',
+      section: 'Accounts',
+      icon: 'fa-wallet'
+    },
+    category: {
+      title: 'No Categories Found',
+      message: 'You need to create some categories before adding transactions.',
+      action: 'Create Category',
+      section: 'Categories',
+      icon: 'fa-tags'
+    }
+  };
+
+  const modal = document.createElement('div');
+  modal.className = 'modal show first-item-modal';
+  modal.innerHTML = `
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-icon">
+        <i class="fas ${messages[type].icon}"></i>
+      </div>
+      <h3>${messages[type].title}</h3>
+      <p>${messages[type].message}</p>
+      <div class="form-actions">
+        <button type="button" class="primary-btn" id="goto-${type}-btn">
+          <i class="fas fa-plus"></i>
+          ${messages[type].action}
+        </button>
+        <button type="button" class="secondary-btn" id="cancel-first-${type}">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Rest of the event listeners remain the same...
+  modal.querySelector(`#goto-${type}-btn`).addEventListener('click', () => {
+    document.body.removeChild(modal);
+    
+    const tabButton = document.querySelector(`button[data-section="${messages[type].section}"]`);
+    if (tabButton) {
+      const syntheticEvent = { currentTarget: tabButton };
+      openSection(syntheticEvent, messages[type].section);
+      if (type === 'account') {
+        document.getElementById('show-add-account').click();
+      } else if (type === 'category') {
+        document.getElementById('show-add-category').click();
+      }
+    }
+  });
+
+  modal.querySelector(`#cancel-first-${type}`).addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+}
+
+// Add event listener for the first account button
+document.getElementById('add-first-account-btn')?.addEventListener('click', (e) => {
+  // Find the Accounts tab button
+  const accountsTab = document.querySelector('button[data-section="Accounts"]');
+  if (accountsTab) {
+    // Call openSection with the event and section name
+    openSection({ currentTarget: accountsTab }, 'Accounts');
+    // Then trigger the add account modal
+    document.getElementById('show-add-account')?.click();
+  }
 });
 
 document.getElementById('add-recurring-btn')?.addEventListener('click', async () => {
-  await populateAccountDropdowns();
-  await populateCategoryDropdowns();
-  openModal('add-recurring-modal');
+  try {
+    // Check for accounts first
+    const { data: accounts, error: accountsError } = await window.databaseApi.fetchAccounts();
+    if (accountsError) throw accountsError;
+    
+    if (!accounts || accounts.length === 0) {
+      showCreateFirstModal('account');
+      return;
+    }
+
+    // Then check for categories
+    const { data: categories, error: categoriesError } = await window.databaseApi.fetchCategories();
+    if (categoriesError) throw categoriesError;
+    
+    if (!categories || categories.length === 0) {
+      showCreateFirstModal('category');
+      return;
+    }
+
+    // If we have both, populate dropdowns and show modal
+    await populateAccountDropdowns();
+    await populateCategoryDropdowns();
+    
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('add-recurring-date').value = today;
+    
+    openModal('add-recurring-modal');
+  } catch (error) {
+    console.error('Error checking accounts/categories:', error);
+    showError('An error occurred. Please try again.');
+  }
 });
 
 // Add event listeners for closing modals
@@ -1061,7 +1219,7 @@ async function populateCategoryDropdowns() {
       'add-transaction-category',
       'edit-transaction-category',
       'add-recurring-category',
-      'edit-recurring-category'
+      'edit-recurring-category',
     ];
 
     // Filter dropdowns (need "All Categories" option)
@@ -1092,9 +1250,24 @@ async function populateCategoryDropdowns() {
         `;
       }
     });
+
   } catch (error) {
     console.error('Error populating category dropdowns:', error);
   }
+}
+
+async function populateBulkEntryDropdowns() {
+  const { data: categories } = await window.databaseApi.fetchCategories();
+  // Populate bulk entry dropdown
+  const bulkEntryCategories = document.querySelectorAll('.category-select');
+  bulkEntryCategories.forEach(dropdown => {
+    dropdown.innerHTML = `
+      <option value="">Select Category</option>
+      ${categories.map(category => 
+        `<option value="${category.id}">${capitalizeFirstLetter(category.type)} - ${category.name}</option>`
+      ).join('')}
+    `;
+  });
 }
 
 // Add event listeners for account selectors
@@ -1124,6 +1297,7 @@ function initializeAccountSelectors() {
       recurringAccountSelect.value = recurringSelector.value;
     }
   });
+
 }
 
 // Window Controls
@@ -2636,3 +2810,356 @@ async function handleCSVExport() {
 
 // Add event listener for the CSV export button
 document.getElementById('export-csv-btn').addEventListener('click', handleCSVExport);
+
+
+// Add template-related functions
+async function saveAsTemplate() {
+  const accountId = document.getElementById('add-transaction-account').value;
+  const type = document.getElementById('add-transaction-type').value;
+  const categoryId = document.getElementById('add-transaction-category').value;
+  const amount = document.getElementById('add-transaction-amount').value;
+  const description = document.getElementById('add-transaction-description').value;
+
+  if (!accountId || !type || !categoryId) {
+    showError('Please fill in the required fields first');
+    return;
+  }
+
+  // Show template name modal
+  openModal('save-template-modal');
+  
+  // Set up one-time event listener for the save button
+  const handleSave = async () => {
+    const templateName = document.getElementById('template-name-input').value.trim();
+    if (!templateName) {
+      showError('Please enter a template name');
+      return;
+    }
+
+    try {
+      const { error } = await window.databaseApi.addTemplate({
+        name: templateName,
+        account_id: accountId,
+        type,
+        category_id: categoryId,
+        amount: amount || null,
+        description: description || ''
+      });
+
+      if (error) throw error;
+      
+      closeModal('save-template-modal');
+      document.getElementById('template-name-input').value = '';
+      await loadTemplates();
+      showSuccess('Template saved successfully!');
+    } catch (error) {
+      console.error('Error saving template:', error);
+      showError('Failed to save template');
+    }
+  };
+
+  // Set up event listeners for the template name modal
+  const saveBtn = document.getElementById('save-template-confirm');
+  const cancelBtn = document.getElementById('cancel-save-template');
+  const closeBtn = document.getElementById('close-save-template');
+
+  saveBtn.onclick = handleSave;
+  cancelBtn.onclick = () => closeModal('save-template-modal');
+  closeBtn.onclick = () => closeModal('save-template-modal');
+}
+
+async function loadTemplates() {
+  try {
+    const { data: templates, error } = await window.databaseApi.fetchTemplates();
+    if (error) throw error;
+
+    const templatesList = document.getElementById('templates-list');
+    templatesList.innerHTML = '';
+
+    if (!templates || templates.length === 0) {
+      templatesList.innerHTML = '<div class="empty-state">No saved templates</div>';
+      return;
+    }
+
+    templates.forEach(template => {
+      const item = document.createElement('div');
+      item.className = 'template-item';
+      item.innerHTML = `
+        <span class="template-name">${template.name}</span>
+        <div class="template-actions">
+          <button class="use-template" title="Use Template">
+            <i class="fas fa-play"></i>
+          </button>
+          <button class="delete-template" title="Delete Template">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      `;
+
+      item.querySelector('.use-template').addEventListener('click', () => {
+        useTemplate(template);
+      });
+
+      item.querySelector('.delete-template').addEventListener('click', async () => {
+        if (confirm('Are you sure you want to delete this template?')) {
+          const { error } = await window.databaseApi.deleteTemplate(template.id);
+          if (error) {
+            showError('Failed to delete template');
+          } else {
+            await loadTemplates();
+            showSuccess('Template deleted');
+          }
+        }
+      });
+
+      templatesList.appendChild(item);
+    });
+  } catch (error) {
+    console.error('Error loading templates:', error);
+    showError('Failed to load templates');
+  }
+}
+
+function useTemplate(template) {
+  // Fill in the transaction form with template data
+  document.getElementById('add-transaction-account').value = template.account_id;
+  document.getElementById('add-transaction-type').value = template.type;
+  document.getElementById('add-transaction-category').value = template.category_id;
+  if (template.amount) {
+    document.getElementById('add-transaction-amount').value = template.amount;
+  }
+  if (template.description) {
+    document.getElementById('add-transaction-description').value = template.description;
+  }
+}
+
+// Add to your initialization code
+document.getElementById('save-as-template')?.addEventListener('click', saveAsTemplate);
+document.addEventListener('DOMContentLoaded', () => {
+  loadTemplates();
+});
+
+
+async function updateEmptyStates() {
+  try {
+      const { data: emptyStates } = await window.databaseApi.checkEmptyStates();
+      
+      if (emptyStates) {
+          // Dashboard uses accounts data
+          toggleEmptyState('dashboard-empty-state', emptyStates.accounts);
+          toggleContent('dashboard-content', !emptyStates.accounts);
+
+          // Other sections
+          toggleEmptyState('accounts-empty-state', emptyStates.accounts);
+          toggleContent('accounts-content', !emptyStates.accounts);
+
+          toggleEmptyState('transactions-empty-state', emptyStates.transactions);
+          toggleContent('transactions-content', !emptyStates.transactions);
+
+          toggleEmptyState('categories-empty-state', emptyStates.categories);
+          toggleContent('categories-content', !emptyStates.categories);
+
+          toggleEmptyState('recurring-empty-state', emptyStates.recurring);
+          toggleContent('recurring-content', !emptyStates.recurring);
+      }
+  } catch (error) {
+      console.error('Error updating empty states:', error);
+  }
+}
+
+function toggleEmptyState(id, show) {
+  const emptyState = document.getElementById(id);
+  if (emptyState) {
+    if (show) {
+      emptyState.classList.add('show');
+    } else {
+      emptyState.classList.remove('show');
+    }
+  }
+}
+
+function toggleContent(id, show) {
+  const content = document.getElementById(id);
+  if (content) {
+    content.style.display = show ? 'block' : 'none';
+  }
+}
+
+function showError(message) {
+  // Create temporary popup element
+  const popup = document.createElement('div');
+  popup.className = 'error-popup';
+  popup.textContent = message;
+
+  // Add to document
+  document.body.appendChild(popup);
+
+  // Show with animation
+  setTimeout(() => popup.classList.add('show'), 10);
+
+  // Remove after delay
+  setTimeout(() => {
+    popup.classList.remove('show');
+    setTimeout(() => document.body.removeChild(popup), 300);
+  }, 3000);
+}
+
+
+// Natural Language Parser
+class TransactionParser {
+  static parse(input) {
+    const regex = /^(\d+\.?\d*|\.\d+)\s+(.+)$/;
+    const match = input.trim().match(regex);
+    
+    if (!match) return null;
+    
+    const [_, amount, description] = match;
+    const parsedAmount = parseFloat(amount);
+    
+    // Default to expense type
+    const type = 'expense';
+    
+    return {
+      amount: parsedAmount,
+      description: description.trim(),
+      type,
+      date: new Date().toISOString().split('T')[0]
+    };
+  }
+}
+
+// Quick Entry Handler
+function initializeQuickEntry() {
+  const quickEntryInput = document.getElementById('quick-entry-input');
+  
+  quickEntryInput.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+      const parsed = TransactionParser.parse(e.target.value);
+      if (!parsed) {
+        showError('Invalid format. Please use "amount description"');
+        return;
+      }
+      
+      // Get the first available account
+      const { data: accounts } = await window.databaseApi.fetchAccounts();
+      if (!accounts || accounts.length === 0) {
+        showError('Please add an account first');
+        return;
+      }
+      
+      // Try to match category based on description
+      const { data: categories } = await window.databaseApi.fetchCategories();
+      const matchedCategory = categories.find(cat => 
+        parsed.description.toLowerCase().includes(cat.name.toLowerCase())
+      );
+      
+      const transaction = {
+        account_id: accounts[0].id,
+        category_id: matchedCategory?.id || null,
+        type: parsed.type,
+        amount: parsed.amount,
+        date: parsed.date,
+        description: parsed.description
+      };
+      
+      const { error } = await window.databaseApi.addTransaction(transaction);
+      
+      if (error) {
+        showError('Failed to add transaction');
+        return;
+      }
+      
+      // Clear input and refresh
+      e.target.value = '';
+      await fetchTransactions();
+      await fetchTotalBalance();
+      await renderDashboardCharts();
+    }
+  });
+}
+
+// Bulk Entry Handler
+function initializeBulkEntry() {
+  const showBulkEntryBtn = document.getElementById('show-bulk-entry');
+  const bulkEntryModal = document.getElementById('bulk-entry-modal');
+  const closeBulkEntry = document.getElementById('close-bulk-entry');
+  const addRowBtn = document.getElementById('bulk-entry-add-row');
+  const submitBtn = document.getElementById('bulk-entry-submit');
+  const tbody = document.getElementById('bulk-entry-tbody');
+  
+  showBulkEntryBtn.addEventListener('click', () => {
+    openModal('bulk-entry-modal');
+    addBulkEntryRow(); // Add first row automatically
+  });
+  
+  closeBulkEntry.addEventListener('click', () => {
+    closeModal('bulk-entry-modal');
+    tbody.innerHTML = '';
+  });
+  
+  addRowBtn.addEventListener('click', addBulkEntryRow);
+  
+  submitBtn.addEventListener('click', async () => {
+    const rows = tbody.querySelectorAll('tr');
+    const transactions = [];
+    
+    for (const row of rows) {
+      const inputs = row.querySelectorAll('input, select');
+      const transaction = {
+        date: inputs[0].value,
+        amount: parseFloat(inputs[1].value),
+        type: inputs[2].value,
+        category_id: inputs[3].value,
+        description: inputs[4].value,
+        account_id: document.getElementById('bulk-entry-account').value
+      };
+      
+      if (transaction.date && transaction.amount && !isNaN(transaction.amount)) {
+        transactions.push(transaction);
+      }
+    }
+    
+    // Add all transactions
+    for (const transaction of transactions) {
+      await window.databaseApi.addTransaction(transaction);
+    }
+    
+    // Refresh everything
+    await fetchTransactions();
+    await fetchTotalBalance();
+    await renderDashboardCharts();
+    
+    closeModal('bulk-entry-modal');
+    tbody.innerHTML = '';
+  });
+}
+
+function addBulkEntryRow() {
+  const tbody = document.getElementById('bulk-entry-tbody');
+  const row = document.createElement('tr');
+  
+  row.innerHTML = `
+    <td><input type="date" value="${new Date().toISOString().split('T')[0]}"></td>
+    <td><input type="number" step="0.01" placeholder="0.00"></td>
+    <td>
+      <select>
+        <option value="expense">Expense</option>
+        <option value="income">Income</option>
+      </select>
+    </td>
+    <td>
+      <select class="category-select" id="bulk-entry-category">
+        <!-- Categories will be populated dynamically -->
+      </select>
+    </td>
+    <td><input type="text" placeholder="Description"></td>
+    <td>
+      <button class="action-btn delete-btn" onclick="this.closest('tr').remove()">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </td>
+  `;
+  
+  tbody.appendChild(row);
+  populateBulkEntryDropdowns();
+}

@@ -57,6 +57,25 @@ class DatabaseService {
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
       );
 
+      CREATE TABLE IF NOT EXISTS templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        account_id INTEGER,
+        type TEXT NOT NULL,
+        category_id INTEGER,
+        amount REAL,
+        description TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (account_id) REFERENCES accounts(id),
+        FOREIGN KEY (category_id) REFERENCES categories(id)
+      );
+
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON transactions(account_id);
       CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id);
       CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
@@ -615,6 +634,58 @@ class DatabaseService {
       throw error;
     }
   }
+
+// Add to DatabaseService class
+getTemplates() {
+  return this.db.prepare(`
+    SELECT templates.*, categories.name as category_name, accounts.name as account_name
+    FROM templates
+    LEFT JOIN categories ON templates.category_id = categories.id
+    LEFT JOIN accounts ON templates.account_id = accounts.id
+  `).all();
+}
+
+addTemplate(template) {
+  const stmt = this.db.prepare(`
+    INSERT INTO templates (name, account_id, type, category_id, amount, description)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  
+  return stmt.run(
+    template.name,
+    template.account_id,
+    template.type,
+    template.category_id,
+    template.amount,
+    template.description
+  );
+}
+
+deleteTemplate(id) {
+  return this.db.prepare('DELETE FROM templates WHERE id = ?').run(id);
+  }
+
+getTutorialStatus() {
+  const result = this.db.prepare(
+    'SELECT value FROM app_settings WHERE key = ?'
+  ).get('tutorial-completed');
+  return result ? result.value === 'true' : false;
+}
+
+setTutorialComplete() {
+  const stmt = this.db.prepare(`
+    INSERT OR REPLACE INTO app_settings (key, value, updated_at) 
+    VALUES ('tutorial-completed', 'true', CURRENT_TIMESTAMP)
+  `);
+  return stmt.run();
+}
+
+resetTutorialStatus() {
+  const stmt = this.db.prepare(`
+    DELETE FROM app_settings WHERE key = 'tutorial-completed'
+  `);
+  return stmt.run();
+}
 }
 
 module.exports = DatabaseService;

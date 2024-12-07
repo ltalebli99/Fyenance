@@ -1,0 +1,142 @@
+/* Tutorial Styles */
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+    z-index: 99999;
+}
+
+.tutorial-highlight-wrapper {
+    position: fixed;
+    z-index: 100000;
+}
+
+.tutorial-highlight {
+    box-shadow: 0 0 0 2px var(--primary), 
+                0 0 15px rgba(var(--primary-rgb), 0.3);
+    border-radius: 8px;
+    /* Add a subtle transition */
+    transition: box-shadow 0.3s ease;
+}
+
+.tablink.tutorial-highlight {
+    border-radius: 4px;
+    /* More subtle glow for nav items */
+    box-shadow: 0 0 0 2px var(--primary),
+                0 0 10px rgba(var(--primary-rgb), 0.2);
+}
+
+.tutorial-tooltip {
+    position: fixed;
+    background: var(--primary);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100001;
+    pointer-events: auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    transform-origin: top left;
+}
+
+.tutorial-tooltip::after {
+    content: '';
+    position: absolute;
+    border: 8px solid transparent;
+}
+
+.tutorial-tooltip.bottom::after {
+    border-bottom-color: var(--primary);
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.tutorial-tooltip.bottom-left::after {
+    border-bottom-color: var(--primary);
+    top: -16px;
+    left: 20px;
+    transform: none;
+}
+
+.tutorial-tooltip.top::after {
+    border-top-color: var(--primary);
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.tutorial-tooltip.top-right::after {
+    content: '';
+    position: absolute;
+    border: 8px solid transparent;
+    border-bottom-color: var(--primary);
+    top: -16px;
+    right: 20px;
+    left: auto;
+    transform: none;
+}
+
+.tutorial-tooltip .tutorial-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.tutorial-tooltip button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.tutorial-tooltip .next-btn {
+    background: white;
+    color: var(--primary);
+}
+
+.tutorial-tooltip .skip-btn {
+    background: transparent;
+    color: white;
+    opacity: 0.8;
+}
+
+.tutorial-tooltip .skip-btn:hover {
+    opacity: 1;
+}
+
+.tutorial-highlight {
+    box-shadow: 0 0 0 4px var(--primary);
+}
+
+/* Force all parents of highlighted element to create stacking context */
+.tutorial-highlight,
+.tutorial-highlight * {
+    isolation: isolate;
+    z-index: 100000 !important;
+}
+
+/* Add class for exit animation */
+.tutorial-tooltip.exit {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
