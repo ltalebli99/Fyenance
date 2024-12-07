@@ -61,6 +61,34 @@ class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions(category_id);
       CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
       CREATE INDEX IF NOT EXISTS idx_recurring_account_id ON recurring(account_id);
+
+      -- Create a view for category usage statistics
+      CREATE VIEW IF NOT EXISTS category_usage AS
+      WITH usage_data AS (
+          -- Count from transactions
+          SELECT category_id,
+                 COUNT(*) as use_count,
+                 MAX(date) as last_used
+          FROM transactions
+          WHERE category_id IS NOT NULL
+          GROUP BY category_id
+          
+          UNION ALL
+          
+          -- Count from recurring transactions
+          SELECT category_id,
+                 COUNT(*) as use_count,
+                 MAX(created_at) as last_used
+          FROM recurring
+          WHERE category_id IS NOT NULL
+          GROUP BY category_id
+      )
+      SELECT 
+          category_id,
+          SUM(use_count) as total_uses,
+          MAX(last_used) as last_used
+      FROM usage_data
+      GROUP BY category_id;
     `);
   }
 
@@ -148,7 +176,15 @@ class DatabaseService {
 
   // Categories
   getCategories() {
-    return this.db.prepare('SELECT * FROM categories ORDER BY type, name').all();
+    return this.db.prepare(`
+      SELECT 
+        c.*,
+        COALESCE(cu.total_uses, 0) as usage_count,
+        cu.last_used
+      FROM categories c
+      LEFT JOIN category_usage cu ON c.id = cu.category_id
+      ORDER BY c.type, c.name
+    `).all();
   }
 
   addCategory(category) {

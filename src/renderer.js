@@ -69,7 +69,6 @@ async function initializeMainApp() {
       fetchTransactions().catch(err => console.error('Failed to fetch transactions:', err)),
       renderDashboardCharts().catch(err => console.error('Failed to render charts:', err)),
       fetchRecurring().catch(err => console.error('Failed to fetch recurring:', err)),
-      fetchAndDisplayCategories().catch(err => console.error('Failed to fetch categories:', err)),
       updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err))
     ]);
 
@@ -218,9 +217,17 @@ async function fetchAccounts() {
           <input type="number" class="balance-edit" style="display: none" value="${account.balance}" step="0.01">
         </td>
         <td>
-          <button class="edit-btn" data-account-id="${account.id}">Edit</button>
-          <button class="save-btn" data-account-id="${account.id}" style="display: none">Save</button>
-          <button class="delete-btn" data-account-id="${account.id}">Delete</button>
+          <div class="action-buttons">
+            <button class="action-btn edit-btn" data-account-id="${account.id}" title="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="action-btn save-btn" data-account-id="${account.id}" style="display: none" title="Save">
+              <i class="fas fa-check"></i>
+            </button>
+            <button class="action-btn delete-btn" data-account-id="${account.id}" title="Delete">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
         </td>
       `;
       
@@ -474,12 +481,14 @@ async function fetchTransactions(accountId = null) {
           </td>
           <td>${transaction.description || '-'}</td>
           <td>
-            <button class="icon-btn edit-btn">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="icon-btn delete-btn">
-              <i class="fas fa-trash"></i>
-            </button>
+            <div class="action-buttons">
+              <button class="action-btn edit-btn" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn delete-btn" title="Delete">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
           </td>
         `;
 
@@ -511,6 +520,7 @@ async function fetchTransactions(accountId = null) {
 async function fetchCategories() {
   try {
     const typeFilter = document.getElementById('category-type-filter')?.value || 'all';
+    const usageFilter = document.getElementById('category-usage-filter')?.value || 'all';
     const sortBy = document.getElementById('category-sort')?.value || 'name-asc';
     
     const { data: categories, error } = await window.databaseApi.fetchCategories();
@@ -518,8 +528,20 @@ async function fetchCategories() {
 
     // Apply filters
     let filteredData = categories;
+    
     if (typeFilter !== 'all') {
       filteredData = filteredData.filter(c => c.type === typeFilter);
+    }
+
+    if (usageFilter !== 'all') {
+      switch (usageFilter) {
+        case 'active':
+          filteredData = filteredData.filter(c => c.usage_count > 0);
+          break;
+        case 'unused':
+          filteredData = filteredData.filter(c => c.usage_count === 0);
+          break;
+      }
     }
 
     // Apply sorting
@@ -530,8 +552,11 @@ async function fetchCategories() {
         case 'name':
           comparison = a.name.localeCompare(b.name);
           break;
-        case 'type':
-          comparison = a.type.localeCompare(b.type);
+        case 'usage':
+          comparison = (a.usage_count || 0) - (b.usage_count || 0);
+          break;
+        case 'last_used':
+          comparison = (a.last_used || '').localeCompare(b.last_used || '');
           break;
       }
       return direction === 'asc' ? comparison : -comparison;
@@ -540,39 +565,65 @@ async function fetchCategories() {
     const categoriesTableBody = document.getElementById('categories-table-body');
     if (!categoriesTableBody) return;
 
+    categoriesTableBody.innerHTML = '';
+
     if (filteredData && filteredData.length > 0) {
-      categoriesTableBody.innerHTML = filteredData.map(category => `
-        <tr>
+      filteredData.forEach(category => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
           <td>${category.name}</td>
           <td>${capitalizeFirstLetter(category.type)}</td>
+          <td>${category.usage_count || 0}</td>
+          <td>${category.last_used ? new Date(category.last_used).toLocaleDateString() : 'Never'}</td>
           <td>
-            <button class="edit-category-btn" data-category-id="${category.id}">Edit</button>
-            <button class="delete-category-btn" data-category-id="${category.id}">Delete</button>
+            <div class="action-buttons">
+              <button class="action-btn edit-btn" data-category-id="${category.id}" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn delete-btn" data-category-id="${category.id}" title="Delete">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
           </td>
-        </tr>
-      `).join('');
+        `;
 
-      // Add event listeners for edit and delete buttons
-      document.querySelectorAll('.edit-category-btn').forEach(button => {
-        button.addEventListener('click', async () => {
-          const categoryId = button.dataset.categoryId;
-          const category = filteredData.find(c => c.id === parseInt(categoryId));
-          if (category) {
-            await showEditCategoryForm(category);
+        // Add delete button event listener
+        const deleteBtn = row.querySelector('.delete-btn');
+        deleteBtn.addEventListener('click', async () => {
+          if (confirm('Are you sure you want to delete this category? Associated transactions will become uncategorized.')) {
+            const { error: deleteError } = await window.databaseApi.deleteCategory(category.id);
+            
+            if (deleteError) {
+              console.error('Error deleting category:', deleteError);
+              return;
+            }
+            
+            // Refresh categories and dropdowns
+            await Promise.all([
+              fetchCategories(),
+              populateCategoryDropdowns()
+            ]);
           }
         });
-      });
 
-      document.querySelectorAll('.delete-category-btn').forEach(button => {
-        button.addEventListener('click', () => {
-          const categoryId = button.dataset.categoryId;
-          handleDeleteCategory(categoryId);
+        // Add edit button event listener
+        const editBtn = row.querySelector('.edit-btn');
+        editBtn.addEventListener('click', async () => {
+          // Populate edit modal with category data
+          document.getElementById('edit-category-id').value = category.id;
+          document.getElementById('edit-category-name').value = category.name;
+          document.getElementById('edit-category-type').value = category.type;
+          
+          // Open the edit modal
+          openModal('edit-category-modal');
         });
+
+        categoriesTableBody.appendChild(row);
       });
     } else {
       categoriesTableBody.innerHTML = `
         <tr>
-          <td colspan="3" class="empty-state">No categories found</td>
+          <td colspan="5" class="empty-state">No categories found</td>
         </tr>
       `;
     }
@@ -1126,12 +1177,14 @@ async function fetchRecurring(accountId = null) {
             </div>
           </td>
           <td>
-            <button class="icon-btn edit-btn">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="icon-btn delete-btn">
-              <i class="fas fa-trash"></i>
-            </button>
+            <div class="action-buttons">
+              <button class="action-btn edit-btn" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn delete-btn" title="Delete">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
           </td>
         `;
 
@@ -1303,65 +1356,6 @@ if (recurringSelector) {
   });
 }
 
-async function fetchAndDisplayCategories() {
-  const { data, error } = await window.databaseApi.fetchCategories();
-
-  if (error) {
-    console.error('Error fetching categories:', error);
-    return;
-  }
-
-  const categoriesTableBody = document.getElementById('categories-table-body');
-  if (!categoriesTableBody) return;
-  
-  categoriesTableBody.innerHTML = '';
-
-  data.forEach(category => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${category.name}</td>
-      <td>${capitalizeFirstLetter(category.type)}</td>
-      <td>
-        <button class="edit-btn" data-category-id="${category.id}">Edit</button>
-        <button class="delete-btn" data-category-id="${category.id}">Delete</button>
-      </td>
-    `;
-
-    // Add delete button event listener
-    const deleteBtn = row.querySelector('.delete-btn');
-    deleteBtn.addEventListener('click', async () => {
-      if (confirm('Are you sure you want to delete this category? Associated transactions will become uncategorized.')) {
-        const { error: deleteError } = await window.databaseApi.deleteCategory(category.id);
-        
-        if (deleteError) {
-          console.error('Error deleting category:', deleteError);
-          return;
-        }
-        
-        // Refresh categories and dropdowns
-        await Promise.all([
-          fetchAndDisplayCategories(),
-          populateCategoryDropdowns()
-        ]);
-      }
-    });
-
-    // Add edit button event listener
-    const editBtn = row.querySelector('.edit-btn');
-    editBtn.addEventListener('click', async () => {
-      // Populate edit modal with category data
-      document.getElementById('edit-category-id').value = category.id;
-      document.getElementById('edit-category-name').value = category.name;
-      document.getElementById('edit-category-type').value = category.type;
-      
-      // Open the edit modal
-      openModal('edit-category-modal');
-    });
-
-    categoriesTableBody.appendChild(row);
-  });
-}
-
 // Add event listener for the edit category form submission
 document.getElementById('edit-category-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1380,7 +1374,7 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
   // Close modal and refresh data
   closeModal('edit-category-modal');
   await Promise.all([
-    fetchAndDisplayCategories(),
+    fetchCategories(),
     populateCategoryDropdowns()
   ]);
   e.target.reset();
@@ -1401,7 +1395,7 @@ document.getElementById('add-category-form')?.addEventListener('submit', async (
     // Close modal and refresh data
     closeModal('add-category-modal');
     await Promise.all([
-      fetchAndDisplayCategories(),
+      fetchCategories(),
       populateCategoryDropdowns()
     ]);
     e.target.reset();

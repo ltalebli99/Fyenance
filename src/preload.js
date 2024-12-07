@@ -25,7 +25,7 @@ contextBridge.exposeInMainWorld('databaseApi', {
     deleteTransaction: (id) => ipcRenderer.invoke('db:deleteTransaction', id),
     
     // Categories
-    fetchCategories: () => ipcRenderer.invoke('db:getCategories'),
+    fetchCategories: (filters) => ipcRenderer.invoke('db:getCategories', filters),
     addCategory: (category) => ipcRenderer.invoke('db:addCategory', category),
     updateCategory: (id, data) => ipcRenderer.invoke('db:updateCategory', id, data),
     deleteCategory: (id) => ipcRenderer.invoke('db:deleteCategory', id),

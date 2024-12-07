@@ -1483,3 +1483,84 @@
   background-color: var(--danger);
   color: white !important;
 }
+
+/* Update existing button styles */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  background: transparent;
+  color: var(--gray-700);
+  border: none;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+}
+
+.action-btn:hover {
+  background: var(--gray-100);
+  transform: translateY(-1px);
+}
+
+.action-btn.edit-btn:hover {
+  color: var(--primary);
+  background: var(--gray-100);
+}
+
+.action-btn.delete-btn:hover {
+  color: var(--danger);
+  background: rgba(211, 47, 47, 0.1);
+}
+
+.action-btn i {
+  font-size: 1rem;
+}
+
+/* Dark mode support */
+.dark-mode .action-btn {
+  color: var(--gray-300);
+}
+
+.dark-mode .action-btn:hover {
+  background: var(--gray-800);
+}
+
+.dark-mode .action-btn.edit-btn:hover {
+  color: var(--primary-light);
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.dark-mode .action-btn.delete-btn:hover {
+  color: #ef5350;
+  background: rgba(211, 47, 47, 0.1);
+}
+
+/* Add to your existing action button styles */
+.action-btn.save-btn {
+  display: none; /* Hidden by default */
+}
+
+.action-btn.save-btn:hover {
+  color: var(--success);
+  background: rgba(67, 160, 71, 0.1);
+}
+
+.dark-mode .action-btn.save-btn:hover {
+  color: #81c784;
+  background: rgba(67, 160, 71, 0.1);
+}
+
+.text-right {
+  text-align: right;
+}
+
+

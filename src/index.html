@@ -165,7 +165,7 @@
             <tr>
               <th>Account Name</th>
               <th>Balance</th>
-              <th>Actions</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody id="accounts-table-body">
@@ -252,7 +252,7 @@
               <th>Category</th>
               <th>Amount</th>
               <th>Description</th>
-              <th>Actions</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody id="transactions-table-body">
@@ -371,13 +371,18 @@
               <option value="income">Income</option>
               <option value="expense">Expense</option>
             </select>
+            <select id="category-usage-filter" class="select-styled">
+              <option value="all">All Categories</option>
+              <option value="active">In Use</option>
+              <option value="unused">Unused</option>
+            </select>
           </div>
           <div class="sort-group">
             <select id="category-sort" class="select-styled">
               <option value="name-asc">Name (A-Z)</option>
               <option value="name-desc">Name (Z-A)</option>
-              <option value="type-asc">Type (A-Z)</option>
-              <option value="type-desc">Type (Z-A)</option>
+              <option value="usage-desc">Most Used</option>
+              <option value="usage-asc">Least Used</option>
             </select>
           </div>
           <button class="add-btn" id="add-category-btn">+ Add Category</button>
@@ -442,7 +447,9 @@
             <tr>
               <th>Name</th>
               <th>Type</th>
-              <th>Actions</th>
+              <th>Usage Count</th>
+              <th>Last Used</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody id="categories-table-body">
@@ -541,7 +548,7 @@
               <th>Billing Date</th>
               <th>Description</th>
               <th>Status</th>
-              <th>Actions</th>
+              <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody id="recurring-table-body">

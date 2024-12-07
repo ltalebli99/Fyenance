@@ -87,9 +87,9 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getCategories', async () => {
+  ipcMain.handle('db:getCategories', async (event, filters) => {
     try {
-      const categories = database.getCategories();
+      const categories = database.getCategories(filters);
       return { data: categories, error: null };
     } catch (error) {
       return { data: null, error: error.message };
