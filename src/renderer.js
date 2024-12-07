@@ -69,7 +69,8 @@ async function initializeMainApp() {
       fetchTransactions().catch(err => console.error('Failed to fetch transactions:', err)),
       renderDashboardCharts().catch(err => console.error('Failed to render charts:', err)),
       fetchRecurring().catch(err => console.error('Failed to fetch recurring:', err)),
-      updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err))
+      updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err)),
+      updateBannerData().catch(err => console.error('Failed to update banner data:', err))
     ]);
 
   } catch (error) {
@@ -832,22 +833,27 @@ async function getUpcomingExpensesForWeek() {
 
     const today = new Date();
     const currentMonth = today.getMonth();
+    const nextMonth = (currentMonth + 1) % 12;
     const currentYear = today.getFullYear();
+    const currentDay = today.getDate();
 
     // Filter recurring expenses that are active and are expenses
     return recurring.filter(expense => {
       if (!expense.is_active || expense.type !== 'expense') return false;
 
-      // Convert billing_date (1-31) to a date object for the current month
-      const expenseDate = new Date(currentYear, currentMonth, expense.billing_date);
+      // If the billing date has already passed this month,
+      // we should look at next month's billing date instead
+      const expenseMonth = expense.billing_date < currentDay ? nextMonth : currentMonth;
+      const expenseYear = expenseMonth === 11 && currentMonth === 0 ? currentYear - 1 : currentYear;
       
-      // Get the week boundaries
+      const expenseDate = new Date(expenseYear, expenseMonth, expense.billing_date);
+      
+      // Get the week boundaries (5 days from today)
       const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
       startOfWeek.setHours(0, 0, 0, 0);
       
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + 4);
       endOfWeek.setHours(23, 59, 59, 999);
 
       return expenseDate >= startOfWeek && expenseDate <= endOfWeek;
@@ -864,7 +870,6 @@ async function renderUpcomingExpensesCalendar() {
     if (!calendarElement) return;
 
     const upcomingExpenses = await getUpcomingExpensesForWeek() || [];
-    
     // Clear existing content
     calendarElement.innerHTML = '<h3>Upcoming Expenses</h3>';
 
@@ -886,12 +891,7 @@ async function renderUpcomingExpensesCalendar() {
       
       // Filter expenses for this day
       const expensesForDay = upcomingExpenses.filter(expense => {
-        const expenseDate = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth(),
-          expense.billing_date
-        );
-        return expenseDate.getDate() === currentDate.getDate();
+        return expense.billing_date === currentDate.getDate();
       });
 
       const dayElement = document.createElement('div');
@@ -923,7 +923,27 @@ async function renderUpcomingExpensesCalendar() {
   }
 }
 
+async function updateBannerData() {
+  try {
+    // Get net worth
+    const { data: netWorth } = await window.databaseApi.getNetWorth();
+    document.getElementById('total-net-worth').textContent = formatCurrency(netWorth || 0);
 
+    // Get monthly comparison
+    const { data: monthlyComparison } = await window.databaseApi.getMonthlyComparison();
+    const trendText = monthlyComparison.trend === 'lower' ? 'lower' : 'higher';
+    document.getElementById('monthly-trend').textContent = 
+      `Your spending is ${Math.abs(monthlyComparison.percentChange).toFixed(1)}% ${trendText} than last month`;
+
+    // Get upcoming payments
+    const { data: upcomingCount } = await window.databaseApi.getUpcomingPayments();
+    document.getElementById('upcoming-payments').textContent = 
+      `${upcomingCount} recurring payments due this week`;
+
+  } catch (error) {
+    console.error('Error updating banner data:', error);
+  }
+}
 
 // Add this after your existing code but before the window.onload
 function initializeNavigation() {
@@ -1023,6 +1043,11 @@ async function showEditCategoryForm(category) {
   document.getElementById('edit-category-id').value = category.id;
   document.getElementById('edit-category-name').value = category.name;
   document.getElementById('edit-category-type').value = category.type;
+  
+  // Also update the type dropdown to show the correct value
+  const typeSelect = document.getElementById('edit-category-type');
+  typeSelect.value = category.type;
+  
   openModal('edit-category-modal');
 }
 
@@ -1094,7 +1119,6 @@ function initializeAccountSelectors() {
 
   recurringSelector?.addEventListener('change', async () => {
     await fetchRecurring(recurringSelector.value);
-
     const recurringAccountSelect = document.getElementById('recurring-account');
     if (recurringAccountSelect && recurringSelector.value !== 'all') {
       recurringAccountSelect.value = recurringSelector.value;
@@ -1785,6 +1809,12 @@ async function showEditRecurringForm(item) {
   document.getElementById('edit-recurring-amount').value = item.amount;
   document.getElementById('edit-recurring-billing-date').value = item.billing_date;
   document.getElementById('edit-recurring-description').value = item.description || '';
+  
+  // Set the type value
+  const typeSelect = document.getElementById('edit-recurring-type');
+  if (typeSelect) {
+    typeSelect.value = item.type;
+  }
 
   // Open the modal
   openModal('edit-recurring-modal');
@@ -2581,3 +2611,28 @@ document.getElementById('confirm-delete-db').addEventListener('click', async () 
       alert('An error occurred while deleting the database.');
   }
 });
+
+
+// Add this function to handle CSV export
+async function handleCSVExport() {
+  try {
+      const { filePaths, canceled } = await window.electronAPI.showFolderDialog();
+      
+      if (canceled || !filePaths[0]) return;
+
+      const { success, error } = await window.databaseApi.exportCSV(filePaths[0]);
+      
+      if (success) {
+          alert('Data exported successfully to CSV files!');
+      } else {
+          console.error('Error exporting CSV:', error);
+          alert('Failed to export CSV files. Please check the console for details.');
+      }
+  } catch (error) {
+      console.error('CSV export error:', error);
+      alert('An error occurred while exporting CSV files.');
+  }
+}
+
+// Add event listener for the CSV export button
+document.getElementById('export-csv-btn').addEventListener('click', handleCSVExport);

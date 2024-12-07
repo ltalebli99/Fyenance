@@ -51,7 +51,11 @@ contextBridge.exposeInMainWorld('databaseApi', {
         ipcRenderer.invoke('db:getExpenseCategoriesData', accountId, period),
     exportDatabase: (filePath) => ipcRenderer.invoke('db:export', filePath),
     importDatabase: (filePath) => ipcRenderer.invoke('db:import', filePath),
-    deleteDatabase: () => ipcRenderer.invoke('db:delete')
+    deleteDatabase: () => ipcRenderer.invoke('db:delete'),
+    getNetWorth: () => ipcRenderer.invoke('db:getNetWorth'),
+    getMonthlyComparison: () => ipcRenderer.invoke('db:getMonthlyComparison'),
+    getUpcomingPayments: () => ipcRenderer.invoke('db:getUpcomingPayments'),
+    exportCSV: (folderPath) => ipcRenderer.invoke('db:exportCSV', folderPath),
 });
 
 // Expose update API
@@ -80,7 +84,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isWindowMaximized: () => ipcRenderer.invoke('is-window-maximized'),
     getWindowState: () => ipcRenderer.invoke('get-window-state'),
     openExternal: (url) => ipcRenderer.invoke('open-external', url),
-    relaunchApp: () => ipcRenderer.send('relaunch-app')
+    relaunchApp: () => ipcRenderer.send('relaunch-app'),
+    showFolderDialog: () => ipcRenderer.invoke('dialog:showFolderDialog'),
 });
 
 contextBridge.exposeInMainWorld('licenseApi', {

@@ -1246,7 +1246,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
 }
 
@@ -1258,6 +1258,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  width: 100%;
+  border: 1px solid var(--border);
 }
 
 .expense-amount {
@@ -1563,4 +1565,54 @@
   text-align: right;
 }
 
+.dashboard-banner {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: var(--radius);
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.banner-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.banner-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.banner-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.banner-stat h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.banner-insights {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.insight {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.insight i {
+    font-size: 1rem;
+}
 

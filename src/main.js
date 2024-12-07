@@ -297,6 +297,88 @@ function createWindow() {
     return shell.openExternal(url);
   });
 
+  ipcMain.handle('db:getNetWorth', async () => {
+    try {
+      const accounts = database.getAccounts();
+      const netWorth = accounts.reduce((total, account) => total + account.balance, 0);
+      return { data: netWorth, error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+
+  ipcMain.handle('db:getMonthlyComparison', async () => {
+    try {
+      const currentMonth = new Date();
+      const lastMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
+      
+      const currentMonthData = database.getIncomeExpenseData('all', 'month');
+      const lastMonthData = database.getIncomeExpenseData('all', 'lastMonth');
+      
+      const currentExpenses = currentMonthData.expenses || 0;
+      const lastExpenses = lastMonthData.expenses || 0;
+      
+      const percentChange = lastExpenses ? ((lastExpenses - currentExpenses) / lastExpenses) * 100 : 0;
+      
+      return { data: { percentChange, trend: percentChange >= 0 ? 'lower' : 'higher' }, error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+
+  ipcMain.handle('db:getUpcomingPayments', async () => {
+    try {
+      const recurring = database.getRecurring();
+      const now = new Date();
+      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      
+      const upcoming = recurring.filter(item => {
+        const nextDate = new Date(item.nextDate);
+        return nextDate >= now && nextDate <= weekFromNow;
+      });
+      
+      return { data: upcoming.length, error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+
+  ipcMain.handle('db:exportCSV', async (event, folderPath) => {
+    try {
+      const data = database.exportToCSV();
+      const fs = require('fs');
+      const path = require('path');
+
+      // Create CSV content for each table
+      Object.entries(data).forEach(([tableName, tableData]) => {
+        if (tableData.length === 0) return;
+
+        const headers = Object.keys(tableData[0]).join(',');
+        const rows = tableData.map(row => 
+          Object.values(row).map(value => 
+            `"${String(value).replace(/"/g, '""')}"`
+          ).join(',')
+        );
+        const csvContent = [headers, ...rows].join('\n');
+
+        const filePath = path.join(folderPath, `fyenance_${tableName}.csv`);
+        fs.writeFileSync(filePath, csvContent, 'utf-8');
+      });
+
+      return { success: true, error: null };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('dialog:showFolderDialog', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Export Location',
+      properties: ['openDirectory']
+    });
+    return result;
+  });
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 800,

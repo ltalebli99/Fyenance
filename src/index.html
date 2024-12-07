@@ -104,6 +104,26 @@
                 </div>
             </div>
 
+            <!-- Add the new banner -->
+            <div class="dashboard-banner">
+                <div class="banner-content">
+                    <div class="banner-stat">
+                        <span class="banner-label">Net Worth</span>
+                        <h2>$<span id="total-net-worth">0.00</span></h2>
+                    </div>
+                    <div class="banner-insights">
+                        <div class="insight">
+                            <i class="fas fa-chart-line"></i>
+                            <span id="monthly-trend">Your spending is 12% lower than last month</span>
+                        </div>
+                        <div class="insight">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="upcoming-payments">3 recurring payments due this week</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>This Month's Balance</h3>
@@ -583,6 +603,13 @@
               <label for="edit-recurring-billing-date">Billing Date</label>
               <input type="number" id="edit-recurring-billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
             </div>
+            <div class="form-group">
+              <label for="edit-recurring-type">Type</label>
+              <select id="edit-recurring-type" required>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
             
             <div class="form-group full-width">
               <label for="edit-recurring-description">Description</label>
@@ -615,6 +642,10 @@
                         <button class="settings-btn" id="export-btn">
                             <i class="fas fa-download"></i>
                             Export Database
+                        </button>
+                        <button class="settings-btn" id="export-csv-btn">
+                            <i class="fas fa-file-csv"></i>
+                            Export as CSV
                         </button>
                         <button class="settings-btn" id="import-btn">
                             <i class="fas fa-upload"></i>

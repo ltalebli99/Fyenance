@@ -583,6 +583,38 @@ class DatabaseService {
       throw error;
     }
   }
+
+  exportToCSV() {
+    try {
+      const data = {
+        accounts: this.db.prepare('SELECT * FROM accounts').all(),
+        categories: this.db.prepare('SELECT * FROM categories').all(),
+        transactions: this.db.prepare(`
+          SELECT 
+            t.*,
+            a.name as account_name,
+            c.name as category_name
+          FROM transactions t
+          LEFT JOIN accounts a ON t.account_id = a.id
+          LEFT JOIN categories c ON t.category_id = c.id
+        `).all(),
+        recurring: this.db.prepare(`
+          SELECT 
+            r.*,
+            a.name as account_name,
+            c.name as category_name
+          FROM recurring r
+          LEFT JOIN accounts a ON r.account_id = a.id
+          LEFT JOIN categories c ON r.category_id = c.id
+        `).all()
+      };
+
+      return data;
+    } catch (error) {
+      console.error('Export CSV error:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = DatabaseService;
