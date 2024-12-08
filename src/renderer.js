@@ -419,12 +419,34 @@ async function confirmDelete(type, id) {
 
 // Function to open modal
 function openModal(modalId) {
-  document.getElementById(modalId).classList.add('show');
+  const modal = document.getElementById(modalId);
+  modal.classList.add('show');
+  
+  // Disable validation on other forms while this modal is open
+  document.querySelectorAll('form').forEach(form => {
+    const formModal = form.closest('.modal');
+    if (formModal && formModal.id !== modalId) {
+      form.setAttribute('novalidate', '');
+    }
+  });
 }
+
 
 // Function to close modal
 function closeModal(modalId) {
-  document.getElementById(modalId).classList.remove('show');
+  const modal = document.getElementById(modalId);
+  modal.classList.remove('show');
+  
+  // Reset form if it exists
+  const form = modal.querySelector('form');
+  if (form) {
+    form.reset();
+  }
+  
+  // Re-enable validation on all forms
+  document.querySelectorAll('form').forEach(form => {
+    form.removeAttribute('novalidate');
+  });
 }
 
 // Event listener for closing the edit transaction modal
@@ -688,8 +710,6 @@ async function handleDeleteCategory(categoryId) {
 
 // Add Category button click handler
 document.getElementById('show-add-category')?.addEventListener('click', () => {
-  // Reset the form in case it has old data
-  document.getElementById('add-category-form').reset();
   openModal('add-category-modal');
 });
 

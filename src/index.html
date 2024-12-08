@@ -199,11 +199,11 @@
                   <form id="add-account-form">
                       <div class="form-group">
                           <label for="account-name">Account Name</label>
-                          <input type="text" id="account-name" placeholder="e.g., Checking Account" required>
+                          <input type="text" id="account-name" name="name" placeholder="e.g., Checking Account" required>
                       </div>
                       <div class="form-group">
                           <label for="account-balance">Initial Balance</label>
-                          <input type="number" id="account-balance" placeholder="0.00" step="0.01" required>
+                          <input type="number" id="account-balance" name="balance" placeholder="0.00" step="0.01" required>
                       </div>
                       <div class="form-actions">
                           <button type="submit" class="primary-btn">Add Account</button>
@@ -315,35 +315,35 @@
                   <div class="form-row">
                       <div class="form-group">
                           <label for="add-transaction-account">Account</label>
-                          <select id="add-transaction-account" required></select>
+                          <select id="add-transaction-account" name="account" required></select>
                       </div>
                       <div class="form-group">
                           <label for="add-transaction-type">Type</label>
-                          <select id="add-transaction-type" required>
+                          <select id="add-transaction-type" name="type" required>
                               <option value="income">Income</option>
                               <option value="expense">Expense</option>
                           </select>
                       </div>
                       <div class="form-group">
                           <label for="add-transaction-date">Date</label>
-                          <input type="date" id="add-transaction-date" required>
+                          <input type="date" id="add-transaction-date" name="date" required>
                       </div>
                   </div>
       
                   <div class="form-row">
                       <div class="form-group">
                           <label for="add-transaction-category">Category</label>
-                          <select id="add-transaction-category" required></select>
+                          <select id="add-transaction-category" name="category" required></select>
                       </div>
                       <div class="form-group">
                           <label for="add-transaction-amount">Amount</label>
-                          <input type="number" id="add-transaction-amount" placeholder="0.00" step="0.01" required>
+                          <input type="number" id="add-transaction-amount" name="amount" placeholder="0.00" step="0.01" required>
                       </div>
                   </div>
       
                   <div class="form-group full-width">
                       <label for="add-transaction-description">Description</label>
-                      <input type="text" id="add-transaction-description" placeholder="Optional description">
+                      <input type="text" id="add-transaction-description" name="description" placeholder="Optional description">
                   </div>
       
                   <hr class="section-divider">
@@ -377,44 +377,45 @@
                     <div class="form-row">
                       <div class="form-group">
                           <label for="edit-transaction-account">Account</label>
-                          <select id="edit-transaction-account" required></select>
+                          <select id="edit-transaction-account" name="account" required></select>
                       </div>
                       <div class="form-group">
                           <label for="edit-transaction-type">Type</label>
-                          <select id="edit-transaction-type" required>
+                          <select id="edit-transaction-type" name="type" required>
                               <option value="income">Income</option>
                               <option value="expense">Expense</option>
                           </select>
                       </div>
                       <div class="form-group">
                           <label for="edit-transaction-date">Date</label>
-                          <input type="date" id="edit-transaction-date" required>
+                          <input type="date" id="edit-transaction-date" name="date" required>
                       </div>
                   </div>
       
                   <div class="form-row">
                       <div class="form-group">
                           <label for="edit-transaction-category">Category</label>
-                          <select id="edit-transaction-category" required></select>
+                          <select id="edit-transaction-category" name="category" required></select>
                       </div>
                       <div class="form-group">
                           <label for="edit-transaction-amount">Amount</label>
-                          <input type="number" id="edit-transaction-amount" placeholder="0.00" step="0.01" required>
+                          <input type="number" id="edit-transaction-amount" name="amount" placeholder="0.00" step="0.01" required>
                       </div>
                   </div>
       
                   <div class="form-group full-width">
                       <label for="edit-transaction-description">Description</label>
-                      <input type="text" id="edit-transaction-description" placeholder="Optional description">
+                      <input type="text" id="edit-transaction-description" name="description" placeholder="Optional description">
                   </div>
       
-                  <input type="hidden" id="edit-transaction-id">
+                  <input type="hidden" id="edit-transaction-id" name="id">
       
       
                   <div class="form-actions full-width">
                       <button type="submit" class="primary-btn">Update Transaction</button>
                       <button type="button" class="secondary-btn" id="cancel-edit-transaction">Cancel</button>
                   </div>
+                </form>
               </div>
           </div>
       
@@ -544,6 +545,7 @@
                     </table>
                 </div>
             </div>
+            
             <div id="add-category-modal" class="modal">
               <div class="modal-backdrop"></div>
               <div class="modal-content">
@@ -552,11 +554,11 @@
                   <form id="add-category-form">
                       <div class="form-group">
                           <label for="add-category-name">Name</label>
-                          <input type="text" id="add-category-name" required>
+                          <input type="text" id="add-category-name" name="name" required>
                       </div>
                       <div class="form-group">
                           <label for="add-category-type">Type</label>
-                          <select id="add-category-type" required>
+                          <select id="add-category-type" name="type" required>
                               <option value="income">Income</option>
                               <option value="expense">Expense</option>
                           </select>
@@ -578,16 +580,16 @@
                   <form id="edit-category-form">
                       <div class="form-group">
                           <label for="edit-category-name">Name</label>
-                          <input type="text" id="edit-category-name" required>
+                          <input type="text" id="edit-category-name" name="name" required>
                       </div>
                       <div class="form-group">
                           <label for="edit-category-type">Type</label>
-                          <select id="edit-category-type" required>
+                          <select id="edit-category-type" name="type" required>
                               <option value="income">Income</option>
                               <option value="expense">Expense</option>
                           </select>
                       </div>
-                      <input type="hidden" id="edit-category-id">
+                      <input type="hidden" id="edit-category-id" name="id">
                       <div class="form-actions">
                           <button type="submit" class="primary-btn">Update Category</button>
                           <button type="button" class="secondary-btn" id="cancel-edit-category">Cancel</button>
@@ -652,34 +654,34 @@
                         <form id="add-recurring-form" class="two-column-form">
                             <div class="form-group">
                                 <label for="add-recurring-account">Account</label>
-                                <select id="add-recurring-account" required></select>
+                                <select id="add-recurring-account" name="account" required></select>
                             </div>
                             <div class="form-group">
                                 <label for="add-recurring-name">Name</label>
-                                <input type="text" id="add-recurring-name" required placeholder="Netflix, Spotify, etc.">
+                                <input type="text" id="add-recurring-name" name="name" required placeholder="Netflix, Spotify, etc.">
                             </div>
                             <div class="form-group">
                                 <label for="add-recurring-amount">Amount</label>
-                                <input type="number" id="add-recurring-amount" placeholder="0.00" step="0.01" required>
+                                <input type="number" id="add-recurring-amount" name="amount" placeholder="0.00" step="0.01" required>
                             </div>
                             <div class="form-group">
                                 <label for="add-recurring-category">Category</label>
-                                <select id="add-recurring-category" required></select>
+                                <select id="add-recurring-category" name="category" required></select>
                             </div>
                             <div class="form-group">
                                 <label for="add-recurring-billing-date">Billing Date</label>
-                                <input type="number" id="add-recurring-billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
+                                <input type="number" id="add-recurring-billing-date" name="billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
                             </div>
                             <div class="form-group">
                                 <label for="add-recurring-type">Type</label>
-                                <select id="add-recurring-type" required>
+                                <select id="add-recurring-type" name="type" required>
                                     <option value="income">Income</option>
                                     <option value="expense">Expense</option>
                                 </select>
                             </div>
                             <div class="form-group full-width">
                                 <label for="add-recurring-description">Description</label>
-                                <input type="text" id="add-recurring-description" placeholder="Optional description">
+                                <input type="text" id="add-recurring-description" name="description" placeholder="Optional description">
                             </div>
                             <div class="form-actions full-width">
                                 <button type="submit" class="primary-btn">Add Recurring</button>
@@ -717,27 +719,27 @@
                         <form id="edit-recurring-form" class="two-column-form">
                             <div class="form-group">
                                 <label for="edit-recurring-account">Account</label>
-                                <select id="edit-recurring-account" required></select>
+                                <select id="edit-recurring-account" name="account" required></select>
                             </div>
                             <div class="form-group">
                                 <label for="edit-recurring-name">Name</label>
-                                <input type="text" id="edit-recurring-name" required placeholder="Netflix, Spotify, etc.">
+                                <input type="text" id="edit-recurring-name" name="name" required placeholder="Netflix, Spotify, etc.">
                             </div>
                             <div class="form-group">
                                 <label for="edit-recurring-amount">Amount</label>
-                                <input type="number" id="edit-recurring-amount" placeholder="0.00" step="0.01" required>
+                                <input type="number" id="edit-recurring-amount" name="amount" placeholder="0.00" step="0.01" required>
                             </div>
                             <div class="form-group">
                                 <label for="edit-recurring-category">Category</label>
-                                <select id="edit-recurring-category" required></select>
+                                <select id="edit-recurring-category" name="category" required></select>
                             </div>
                             <div class="form-group">
                                 <label for="edit-recurring-billing-date">Billing Date</label>
-                                <input type="number" id="edit-recurring-billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
+                                <input type="number" id="edit-recurring-billing-date" name="billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
                             </div>
                             <div class="form-group">
                                 <label for="edit-recurring-type">Type</label>
-                                <select id="edit-recurring-type" required>
+                                <select id="edit-recurring-type" name="type" required>
                                     <option value="income">Income</option>
                                     <option value="expense">Expense</option>
                                 </select>
@@ -745,9 +747,9 @@
                             
                             <div class="form-group full-width">
                                 <label for="edit-recurring-description">Description</label>
-                                <input type="text" id="edit-recurring-description" placeholder="Optional description">
+                                <input type="text" id="edit-recurring-description" name="description" placeholder="Optional description">
                             </div>
-                            <input type="hidden" id="edit-recurring-id">
+                            <input type="hidden" id="edit-recurring-id" name="id">
                             <div class="form-actions full-width">
                                 <button type="submit" class="primary-btn">Update Recurring</button>
                                 <button type="button" class="secondary-btn" id="cancel-edit-recurring">Cancel</button>
