@@ -499,12 +499,12 @@ async function fetchTransactions(accountId = null) {
     if (filteredData && filteredData.length > 0) {
       filteredData.forEach(transaction => {
         // Fix date parsing by ensuring we use local timezone
-        const date = new Date(transaction.date + 'T00:00:00');
+        const date = new Date(transaction.date);
         const formattedDate = date.toLocaleDateString('en-US', { 
           month: 'long', 
           day: 'numeric', 
           year: 'numeric',
-          timeZone: 'UTC'  // Force UTC to prevent timezone shifts
+          timeZone: 'UTC' 
         });
 
         const row = document.createElement('tr');
@@ -593,8 +593,8 @@ async function fetchCategories() {
           break;
         case 'last_used':
           // Handle null/undefined dates and ensure UTC parsing
-          const dateA = a.last_used ? new Date(a.last_used + 'T00:00:00Z') : new Date(0);
-          const dateB = b.last_used ? new Date(b.last_used + 'T00:00:00Z') : new Date(0);
+          const dateA = a.last_used ? new Date(a.last_used) : new Date(0);
+          const dateB = b.last_used ? new Date(b.last_used) : new Date(0);
           comparison = dateA - dateB;
           break;
       }
@@ -610,7 +610,7 @@ async function fetchCategories() {
       filteredData.forEach(category => {
         // Format the date properly for display
         const lastUsedDate = category.last_used 
-          ? new Date(category.last_used + 'T00:00:00Z').toLocaleDateString('en-US', {
+          ? new Date(category.last_used).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
@@ -820,14 +820,14 @@ async function renderDailySpendingChart(transactions, startDate, endDate) {
   transactions
     .filter(tx => {
       // Parse date with UTC midnight
-      const txDate = new Date(tx.date + 'T00:00:00Z');
+      const txDate = new Date(tx.date);
       return txDate >= startDate && 
              txDate <= endDate && 
              tx.type === 'expense';
     })
     .forEach(tx => {
       // Parse date with UTC midnight to get correct day
-      const txDate = new Date(tx.date + 'T00:00:00Z');
+      const txDate = new Date(tx.date);
       const day = txDate.getUTCDate() - 1;
       dailyData[day] += parseFloat(tx.amount);
     });

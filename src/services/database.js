@@ -6,6 +6,7 @@ class DatabaseService {
     this.dbPath = dbPath;
     this.db = new Database(this.dbPath);
     this.initDatabase();
+    this.checkAndRunMigrations();
   }
 
   static initialize(userDataPath) {
@@ -14,6 +15,15 @@ class DatabaseService {
   }
 
   initDatabase() {
+    // Add schema_versions table first
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS schema_versions (
+        version INTEGER PRIMARY KEY,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create tables with updated schema
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +45,7 @@ class DatabaseService {
         category_id INTEGER,
         type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
         amount DECIMAL(10,2) NOT NULL,
-        date TEXT NOT NULL,
+        date TIMESTAMP NOT NULL,
         description TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
@@ -156,7 +166,7 @@ class DatabaseService {
     const stmt = this.db.prepare(`
       INSERT INTO transactions (
         account_id, category_id, type, amount, date, description
-      ) VALUES (?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, datetime(? || 'T00:00:00Z'), ?)
     `);
     
     return stmt.run(
@@ -169,21 +179,25 @@ class DatabaseService {
     );
   }
 
-  updateTransaction(id, data) {
+  updateTransaction(id, transaction) {
     const stmt = this.db.prepare(`
       UPDATE transactions 
-      SET account_id = ?, category_id = ?, type = ?, 
-          amount = ?, date = ?, description = ?
+      SET account_id = ?,
+          category_id = ?,
+          type = ?,
+          amount = ?,
+          date = datetime(? || 'T00:00:00Z'),
+          description = ?
       WHERE id = ?
     `);
     
     return stmt.run(
-      data.account_id,
-      data.category_id,
-      data.type,
-      data.amount,
-      data.date,
-      data.description,
+      transaction.account_id,
+      transaction.category_id,
+      transaction.type,
+      transaction.amount,
+      transaction.date,
+      transaction.description,
       id
     );
   }
@@ -293,11 +307,14 @@ class DatabaseService {
   // Reports and Analytics
   getTransactionsByDateRange(startDate, endDate, accountId = null) {
     let query = `
-      SELECT t.*, c.name as category_name, a.name as account_name
+      SELECT t.*, 
+             c.name as category_name, 
+             a.name as account_name,
+             strftime('%Y-%m-%d', t.date) as formatted_date
       FROM transactions t
       LEFT JOIN categories c ON t.category_id = c.id
       LEFT JOIN accounts a ON t.account_id = a.id
-      WHERE t.date BETWEEN ? AND ?
+      WHERE t.date BETWEEN datetime(? || 'T00:00:00Z') AND datetime(? || 'T23:59:59Z')
     `;
     
     if (accountId) {
@@ -685,6 +702,115 @@ resetTutorialStatus() {
     DELETE FROM app_settings WHERE key = 'tutorial-completed'
   `);
   return stmt.run();
+}
+
+getCurrentSchemaVersion() {
+  const result = this.db.prepare('SELECT MAX(version) as version FROM schema_versions').get();
+  return result?.version || 0;
+}
+
+checkAndRunMigrations() {
+  const currentVersion = this.getCurrentSchemaVersion();
+  console.log('Current database version:', currentVersion);
+
+  try {
+    if (currentVersion < 1) this.runMigrationV1();
+    // Add future migrations here
+  } catch (error) {
+    console.error('Migration failed:', error);
+    throw error;
+  }
+}
+
+runMigrationV1() {
+  console.log('Running migration v1: Converting transaction dates to timestamps...');
+  
+  try {
+    // Start a single transaction for the entire migration
+    this.db.prepare('BEGIN TRANSACTION').run();
+    
+    // First drop the view and index
+    this.db.exec('DROP VIEW IF EXISTS category_usage');
+    this.db.exec('DROP INDEX IF EXISTS idx_transactions_date');
+    
+    // Create new table with desired schema
+    this.db.exec(`
+      CREATE TABLE transactions_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id INTEGER NOT NULL,
+        category_id INTEGER,
+        type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
+        amount DECIMAL(10,2) NOT NULL,
+        date TIMESTAMP NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+      );
+
+      -- Copy data with converted dates
+      INSERT INTO transactions_new 
+        SELECT 
+          id,
+          account_id,
+          category_id,
+          type,
+          amount,
+          datetime(date || 'T00:00:00Z'),
+          description,
+          created_at
+        FROM transactions;
+
+      -- Drop old table and rename new one
+      DROP TABLE transactions;
+      ALTER TABLE transactions_new RENAME TO transactions;
+    `);
+
+    // Recreate the index
+    this.db.exec('CREATE INDEX idx_transactions_date ON transactions(date)');
+
+    // Recreate the view with TIMESTAMP handling
+    this.db.exec(`
+      CREATE VIEW category_usage AS
+      WITH usage_data AS (
+          -- Count from transactions
+          SELECT category_id,
+                 COUNT(*) as use_count,
+                 MAX(date) as last_used
+          FROM transactions
+          WHERE category_id IS NOT NULL
+          GROUP BY category_id
+          
+          UNION ALL
+          
+          -- Count from recurring transactions
+          SELECT category_id,
+                 COUNT(*) as use_count,
+                 MAX(created_at) as last_used
+          FROM recurring
+          WHERE category_id IS NOT NULL
+          GROUP BY category_id
+      )
+      SELECT 
+          category_id,
+          SUM(use_count) as total_uses,
+          MAX(last_used) as last_used
+      FROM usage_data
+      GROUP BY category_id;
+    `);
+
+    // Record the migration
+    this.db.prepare('INSERT INTO schema_versions (version) VALUES (1)').run();
+    
+    // Commit the transaction
+    this.db.prepare('COMMIT').run();
+    console.log('Migration v1 completed successfully');
+  } catch (error) {
+    // Rollback on error
+    this.db.prepare('ROLLBACK').run();
+    console.error('Migration v1 failed:', error);
+    throw error;
+  }
 }
 }
 
