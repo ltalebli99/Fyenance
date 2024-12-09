@@ -498,8 +498,14 @@ async function fetchTransactions(accountId = null) {
 
     if (filteredData && filteredData.length > 0) {
       filteredData.forEach(transaction => {
-        const date = new Date(transaction.date);
-        const formattedDate = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        // Fix date parsing by ensuring we use local timezone
+        const date = new Date(transaction.date + 'T00:00:00');
+        const formattedDate = date.toLocaleDateString('en-US', { 
+          month: 'long', 
+          day: 'numeric', 
+          year: 'numeric',
+          timeZone: 'UTC'  // Force UTC to prevent timezone shifts
+        });
 
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -574,7 +580,7 @@ async function fetchCategories() {
       }
     }
 
-    // Apply sorting
+    // Apply sorting with proper date handling
     const [field, direction] = sortBy.split('-');
     filteredData.sort((a, b) => {
       let comparison = 0;
@@ -586,7 +592,10 @@ async function fetchCategories() {
           comparison = (a.usage_count || 0) - (b.usage_count || 0);
           break;
         case 'last_used':
-          comparison = (a.last_used || '').localeCompare(b.last_used || '');
+          // Handle null/undefined dates and ensure UTC parsing
+          const dateA = a.last_used ? new Date(a.last_used + 'T00:00:00Z') : new Date(0);
+          const dateB = b.last_used ? new Date(b.last_used + 'T00:00:00Z') : new Date(0);
+          comparison = dateA - dateB;
           break;
       }
       return direction === 'asc' ? comparison : -comparison;
@@ -599,12 +608,22 @@ async function fetchCategories() {
 
     if (filteredData && filteredData.length > 0) {
       filteredData.forEach(category => {
+        // Format the date properly for display
+        const lastUsedDate = category.last_used 
+          ? new Date(category.last_used + 'T00:00:00Z').toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              timeZone: 'UTC'
+            })
+          : 'Never';
+
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${category.name}</td>
           <td>${capitalizeFirstLetter(category.type)}</td>
           <td>${category.usage_count || 0}</td>
-          <td>${category.last_used ? new Date(category.last_used).toLocaleDateString() : 'Never'}</td>
+          <td>${lastUsedDate}</td>
           <td>
             <div class="action-buttons">
               <button class="action-btn edit-btn" data-category-id="${category.id}" title="Edit">
@@ -794,32 +813,41 @@ async function renderDailySpendingChart(transactions, startDate, endDate) {
     return;
   }
 
-  // Calculate daily spending
+  // Calculate daily spending with proper UTC date handling
   const daysInMonth = endDate.getDate();
   const dailyData = new Array(daysInMonth).fill(0);
   
   transactions
     .filter(tx => {
-      const txDate = new Date(tx.date);
+      // Parse date with UTC midnight
+      const txDate = new Date(tx.date + 'T00:00:00Z');
       return txDate >= startDate && 
              txDate <= endDate && 
              tx.type === 'expense';
     })
     .forEach(tx => {
-      const day = new Date(tx.date).getDate() - 1;
+      // Parse date with UTC midnight to get correct day
+      const txDate = new Date(tx.date + 'T00:00:00Z');
+      const day = txDate.getUTCDate() - 1;
       dailyData[day] += parseFloat(tx.amount);
     });
 
   // Check if we have any data
   const hasData = dailyData.some(amount => amount > 0);
   
+  // Format date labels in local timezone
+  const dateLabels = Array.from({length: dailyData.length}, (_, i) => {
+    const date = new Date(startDate.getFullYear(), startDate.getMonth(), i + 1);
+    return date.getDate();
+  });
+
   const ctx = canvas.getContext('2d');
   if (balanceChartInstance) balanceChartInstance.destroy();
 
   balanceChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: Array.from({length: dailyData.length}, (_, i) => i + 1),
+      labels: dateLabels,
       datasets: [{
         label: 'Daily Spending',
         data: hasData ? dailyData : [0], // Show 0 if no data
@@ -2355,6 +2383,7 @@ document.getElementById('edit-transaction-form').addEventListener('submit', asyn
     closeModal('edit-transaction-modal'); // Use the modal ID instead of trying to access style directly
     await fetchTransactions();
     await fetchTotalBalance();
+    await fetchCategories();
     await fetchAccounts();
     await renderDashboardCharts();
     e.target.reset();
