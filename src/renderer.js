@@ -2367,7 +2367,74 @@ document.getElementById('cancel-edit-transaction')?.addEventListener('click', ()
   document.getElementById('edit-transaction-form').reset();
 });
 
+// Advanced Filters Panel Functionality
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  // Get all filter buttons and panels
+  const filterButtons = document.querySelectorAll('.advanced-filters-btn');
+  const filterPanels = document.querySelectorAll('.advanced-filters-panel');
 
+  // Update filter button click handlers
+  filterButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const targetPanelId = button.dataset.target;
+          const targetPanel = document.getElementById(targetPanelId);
+          
+          if (targetPanel) {
+              // Position panel before showing it
+              positionFilterPanel(button, targetPanel);
+              
+              // Close other panels
+              filterPanels.forEach(panel => {
+                  if (panel.id !== targetPanelId) {
+                      panel.classList.remove('active');
+                  }
+              });
+              
+              // Toggle target panel
+              targetPanel.classList.toggle('active');
+          }
+      });
+  });
+
+  // Add window resize handler
+  window.addEventListener('resize', () => {
+      // Reposition any visible panels
+      filterPanels.forEach(panel => {
+          if (panel.classList.contains('active')) {
+              // Find the associated button
+              const buttonId = panel.id.replace('-filters', '');
+              const button = document.querySelector(`[data-target="${panel.id}"]`);
+              if (button) {
+                  positionFilterPanel(button, panel);
+              }
+          }
+      });
+  });
+
+  // Handle clicking outside panels to close them
+  document.addEventListener('click', (e) => {
+      if (!e.target.closest('.advanced-filters-panel') && 
+          !e.target.closest('.advanced-filters-btn')) {
+          filterPanels.forEach(panel => {
+              panel.classList.remove('active');
+          });
+      }
+  });
+
+  // Close panel when close button is clicked
+  document.querySelectorAll('.close-filters').forEach(button => {
+      button.addEventListener('click', () => {
+          const panel = button.closest('.advanced-filters-panel');
+          if (panel) {
+              panel.classList.remove('active');
+          }
+      });
+  });
+});
 
 function sortData(data, sortBy) {
   const [field, direction] = sortBy.split('-');
@@ -2395,32 +2462,156 @@ function sortData(data, sortBy) {
   });
 }
 
+function positionFilterPanel(button, panel) {
+  const buttonRect = button.getBoundingClientRect();
+  const windowWidth = window.innerWidth;
+  
+  // Calculate left position
+  let leftPosition = buttonRect.right - 300; // Default position (300px is panel width)
+  
+  // Check if panel would go off-screen to the left
+  if (leftPosition < 10) {
+      leftPosition = 10;
+  }
+  
+  // Check if panel would go off-screen to the right
+  if (leftPosition + 300 > windowWidth - 10) {
+      leftPosition = windowWidth - 310; // 300px width + 10px margin
+  }
+  
+  // Position panel
+  panel.style.top = `${buttonRect.bottom + 5}px`;
+  panel.style.left = `${leftPosition}px`;
+}
+
+// Filtering function (updated to include search)
 function filterData(data, filters) {
   return data.filter(item => {
-    let matches = true;
-    
-    if (filters.type && filters.type !== 'all') {
-      matches = matches && item.type === filters.type;
-    }
-    
-    if (filters.category && filters.category !== 'all') {
-      matches = matches && item.category_id === parseInt(filters.category);
-    }
-    
-    return matches;
+      let matches = true;
+      
+      // Type filter
+      if (filters.type && filters.type !== 'all') {
+          matches = matches && item.type === filters.type;
+      }
+      
+      // Category filter
+      if (filters.category && filters.category !== 'all') {
+          matches = matches && item.category_id === parseInt(filters.category);
+      }
+      
+      // Search filter
+      if (filters.search) {
+          const searchTerm = filters.search.toLowerCase();
+          const searchableFields = [
+              item.name,
+              item.description,
+              item.type,
+              item.amount.toString()
+          ].filter(Boolean); // Remove null/undefined values
+          
+          matches = matches && searchableFields.some(field => 
+              field.toLowerCase().includes(searchTerm)
+          );
+      }
+      
+      return matches;
   });
 }
 
+// Reset filters function
+function resetFilters(section) {
+  const panel = document.getElementById(`${section}-filters`);
+  const selects = panel.querySelectorAll('select');
+  
+  // Reset all select elements to their first option
+  selects.forEach(select => {
+      select.selectedIndex = 0;
+  });
 
-// Add these functions to handle filter/sort changes
+  // Reset search input
+  const searchInput = document.querySelector(`#${section} .search-input`);
+  if (searchInput) {
+      searchInput.value = '';
+  }
+
+  // Trigger appropriate fetch based on section
+  switch(section) {
+      case 'transactions':
+          handleTransactionFiltersChange();
+          break;
+      case 'recurring':
+          handleRecurringFiltersChange();
+          break;
+      case 'categories':
+          fetchCategories();
+          break;
+  }
+}
+
+// Apply filters function
+function applyFilters(section) {
+  const panel = document.getElementById(`${section}-filters`);
+  
+  // Close the filter panel
+  panel.classList.remove('active');
+
+  // Trigger appropriate fetch based on section
+  switch(section) {
+      case 'transactions':
+          handleTransactionFiltersChange();
+          break;
+      case 'recurring':
+          handleRecurringFiltersChange();
+          break;
+      case 'categories':
+          fetchCategories();
+          break;
+  }
+}
+
+// Add debounced search functionality
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+      const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+  };
+}
+
+// Add search event listeners
+document.querySelectorAll('.search-input').forEach(input => {
+  const section = input.closest('.section').id.toLowerCase();
+  input.addEventListener('input', debounce(() => {
+      switch(section) {
+          case 'transactions':
+              handleTransactionFiltersChange();
+              break;
+          case 'recurring':
+              handleRecurringFiltersChange();
+              break;
+          case 'categories':
+              fetchCategories();
+              break;
+      }
+  }, 300)); // 300ms debounce delay
+});
+
+
+// Update existing handler functions to include search term
 function handleTransactionFiltersChange() {
   const accountId = document.getElementById('transaction-account-selector')?.value || 'all';
-  fetchTransactions(accountId === 'all' ? null : accountId);
+  const searchTerm = document.querySelector('#Transactions .search-input')?.value || '';
+  fetchTransactions(accountId === 'all' ? null : accountId, searchTerm);
 }
 
 function handleRecurringFiltersChange() {
   const accountId = document.getElementById('recurring-account-selector')?.value || 'all';
-  fetchRecurring(accountId === 'all' ? null : accountId);
+  const searchTerm = document.querySelector('#Recurring .search-input')?.value || '';
+  fetchRecurring(accountId === 'all' ? null : accountId, searchTerm);
 }
 
 // Update the event listeners in DOMContentLoaded

@@ -36,6 +36,8 @@
       /* Theme Colors */
       --background-color: var(--gray-50);
       --text-color: var(--gray-800);
+      --text-light: var(--gray-600);
+
       --modal-background: white;
       --button-background: var(--primary);
       --button-text-color: white;
@@ -1903,4 +1905,146 @@
 
 .bulk-entry-btn {
   white-space: nowrap;
+}
+
+
+.global-search {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.5rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+  color: var(--text-primary);
+}
+
+.search-input:focus {
+  border-color: var(--primary);
+}
+
+.search-input::placeholder {
+  color: var(--text-light);
+}
+
+.search-input:focus::placeholder {
+  color: var(--primary);
+}
+
+.search-input:hover {
+  border-color: var(--primary);
+}
+
+.advanced-filters-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background-color 0.2s ease;
+}
+
+.advanced-filters-btn:hover {
+  background: white;
+  border-color: var(--primary);
+}
+
+.advanced-filters-panel {
+  position: fixed; /* Changed from absolute to fixed */
+  background: var(--modal-background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  display: none;
+  width: 300px;
+}
+
+/* This ensures the panel is visible when active */
+.advanced-filters-panel.active {
+  display: block;
+}
+
+/* Position the panel relative to the button */
+.table-controls {
+  position: relative;
+}
+
+.filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--background-color);
+  border-radius: 8px 8px 0 0;
+}
+
+.filters-content {
+  padding: 1rem;
+}
+
+.filters-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--background-color);
+  border-radius: 0 0 8px 8px;
+}
+
+/* Add styles for the filter groups */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.sort-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Style the select elements inside the filter panel */
+.advanced-filters-panel select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--modal-background);
+  color: var(--text-primary);
+}
+
+.close-filters {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-100);
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.close-filters:hover {
+  background: var(--gray-200);
+  color: var(--text-secondary);
+}
+
+.small-btn {
+  padding: 0.5rem 1rem !important;
 }
