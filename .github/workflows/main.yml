@@ -79,9 +79,8 @@ jobs:
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
           azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           endpoint: ${{ secrets.AZURE_ENDPOINT }}
-          code-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
           certificate-profile-name: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
           files-folder: ${{ github.workspace }}/dist/win-unpacked
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          verify-signature: true
+          file-digest: "SHA256"
+          timestamp-rfc3161: "http://timestamp.acs.microsoft.com"
