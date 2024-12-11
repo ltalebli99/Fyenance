@@ -4,7 +4,7 @@
     "name": "metromagic",
     "email": "support@metromagic.io"
   },
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Personal finance planning desktop app",
   "main": "src/main.js",
   "scripts": {
@@ -50,7 +50,12 @@
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "arch": [
+        "x64",
+        "arm64"
+      ],
+      "minimumSystemVersion": "10.12"
     },
     "win": {
       "icon": "assets/images/favicon.ico",
