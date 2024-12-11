@@ -51,10 +51,7 @@
         "dmg",
         "zip"
       ],
-      "arch": [
-        "x64",
-        "arm64"
-      ],
+      "defaultArch": "universal",
       "minimumSystemVersion": "10.12"
     },
     "win": {
