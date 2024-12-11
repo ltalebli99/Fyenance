@@ -703,53 +703,52 @@
                 </div>
             </div>
 
-            <div id="recurring-content" class="content">
-                
-
-                <div id="add-recurring-modal" class="modal">
-                    <div class="modal-backdrop"></div>
-                    <div class="modal-content">
-                        <span class="close" id="close-add-recurring">&times;</span>
-                        <h3>Add Recurring</h3>
-                        <form id="add-recurring-form" class="two-column-form">
-                            <div class="form-group">
-                                <label for="add-recurring-account">Account</label>
-                                <select id="add-recurring-account" name="account" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="add-recurring-name">Name</label>
-                                <input type="text" id="add-recurring-name" name="name" required placeholder="Netflix, Spotify, etc.">
-                            </div>
-                            <div class="form-group">
-                                <label for="add-recurring-amount">Amount</label>
-                                <input type="number" id="add-recurring-amount" name="amount" placeholder="0.00" step="0.01" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="add-recurring-category">Category</label>
-                                <select id="add-recurring-category" name="category" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="add-recurring-billing-date">Billing Date</label>
-                                <input type="number" id="add-recurring-billing-date" name="billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
-                            </div>
-                            <div class="form-group">
-                                <label for="add-recurring-type">Type</label>
-                                <select id="add-recurring-type" name="type" required>
-                                    <option value="income">Income</option>
-                                    <option value="expense">Expense</option>
-                                </select>
-                            </div>
-                            <div class="form-group full-width">
-                                <label for="add-recurring-description">Description</label>
-                                <input type="text" id="add-recurring-description" name="description" placeholder="Optional description">
-                            </div>
-                            <div class="form-actions full-width">
-                                <button type="submit" class="primary-btn">Add Recurring</button>
-                                <button type="button" class="secondary-btn" id="cancel-add-recurring">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
+            <div id="add-recurring-modal" class="modal">
+                <div class="modal-backdrop"></div>
+                <div class="modal-content">
+                    <span class="close" id="close-add-recurring">&times;</span>
+                    <h3>Add Recurring</h3>
+                    <form id="add-recurring-form" class="two-column-form">
+                        <div class="form-group">
+                            <label for="add-recurring-account">Account</label>
+                            <select id="add-recurring-account" name="account" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="add-recurring-name">Name</label>
+                            <input type="text" id="add-recurring-name" name="name" required placeholder="Netflix, Spotify, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="add-recurring-amount">Amount</label>
+                            <input type="number" id="add-recurring-amount" name="amount" placeholder="0.00" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="add-recurring-category">Category</label>
+                            <select id="add-recurring-category" name="category" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="add-recurring-billing-date">Billing Date</label>
+                            <input type="number" id="add-recurring-billing-date" name="billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
+                        </div>
+                        <div class="form-group">
+                            <label for="add-recurring-type">Type</label>
+                            <select id="add-recurring-type" name="type" required>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="add-recurring-description">Description</label>
+                            <input type="text" id="add-recurring-description" name="description" placeholder="Optional description">
+                        </div>
+                        <div class="form-actions full-width">
+                            <button type="submit" class="primary-btn">Add Recurring</button>
+                            <button type="button" class="secondary-btn" id="cancel-add-recurring">Cancel</button>
+                        </div>
+                    </form>
                 </div>
+            </div>
+
+            <div id="recurring-content" class="content">
 
                 <div class="card">
                     <table>

@@ -1228,10 +1228,6 @@ document.getElementById('add-recurring-btn')?.addEventListener('click', async ()
     await populateAccountDropdowns();
     await populateCategoryDropdowns();
     
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('add-recurring-billing-date').value = today;
-    
     openModal('add-recurring-modal');
   } catch (error) {
     console.error('Error checking accounts/categories:', error);
@@ -1527,11 +1523,6 @@ async function deleteTransaction(id) {
     console.error('Error deleting transaction:', error);
   }
 }
-
-// Show/Hide Recurring Form
-document.getElementById('show-add-recurring')?.addEventListener('click', () => {
-  document.getElementById('add-recurring-card').style.display = 'block';
-});
 
 document.getElementById('cancel-add-recurring')?.addEventListener('click', () => {
   document.getElementById('add-recurring-card').style.display = 'none';
