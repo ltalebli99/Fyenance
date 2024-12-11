@@ -51,8 +51,8 @@
         "dmg",
         "zip"
       ],
-      "defaultArch": "universal",
-      "minimumSystemVersion": "10.12"
+      "minimumSystemVersion": "10.12",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "win": {
       "icon": "assets/images/favicon.ico",
