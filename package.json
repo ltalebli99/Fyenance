@@ -61,10 +61,7 @@
             "x64"
           ]
         }
-      ],
-      "certificateFile": "certificate.pfx",
-      "certificatePassword": "${env.CERTIFICATE_PASSWORD}",
-      "signAndEditExecutable": true
+      ]
     },
     "linux": {
       "icon": "assets/images/fyenance.png",
