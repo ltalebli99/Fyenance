@@ -521,67 +521,113 @@ class DatabaseService {
 
   importDatabase(filePath) {
     try {
-      // Read and parse the JSON file
-      const data = JSON.parse(require('fs').readFileSync(filePath, 'utf8'));
+        // Read and parse the JSON file
+        const data = JSON.parse(require('fs').readFileSync(filePath, 'utf8'));
 
-      // Begin transaction
-      this.db.prepare('BEGIN TRANSACTION').run();
+        // Begin transaction
+        this.db.prepare('BEGIN TRANSACTION').run();
 
-      try {
-        // Clear existing data
-        this.db.prepare('DELETE FROM recurring').run();
-        this.db.prepare('DELETE FROM transactions').run();
-        this.db.prepare('DELETE FROM categories').run();
-        this.db.prepare('DELETE FROM accounts').run();
+        try {
+            // Drop the view first
+            this.db.exec('DROP VIEW IF EXISTS category_usage');
 
-        // Insert accounts
-        const insertAccount = this.db.prepare('INSERT INTO accounts (id, name, balance, created_at) VALUES (?, ?, ?, ?)');
-        data.accounts.forEach(account => {
-          insertAccount.run(account.id, account.name, account.balance, account.created_at);
-        });
+            // Clear existing data in correct order (reverse of dependencies)
+            this.db.prepare('DELETE FROM templates').run();
+            this.db.prepare('DELETE FROM recurring').run();
+            this.db.prepare('DELETE FROM transactions').run();
+            this.db.prepare('DELETE FROM categories').run();
+            this.db.prepare('DELETE FROM accounts').run();
+            this.db.prepare('DELETE FROM app_settings').run();
+            this.db.prepare('DELETE FROM schema_versions').run();
 
-        // Insert categories
-        const insertCategory = this.db.prepare('INSERT INTO categories (id, name, type, created_at) VALUES (?, ?, ?, ?)');
-        data.categories.forEach(category => {
-          insertCategory.run(category.id, category.name, category.type, category.created_at);
-        });
+            // Reset auto-increment counters
+            this.db.prepare('DELETE FROM sqlite_sequence').run();
 
-        // Insert transactions
-        const insertTransaction = this.db.prepare(`
-          INSERT INTO transactions (id, account_id, category_id, type, amount, date, description, created_at) 
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        data.transactions.forEach(tx => {
-          insertTransaction.run(
-            tx.id, tx.account_id, tx.category_id, tx.type,
-            tx.amount, tx.date, tx.description, tx.created_at
-          );
-        });
+            // Insert data in correct order (following dependencies)
+            if (data.accounts) {
+                const insertAccount = this.db.prepare('INSERT INTO accounts (id, name, balance, created_at) VALUES (?, ?, ?, ?)');
+                data.accounts.forEach(account => {
+                    insertAccount.run(account.id, account.name, account.balance, account.created_at);
+                });
+            }
 
-        // Insert recurring
-        const insertRecurring = this.db.prepare(`
-          INSERT INTO recurring (id, account_id, category_id, name, amount, type, billing_date, description, is_active, created_at) 
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-        data.recurring.forEach(rec => {
-          insertRecurring.run(
-            rec.id, rec.account_id, rec.category_id, rec.name,
-            rec.amount, rec.type, rec.billing_date, rec.description,
-            rec.is_active, rec.created_at
-          );
-        });
+            if (data.categories) {
+                const insertCategory = this.db.prepare('INSERT INTO categories (id, name, type, created_at) VALUES (?, ?, ?, ?)');
+                data.categories.forEach(category => {
+                    insertCategory.run(category.id, category.name, category.type, category.created_at);
+                });
+            }
 
-        // Commit transaction
-        this.db.prepare('COMMIT').run();
-        return true;
-      } catch (error) {
-        // Rollback on error
-        this.db.prepare('ROLLBACK').run();
-        throw error;
-      }
+            if (data.transactions) {
+                const insertTransaction = this.db.prepare(`
+                    INSERT INTO transactions (id, account_id, category_id, type, amount, date, description, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                `);
+                data.transactions.forEach(tx => {
+                    insertTransaction.run(
+                        tx.id, tx.account_id, tx.category_id, tx.type,
+                        tx.amount, tx.date, tx.description, tx.created_at
+                    );
+                });
+            }
+
+            if (data.recurring) {
+                const insertRecurring = this.db.prepare(`
+                    INSERT INTO recurring (id, account_id, category_id, name, amount, type, billing_date, description, is_active, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `);
+                data.recurring.forEach(rec => {
+                    insertRecurring.run(
+                        rec.id, rec.account_id, rec.category_id, rec.name,
+                        rec.amount, rec.type, rec.billing_date, rec.description,
+                        rec.is_active, rec.created_at
+                    );
+                });
+            }
+
+            // Recreate the view
+            this.db.exec(`
+                CREATE VIEW IF NOT EXISTS category_usage AS
+                WITH usage_data AS (
+                    SELECT category_id,
+                           COUNT(*) as use_count,
+                           MAX(date) as last_used
+                    FROM transactions
+                    WHERE category_id IS NOT NULL
+                    GROUP BY category_id
+                    
+                    UNION ALL
+                    
+                    SELECT category_id,
+                           COUNT(*) as use_count,
+                           MAX(created_at) as last_used
+                    FROM recurring
+                    WHERE category_id IS NOT NULL
+                    GROUP BY category_id
+                )
+                SELECT 
+                    category_id,
+                    SUM(use_count) as total_uses,
+                    MAX(last_used) as last_used
+                FROM usage_data
+                GROUP BY category_id;
+            `);
+
+            // Set schema version to current
+            this.db.prepare('INSERT INTO schema_versions (version) VALUES (1)').run();
+
+            // Commit transaction
+            this.db.prepare('COMMIT').run();
+            return { success: true, error: null };
+        } catch (error) {
+            // Rollback on error
+            this.db.prepare('ROLLBACK').run();
+            console.error('Import error during transaction:', error);
+            return { success: false, error };
+        }
     } catch (error) {
-      console.error('Import error:', error);
-      throw error;
+        console.error('Import error:', error);
+        return { success: false, error };
     }
   }
 
@@ -595,11 +641,17 @@ class DatabaseService {
       this.db.prepare('BEGIN TRANSACTION').run();
 
       try {
+        // Drop the view first
+        this.db.exec('DROP VIEW IF EXISTS category_usage');
+
         // Delete all data from tables in reverse order of dependencies
+        this.db.prepare('DELETE FROM templates').run();
         this.db.prepare('DELETE FROM recurring').run();
         this.db.prepare('DELETE FROM transactions').run();
         this.db.prepare('DELETE FROM categories').run();
         this.db.prepare('DELETE FROM accounts').run();
+        this.db.prepare('DELETE FROM app_settings').run();
+        this.db.prepare('DELETE FROM schema_versions').run();
 
         // Reset all auto-increment counters
         this.db.prepare('DELETE FROM sqlite_sequence').run();
@@ -609,14 +661,14 @@ class DatabaseService {
         // Re-initialize the database structure
         this.initDatabase();
 
-        return true;
+        return { success: true, error: null };
       } catch (error) {
         this.db.prepare('ROLLBACK').run();
-        throw error;
+        return { success: false, error };
       }
     } catch (error) {
       console.error('Delete database error:', error);
-      throw error;
+      return { success: false, error };
     }
   }
 

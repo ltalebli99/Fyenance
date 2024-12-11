@@ -348,6 +348,7 @@ if (addAccountForm) {
       await fetchAccounts();
       await fetchTotalBalance();
       await populateAccountDropdowns();
+      await updateEmptyStates();
       // Clear form
       e.target.reset();
     }
@@ -391,6 +392,7 @@ if (addTransactionForm) {
       await fetchTotalBalance();
       await fetchAccounts();
       await renderDashboardCharts();
+      await updateEmptyStates();
       // Clear form
       e.target.reset();
     }
@@ -650,7 +652,8 @@ async function fetchCategories() {
             // Refresh categories and dropdowns
             await Promise.all([
               fetchCategories(),
-              populateCategoryDropdowns()
+              populateCategoryDropdowns(),
+              updateEmptyStates()
             ]);
           }
         });
@@ -694,6 +697,7 @@ async function handleAddCategory(e) {
     closeModal('add-category-modal');
     await fetchCategories();
     await populateCategoryDropdowns();
+    await updateEmptyStates();
     e.target.reset();
   }
 }
@@ -711,6 +715,7 @@ async function handleEditCategory(e) {
     closeModal('edit-category-modal');
     await fetchCategories();
     await populateCategoryDropdowns();
+    await updateEmptyStates();
     e.target.reset();
   }
 }
@@ -723,6 +728,7 @@ async function handleDeleteCategory(categoryId) {
     } else {
       await fetchCategories();
       await populateCategoryDropdowns();
+      await updateEmptyStates();
     }
   }
 }
@@ -1503,6 +1509,7 @@ async function deleteRecurring(id) {
     await updateReports();
     await fetchTotalBalance(accountSelect.value);
     await renderDashboardCharts(accountSelect.value);
+    await updateEmptyStates();
   } catch (error) {
     console.error('Error deleting recurring item:', error);
   }
@@ -1515,6 +1522,7 @@ async function deleteTransaction(id) {
     await fetchTransactions();
     await fetchTotalBalance();
     await renderDashboardCharts();
+    await updateEmptyStates();
   } catch (error) {
     console.error('Error deleting transaction:', error);
   }
@@ -1588,6 +1596,7 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
     await fetchTotalBalance();
     await updateReports();
     await renderDashboardCharts();
+    await updateEmptyStates();
 
   } catch (err) {
     console.error('Error adding recurring transaction:', err);
@@ -1621,7 +1630,8 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
   closeModal('edit-category-modal');
   await Promise.all([
     fetchCategories(),
-    populateCategoryDropdowns()
+    populateCategoryDropdowns(),
+    updateEmptyStates()
   ]);
   e.target.reset();
 });
@@ -1642,7 +1652,8 @@ document.getElementById('add-category-form')?.addEventListener('submit', async (
     closeModal('add-category-modal');
     await Promise.all([
       fetchCategories(),
-      populateCategoryDropdowns()
+      populateCategoryDropdowns(),
+      updateEmptyStates()
     ]);
     e.target.reset();
   } catch (error) {
@@ -2139,6 +2150,7 @@ document.getElementById('edit-recurring-form')?.addEventListener('submit', async
     await updateReports();
     await fetchTotalBalance();
     await renderDashboardCharts();
+    await updateEmptyStates();
 
     e.target.reset();
   } catch (error) {
@@ -2386,6 +2398,7 @@ document.getElementById('edit-transaction-form').addEventListener('submit', asyn
     await fetchCategories();
     await fetchAccounts();
     await renderDashboardCharts();
+    await updateEmptyStates();
     e.target.reset();
   }
 });
@@ -2686,13 +2699,18 @@ async function handleImport() {
   });
 
   if (filePaths && filePaths[0]) {
-      const { success, error } = await window.databaseApi.importDatabase(filePaths[0]);
-      if (success) {
-          alert('Database imported successfully! The application will now restart.');
-          // Refresh data
-          window.electronAPI.relaunchApp();
-      } else {
-          console.error('Error importing database:', error);
+      try {
+          const { success, error } = await window.databaseApi.importDatabase(filePaths[0]);
+          if (success) {
+              alert('Database imported successfully! The application will now restart.');
+              window.electronAPI.relaunchApp();
+          } else {
+              console.error('Error importing database:', error);
+              alert(`Error importing database: ${error.message || error}`);
+          }
+      } catch (err) {
+          console.error('Unexpected error during import:', err);
+          alert(`Unexpected error during import: ${err.message || err}`);
       }
   }
 }
@@ -3207,21 +3225,17 @@ async function updateEmptyStates() {
   }
 }
 
-function toggleEmptyState(id, show) {
-  const emptyState = document.getElementById(id);
-  if (emptyState) {
-    if (show) {
-      emptyState.classList.add('show');
-    } else {
-      emptyState.classList.remove('show');
-    }
+function toggleEmptyState(elementId, isEmpty) {
+  const element = document.getElementById(elementId);
+  if (element) {
+      element.style.display = isEmpty ? 'flex' : 'none';
   }
 }
 
-function toggleContent(id, show) {
-  const content = document.getElementById(id);
-  if (content) {
-    content.style.display = show ? 'block' : 'none';
+function toggleContent(elementId, show) {
+  const element = document.getElementById(elementId);
+  if (element) {
+      element.style.display = show ? 'block' : 'none';
   }
 }
 
@@ -3314,6 +3328,7 @@ function initializeQuickEntry() {
       await fetchTransactions();
       await fetchTotalBalance();
       await renderDashboardCharts();
+      await updateEmptyStates();
     }
   });
 }
@@ -3368,6 +3383,7 @@ function initializeBulkEntry() {
     await fetchTransactions();
     await fetchTotalBalance();
     await renderDashboardCharts();
+    await updateEmptyStates();
     
     closeModal('bulk-entry-modal');
     tbody.innerHTML = '';
