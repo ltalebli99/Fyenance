@@ -37,12 +37,24 @@ function getIconPath() {
   }
 }
 
+function safeIpcHandle(channel, handler) {
+  if (ipcMain.listenerCount(channel) > 0) {
+    ipcMain.removeHandler(channel);
+  }
+  ipcMain.handle(channel, handler);
+}
+
+function safeIpcOn(channel, listener) {
+  ipcMain.removeAllListeners(channel);
+  ipcMain.on(channel, listener);
+}
+
 function createWindow() {
   // Initialize database
   database = initializeDatabase();
 
   // Set up IPC handlers for database operations
-  ipcMain.handle('db:getAccounts', async () => {
+  safeIpcHandle('db:getAccounts', async () => {
     try {
       const accounts = database.getAccounts();
       return { data: accounts, error: null };
@@ -51,7 +63,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:addAccount', async (event, account) => {
+  safeIpcHandle('db:addAccount', async (event, account) => {
     try {
       const result = database.addAccount(account);
       return { data: result, error: null };
@@ -60,7 +72,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:updateAccount', async (event, id, balance) => {
+  safeIpcHandle('db:updateAccount', async (event, id, balance) => {
     try {
       const result = database.updateAccount(id, balance);
       return { data: result, error: null };
@@ -69,7 +81,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:deleteAccount', async (event, id) => {
+  safeIpcHandle('db:deleteAccount', async (event, id) => {
     try {
       const result = database.deleteAccount(id);
       return { data: result, error: null };
@@ -78,7 +90,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getTransactions', async (event, accountId) => {
+  safeIpcHandle('db:getTransactions', async (event, accountId) => {
     try {
       const transactions = database.getTransactions(accountId);
       return { data: transactions, error: null };
@@ -87,7 +99,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getCategories', async (event, filters) => {
+  safeIpcHandle('db:getCategories', async (event, filters) => {
     try {
       const categories = database.getCategories(filters);
       return { data: categories, error: null };
@@ -96,7 +108,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:addCategory', async (event, category) => {
+  safeIpcHandle('db:addCategory', async (event, category) => {
     try {
       const result = database.addCategory(category);
       return { data: result, error: null };
@@ -105,7 +117,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:updateCategory', async (event, id, data) => {
+  safeIpcHandle('db:updateCategory', async (event, id, data) => {
     try {
       const result = database.updateCategory(id, data);
       return { data: result, error: null };
@@ -114,7 +126,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:deleteCategory', async (event, id) => {
+  safeIpcHandle('db:deleteCategory', async (event, id) => {
     try {
       const result = database.deleteCategory(id);
       return { data: result, error: null };
@@ -123,7 +135,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getRecurring', async (event, accountId) => {
+  safeIpcHandle('db:getRecurring', async (event, accountId) => {
     try {
       const recurring = database.getRecurring(accountId);
       return { data: recurring, error: null };
@@ -132,7 +144,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:addRecurring', async (event, recurring) => {
+  safeIpcHandle('db:addRecurring', async (event, recurring) => {
     try {
       const result = database.addRecurring(recurring);
       return { data: result, error: null };
@@ -141,7 +153,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:updateRecurring', async (event, id, data) => {
+  safeIpcHandle('db:updateRecurring', async (event, id, data) => {
     try {
       const result = database.updateRecurring(id, data);
       return { data: result, error: null };
@@ -150,7 +162,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:deleteRecurring', async (event, id) => {
+  safeIpcHandle('db:deleteRecurring', async (event, id) => {
     try {
       const result = database.deleteRecurring(id);
       return { data: result, error: null };
@@ -160,7 +172,7 @@ function createWindow() {
   }); 
 
   // Add handlers for other database operations
-  ipcMain.handle('db:addTransaction', async (event, transaction) => {
+  safeIpcHandle('db:addTransaction', async (event, transaction) => {
     try {
       const result = database.addTransaction(transaction);
       return { data: result, error: null };
@@ -169,7 +181,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:updateTransaction', async (event, id, data) => {
+  safeIpcHandle('db:updateTransaction', async (event, id, data) => {
     try {
       const result = database.updateTransaction(id, data);
       return { data: result, error: null };
@@ -178,7 +190,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:deleteTransaction', async (event, id) => {
+  safeIpcHandle('db:deleteTransaction', async (event, id) => {
     try {
       const result = database.deleteTransaction(id);
       return { data: result, error: null };
@@ -187,7 +199,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getTransactionsForChart', async (event, accountId) => {
+  safeIpcHandle('db:getTransactionsForChart', async (event, accountId) => {
     try {
       const transactions = database.getTransactionsForChart(accountId);
       return { data: transactions, error: null };
@@ -196,7 +208,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getIncomeExpenseData', async (event, accountId, period) => {
+  safeIpcHandle('db:getIncomeExpenseData', async (event, accountId, period) => {
     try {
       const data = database.getIncomeExpenseData(accountId, period);
       return { data, error: null };
@@ -205,7 +217,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getTopSpendingCategories', async (event, accountId, period) => {
+  safeIpcHandle('db:getTopSpendingCategories', async (event, accountId, period) => {
     try {
       const categories = database.getTopSpendingCategories(accountId, period);
       return { data: categories, error: null };
@@ -214,7 +226,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getExpenseCategoriesData', async (event, accountId, period) => {
+  safeIpcHandle('db:getExpenseCategoriesData', async (event, accountId, period) => {
     try {
       const categories = database.getExpenseCategoriesData(accountId, period);
       return { data: categories, error: null };
@@ -223,7 +235,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:export', async (event, filePath) => {
+  safeIpcHandle('db:export', async (event, filePath) => {
     try {
       database.exportDatabase(filePath);
       return { success: true, error: null };
@@ -232,7 +244,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:import', async (event, filePath) => {
+  safeIpcHandle('db:import', async (event, filePath) => {
     try {
       database.importDatabase(filePath);
       return { success: true, error: null };
@@ -241,7 +253,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('dialog:showSaveDialog', async () => {
+  safeIpcHandle('dialog:showSaveDialog', async () => {
     const result = await dialog.showSaveDialog(mainWindow, {
       title: 'Export Database',
       defaultPath: 'fyenance-backup.db',
@@ -252,7 +264,7 @@ function createWindow() {
     return result;
   });
 
-  ipcMain.handle('dialog:showOpenDialog', async () => {
+  safeIpcHandle('dialog:showOpenDialog', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: 'Import Database',
       filters: [
@@ -263,23 +275,23 @@ function createWindow() {
     return result;
   });
 
-  ipcMain.handle('license:validate', async (event, licenseKey) => {
+  safeIpcHandle('license:validate', async (event, licenseKey) => {
     return await licenseService.validateLicense(licenseKey);
   });
 
-  ipcMain.handle('license:check', () => {
+  safeIpcHandle('license:check', () => {
     return licenseService.checkLicenseExists();
   });
 
-  ipcMain.handle('license:info', () => {
+  safeIpcHandle('license:info', () => {
     return licenseService.getLicenseInfo();
   });
 
-  ipcMain.handle('license:clear', () => {
+  safeIpcHandle('license:clear', () => {
     return licenseService.clearLicense();
   });
 
-  ipcMain.handle('db:delete', async () => {
+  safeIpcHandle('db:delete', async () => {
     try {
       database.deleteDatabase();
       return { success: true, error: null };
@@ -288,16 +300,16 @@ function createWindow() {
     }
   });
 
-  ipcMain.on('relaunch-app', () => {
+  safeIpcOn('relaunch-app', () => {
     app.relaunch();
     app.exit();
   });
 
-  ipcMain.handle('open-external', async (_, url) => {
+  safeIpcHandle('open-external', async (_, url) => {
     return shell.openExternal(url);
   });
 
-  ipcMain.handle('db:getNetWorth', async () => {
+  safeIpcHandle('db:getNetWorth', async () => {
     try {
       const accounts = database.getAccounts();
       const netWorth = accounts.reduce((total, account) => total + account.balance, 0);
@@ -307,7 +319,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getMonthlyComparison', async () => {
+  safeIpcHandle('db:getMonthlyComparison', async () => {
     try {
       // Get all transactions
       const transactions = database.getTransactions();
@@ -361,7 +373,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:getUpcomingPayments', async () => {
+  safeIpcHandle('db:getUpcomingPayments', async () => {
     try {
       const recurring = database.getRecurring();
       if (!Array.isArray(recurring)) return { data: 0, error: null };
@@ -400,7 +412,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:exportCSV', async (event, folderPath) => {
+  safeIpcHandle('db:exportCSV', async (event, folderPath) => {
     try {
       const data = database.exportToCSV();
       const fs = require('fs');
@@ -428,7 +440,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('dialog:showFolderDialog', async () => {
+  safeIpcHandle('dialog:showFolderDialog', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: 'Select Export Location',
       properties: ['openDirectory']
@@ -436,7 +448,7 @@ function createWindow() {
     return result;
   });
 
-  ipcMain.handle('db:getTemplates', () => {
+  safeIpcHandle('db:getTemplates', () => {
     try {
       return { data: database.getTemplates(), error: null };
     } catch (error) {
@@ -444,7 +456,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:addTemplate', (event, template) => {
+  safeIpcHandle('db:addTemplate', (event, template) => {
     try {
       return { data: database.addTemplate(template), error: null };
     } catch (error) {
@@ -452,7 +464,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:deleteTemplate', (event, id) => {
+  safeIpcHandle('db:deleteTemplate', (event, id) => {
     try {
       return { data: database.deleteTemplate(id), error: null };
     } catch (error) {
@@ -460,7 +472,7 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('db:checkEmptyStates', async () => {
+  safeIpcHandle('db:checkEmptyStates', async () => {
     try {
       const emptyStates = {
         accounts: database.getAccounts().length === 0,
@@ -476,15 +488,15 @@ function createWindow() {
     }
   });
 
-  ipcMain.handle('tutorial:getStatus', () => {
+  safeIpcHandle('tutorial:getStatus', () => {
     return database.getTutorialStatus();
   });
 
-  ipcMain.handle('tutorial:complete', () => {
+  safeIpcHandle('tutorial:complete', () => {
     return database.setTutorialComplete();
   });
 
-  ipcMain.handle('tutorial:reset', () => {
+  safeIpcHandle('tutorial:reset', () => {
     return database.resetTutorialStatus();
   });
 
@@ -575,12 +587,12 @@ function sendStatusToWindow(text) {
   }
 }
 
-ipcMain.handle('get-app-version', () => {
+safeIpcHandle('get-app-version', () => {
   return app.getVersion();
 });
 
 // IPC handlers for update actions
-ipcMain.handle('check-for-updates', async () => {
+safeIpcHandle('check-for-updates', async () => {
   try {
       console.log('Checking for updates...');
       console.log('Current version:', app.getVersion());
@@ -594,7 +606,7 @@ ipcMain.handle('check-for-updates', async () => {
   }
 });
 
-ipcMain.handle('start-update', async () => {
+safeIpcHandle('start-update', async () => {
   try {
     return await autoUpdater.downloadUpdate();
   } catch (error) {
@@ -617,11 +629,11 @@ app.on('activate', () => {
   }
 });
 
-ipcMain.on('minimize-window', () => {
+safeIpcOn('minimize-window', () => {
   mainWindow?.minimize();
 });
 
-ipcMain.on('toggle-maximize-window', () => {
+safeIpcOn('toggle-maximize-window', () => {
   if (!mainWindow) return;
   
   if (mainWindow.isMaximized()) {
@@ -633,14 +645,14 @@ ipcMain.on('toggle-maximize-window', () => {
   }
 });
 
-ipcMain.on('close-window', () => {
+safeIpcOn('close-window', () => {
   mainWindow?.close();
 });
 
-ipcMain.handle('is-window-maximized', () => {
+safeIpcHandle('is-window-maximized', () => {
   return mainWindow?.isMaximized();
 });
 
-ipcMain.handle('get-window-state', () => {
+safeIpcHandle('get-window-state', () => {
   return { isMaximized: mainWindow?.isMaximized() || false };
 });
