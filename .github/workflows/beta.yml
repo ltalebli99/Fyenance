@@ -61,6 +61,31 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: npm install --save-dev dmg-license
 
+      - name: Delete existing assets
+        if: matrix.os == 'macos-latest'  # Only need to run this once
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const release = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              tag: 'v${{ needs.prepare-release.outputs.version }}'
+            });
+            if (release.data.assets.length > 0) {
+              console.log('Deleting existing assets...');
+              for (const asset of release.data.assets) {
+                await github.rest.repos.deleteReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.name,
+                  asset_id: asset.id
+                });
+              }
+            }
+
+      - name: Build/Release Electron app
+        uses: samuelmeuli/action-electron-builder@v1
+        # ... rest of your existing build step
+
       - name: Install Linux Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
