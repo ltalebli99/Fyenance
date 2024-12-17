@@ -1,0 +1,64 @@
+/* Help & Support Styles */
+.help-support-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.help-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem;
+    background: var(--background-light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: transform 0.2s ease;
+}
+
+.help-item:hover {
+    transform: translateY(-2px);
+}
+
+.help-item > i {
+    font-size: 1.5rem;
+    color: var(--primary);
+    padding: 0.5rem;
+    background: var(--primary-light);
+    border-radius: var(--radius);
+}
+
+.help-content {
+    flex: 1;
+}
+
+.help-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.help-content p {
+    margin: 0 0 0.75rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.help-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.help-link:hover {
+    color: var(--primary-dark);
+}
+
+.help-link i {
+    font-size: 0.8rem;
+}

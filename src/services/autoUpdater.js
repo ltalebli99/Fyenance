@@ -61,22 +61,37 @@ function setupAutoUpdater(mainWindow) {
     autoUpdater.quitAndInstall(false, true);
   });
 
-  // Register IPC handlers
+   // Register IPC handlers
   safeIpcHandle('get-app-version', () => {
     return app.getVersion();
   });
 
   safeIpcHandle('check-for-updates', async () => {
     try {
-      console.log('Checking for updates...');
-      console.log('Current version:', app.getVersion());
+      electronLog.info('Checking for updates...');
+      electronLog.info('Current version:', app.getVersion());
       
       const result = await autoUpdater.checkForUpdates();
-      console.log('Check result:', result);
-      return result;
+      electronLog.info('Check result:', result);
+      return {
+        updateAvailable: result.updateInfo.version !== app.getVersion(),
+        currentVersion: app.getVersion(),
+        latestVersion: result.updateInfo.version,
+        ...result
+      };
     } catch (error) {
-      console.error('Update check error:', error);
+      electronLog.error('Update check error:', error);
       throw error;
+    }
+  });
+
+  safeIpcHandle('start-update', async () => {
+    try {
+      electronLog.info('Starting update download...');
+      return await autoUpdater.downloadUpdate();
+    } catch (error) {
+      electronLog.error('Error downloading update:', error);
+      return { status: 'error', message: error.message };
     }
   });
 

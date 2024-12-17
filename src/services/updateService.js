@@ -38,6 +38,9 @@ export async function startUpdate() {
   
     try {
         updateStatus.textContent = 'Starting download...';
+        const BackupService = require('./services/backupService');
+        const backupService = new BackupService(database);
+        await backupService.createBackup('pre-update');
         startUpdateBtn.style.display = 'none';
         await window.updateApi.startUpdate();
     } catch (error) {

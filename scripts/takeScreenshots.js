@@ -27,6 +27,29 @@ async function captureScreenshots() {
     console.error('Database connection error:', error);
   }
 
+  // Add missing handlers before creating window
+  ipcMain.handle('get-window-state', () => ({
+    isMaximized: false,
+    bounds: { width: WINDOW_WIDTH, height: WINDOW_HEIGHT }
+  }));
+
+  ipcMain.handle('checkLicenseExists', () => ({ valid: true }));
+  ipcMain.handle('getLicenseInfo', () => ({
+    valid: true,
+    key: 'DEMO-KEY',
+    activatedAt: new Date().toISOString()
+  }));
+
+  ipcMain.handle('db:getBackups', () => ({ data: [], error: null }));
+  ipcMain.handle('db:getAllTransactions', () => {
+    try {
+      const transactions = database.getTransactions();
+      return { data: transactions, error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+
   const window = new BrowserWindow({
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,

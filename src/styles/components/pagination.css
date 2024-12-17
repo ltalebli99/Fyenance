@@ -8,7 +8,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    background: white;
+    background: var(--modal-background);
     border-top: 1px solid var(--border);
     margin-top: 1rem;
   }

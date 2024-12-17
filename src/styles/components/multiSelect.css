@@ -7,8 +7,8 @@
   
   .select-header {
     padding: 8px 12px; /* Reduced padding */
-    background: white;
-    border: 1px solid #e2e8f0;
+    background: var(--modal-background);
+    border: 1px solid var(--border);
     border-radius: 6px;
     cursor: pointer;
     display: flex;
@@ -23,7 +23,7 @@
   }
   
   .select-header:hover {
-    border-color: #cbd5e0;
+    border-color: var(--border);
   }
   
   .select-header.active {
@@ -63,8 +63,8 @@
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: white;
-    border: 1px solid #e2e8f0;
+    background: var(--modal-background);
+    border: 1px solid var(--border);
     border-radius: 6px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     display: none;
@@ -79,7 +79,7 @@
   
   .select-all-option {
     padding: 6px 12px; /* Reduced padding */
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -101,7 +101,7 @@
   }
   
   .option:hover {
-    background-color: #f7fafc;
+    color: var(--primary);
   }
   
   .option input[type="checkbox"] {

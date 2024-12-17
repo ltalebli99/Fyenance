@@ -2,11 +2,10 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
-    padding: 1rem;
 }
 
 .project-card {
-    background: white;
+    background: var(--modal-background);
     border-radius: 12px;
     padding: 1.25rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);

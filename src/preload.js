@@ -90,6 +90,10 @@ contextBridge.exposeInMainWorld('databaseApi', {
         ipcRenderer.invoke('db:getTransactionsForReports', accountIds),
     fetchRecurringForReports: (accountIds) => 
         ipcRenderer.invoke('db:getRecurringForReports', accountIds),
+    getBackups: () => ipcRenderer.invoke('db:getBackups'),
+    restoreBackup: (backupPath) => ipcRenderer.invoke('db:restoreBackup', backupPath),
+    createBackup: (reason) => ipcRenderer.invoke('db:createBackup', reason),
+    deleteBackup: (backupPath) => ipcRenderer.invoke('db:deleteBackup', backupPath),
 });
 
 // Expose update API

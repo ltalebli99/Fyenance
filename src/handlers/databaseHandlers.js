@@ -1,6 +1,6 @@
 const { safeIpcHandle } = require('../core/ipcSafety');
 
-function setupDatabaseHandlers(database) {
+function setupDatabaseHandlers(database, backupService) {
 
   // Account Operations
   safeIpcHandle('db:getAccounts', async () => {
@@ -133,14 +133,25 @@ function setupDatabaseHandlers(database) {
 
   safeIpcHandle('db:addCategory', async (event, category) => {
     try {
-      // Validate budget fields if present
-      if (category.budget_amount !== undefined && category.budget_amount !== null) {
-        if (isNaN(category.budget_amount) || category.budget_amount < 0) {
+      // Only validate if budget_amount has an actual value
+      if (category.budget_amount !== null && 
+          category.budget_amount !== undefined && 
+          category.budget_amount !== '' && 
+          category.budget_amount !== '0.00') {
+        
+        const numAmount = parseFloat(category.budget_amount);
+        if (isNaN(numAmount) || numAmount < 0) {
           throw new Error('Invalid budget amount');
         }
+        
+        // Require frequency only if there's a valid budget amount
         if (!['daily', 'weekly', 'monthly', 'yearly'].includes(category.budget_frequency)) {
-          throw new Error('Invalid budget frequency');
+          throw new Error('Budget frequency is required when setting a budget amount');
         }
+      } else {
+        // If no budget amount, set both to null
+        category.budget_amount = null;
+        category.budget_frequency = null;
       }
       
       const result = database.addCategory(category);
@@ -152,15 +163,13 @@ function setupDatabaseHandlers(database) {
 
   safeIpcHandle('db:updateCategory', async (event, id, data) => {
     try {
-      // Validate budget fields if present
-      if (data.budget_amount !== undefined) {
-        if (data.budget_amount !== null) {
-          if (isNaN(data.budget_amount) || data.budget_amount < 0) {
-            throw new Error('Invalid budget amount');
-          }
-          if (!['daily', 'weekly', 'monthly', 'yearly'].includes(data.budget_frequency)) {
-            throw new Error('Invalid budget frequency');
-          }
+      // Only validate budget fields if both are present
+      if (data.budget_amount && data.budget_frequency) {
+        if (isNaN(data.budget_amount) || data.budget_amount < 0) {
+          throw new Error('Invalid budget amount');
+        }
+        if (!['daily', 'weekly', 'monthly', 'yearly'].includes(data.budget_frequency)) {
+          throw new Error('Invalid budget frequency');
         }
       }
       
@@ -499,6 +508,42 @@ function setupDatabaseHandlers(database) {
       return { data: recurring, error: null };
     } catch (error) {
       return { data: null, error: error.message };
+    }
+  });
+
+  safeIpcHandle('db:getBackups', async () => {
+    try {
+      const backups = await backupService.getBackups();
+      return { data: backups, error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+  
+  safeIpcHandle('db:restoreBackup', async (event, backupPath) => {
+    try {
+      const result = await backupService.restoreBackup(backupPath);
+      return { success: true, error: null };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  safeIpcHandle('db:createBackup', async (event, reason) => {
+    try {
+        const result = await backupService.createBackup(reason);
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+  });
+
+  safeIpcHandle('db:deleteBackup', async (event, backupPath) => {
+    try {
+        const result = await backupService.deleteBackup(backupPath);
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
     }
   });
 }

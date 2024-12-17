@@ -82,7 +82,7 @@
                 <span>Reports</span>
             </button>
             <button class="tablink" data-section="Projects">
-                <i class="fas fa-project-diagram"></i>
+                <i class="fas fa-folder-open"></i>
                 <span>Projects</span>
             </button>
             <button class="tablink" data-section="Settings">
@@ -227,7 +227,7 @@
                             <div class="form-group">
                                 <label for="account-balance">Initial Balance</label>
                                 <input type="number" id="account-balance" name="balance" placeholder="0.00" step="0.01" required>
-                                <small class="help-text">Enter the current balance of your account. You can always adjust this later if needed.</small>
+                                <small class="help-text">Enter the current balance of the account. You can always adjust this later if needed.</small>
                             </div>
                         </form>
                     </div>
@@ -313,36 +313,55 @@
           <div id="bulk-entry-modal" class="modal">
             <div class="modal-backdrop"></div>
             <div class="modal-content wide-modal">
-              <span class="close" id="close-bulk-entry">&times;</span>
-              <h3>Bulk Transaction Entry</h3>
-              
-              <div class="bulk-entry-controls">
-                <select id="bulk-entry-account" class="select-styled">
-                  
-                </select>
-                <button id="bulk-entry-add-row" class="secondary-btn">Add Row</button>
-                <button id="bulk-entry-submit" class="primary-btn">Save All</button>
-              </div>
-          
-              <div class="bulk-entry-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Type</th>
-                      <th>Category</th>
-                      <th>Description</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="bulk-entry-tbody">
-                    <!-- Rows will be added dynamically -->
-                  </tbody>
-                </table>
-              </div>
+                <div class="modal-header">
+                    <h3>Bulk Transaction Entry</h3>
+                    <span class="close" id="close-bulk-entry">&times;</span>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="bulk-entry-controls">
+                        <div class="form-group">
+                            <label for="bulk-entry-account">Account</label>
+                            <select id="bulk-entry-account" class="select-styled">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="bulk-entry-add-row" class="secondary-btn">
+                            <i class="fas fa-plus"></i> Add Row
+                        </button>
+                        <!-- <button id="bulk-entry-paste" class="secondary-btn" title="Paste from spreadsheet">
+                            <i class="fas fa-paste"></i> Paste Data
+                        </button> -->
+                    </div>
+                
+                    <div class="bulk-entry-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Category</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bulk-entry-tbody">
+                                <!-- Rows will be added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="secondary-btn" id="close-bulk-entry-btn">Cancel</button>
+                    <button type="button" class="primary-btn" id="bulk-entry-submit">
+                        <i class="fas fa-save"></i> Save All
+                    </button>
+                </div>
             </div>
-          </div>
+        </div>
           <!-- Empty State -->
           <div class="empty-state-container" id="transactions-empty-state">
               <div class="empty-state">
@@ -403,7 +422,7 @@
                               <small class="help-text">Hold Ctrl/Cmd to select multiple projects</small>
                           </div>
 
-                          <div class="templates-section">
+                          <!-- <div class="templates-section">
                               <div class="templates-header">
                                   <h4>Templates</h4>
                                   <button type="button" id="save-as-template" class="secondary-btn">
@@ -411,9 +430,9 @@
                                   </button>
                               </div>
                               <div id="templates-list" class="templates-list">
-                                  <!-- Templates will be dynamically inserted here -->
+                                
                               </div>
-                          </div>
+                          </div> -->
                       </div>
 
                       <div class="modal-footer">
@@ -794,7 +813,7 @@
             <div class="empty-state-container" id="projects-empty-state">
                 <div class="empty-state">
                     <div class="empty-state-icon">
-                        <i class="fas fa-project-diagram"></i>
+                        <i class="fas fa-folder-open"></i>
                     </div>
                     <h3>No Projects Yet</h3>
                     <p>Create projects to track related transactions and expenses</p>
@@ -948,7 +967,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="edit-category-budget">Budget Amount</label>
-                                <input type="number" id="edit-category-budget" name="budget_amount" step="0.01" min="0">
+                                <input type="number" id="edit-category-budget" name="budget_amount" step="0.01" min="0" placeholder="0.00">
                             </div>
                             <div class="form-group">
                                 <label for="edit-category-frequency">Budget Frequency</label>
@@ -1272,6 +1291,26 @@
                             Delete Database
                         </button>
                     </div>
+                    <div class="backups-section">
+                        <div class="backups-header">
+                            <h4>Backups</h4>
+                            <button class="settings-btn" id="create-backup-btn">
+                                <i class="fas fa-save"></i>
+                                Backup Now
+                            </button>
+                        </div>
+                        <p class="settings-description">Recent automatic backups of your data.</p>
+                        <div class="backups-list">
+                            <div class="backups-recent"></div>
+                            <div class="backups-expanded hidden">
+                                <!-- Additional backups will be listed here -->
+                            </div>
+                            <button class="show-more-btn hidden">
+                                <i class="fas fa-chevron-down"></i>
+                                Show More
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Appearance & Preferences Card -->
@@ -1279,7 +1318,7 @@
                     <h3>Appearance & Preferences</h3>
                     <p class="settings-description">Customize the app's appearance, navigation style, and currency preferences.</p>
                     <div class="settings-actions">
-                        <button class="settings-btn" id="toggle-theme-btn">
+                        <button class="settings-btn" id="toggle-theme-btn" data-section="toggle-theme-btn">
                             <i class="fas fa-adjust"></i>
                             Toggle Theme
                         </button>
@@ -1334,6 +1373,43 @@
                         <p>Status: <span class="license-status active"></span></p>
                         <p>License Key: <span id="current-license-key"></span></p>
                         <p>Activated: <span id="license-activation-date"></span></p>
+                    </div>
+                </div>
+
+                <!-- Help & Support Card -->
+                <div class="settings-card">
+                    <h3>Help & Support</h3>
+                    <div class="help-support-section">
+                        <div class="help-item">
+                            <i class="fas fa-book"></i>
+                            <div class="help-content">
+                                <h4>Help & Documentation</h4>
+                                <p>Browse our support articles, guides and tutorials</p>
+                                <a href="https://fyenanceapp.com/help" class="help-link" id="docs-link">
+                                    <i class="fas fa-external-link-alt"></i> View Support Pages
+                                </a>
+                            </div>
+                        </div>
+                        <div class="help-item">
+                            <i class="fas fa-envelope"></i>
+                            <div class="help-content">
+                                <h4>Contact Support</h4>
+                                <p>Need help? Our support team is here for you</p>
+                                <a href="mailto:hi@fyenanceapp.com" class="help-link" id="support-email-link">
+                                    <i class="fas fa-envelope"></i> Email Support
+                                </a>
+                            </div>
+                        </div>
+                        <div class="help-item">
+                            <i class="fas fa-comments"></i>
+                            <div class="help-content">
+                                <h4>Feature Requests & Issues</h4>
+                                <p>Submit features or issues on our board</p>
+                                <a href="https://fyenanceapp.com/logs" class="help-link" id="issues-link">
+                                    <i class="fas fa-bug"></i> View Board
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

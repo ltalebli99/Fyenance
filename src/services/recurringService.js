@@ -32,11 +32,24 @@ export async function fetchRecurring(accountId = null, filters = {}) {
         
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
-            filteredData = filteredData.filter(r => 
-                r.name.toLowerCase().includes(term) ||
-                r.description?.toLowerCase().includes(term) ||
-                r.category_name?.toLowerCase().includes(term)
-            );
+            filteredData = filteredData.filter(r => {
+                // Format dates for searching
+                const startDate = r.start_date ? new Date(r.start_date).toLocaleDateString() : '';
+                const endDate = r.end_date ? new Date(r.end_date).toLocaleDateString() : '';
+                // Format amount for searching
+                const formattedAmount = r.amount.toString();
+                
+                return [
+                    r.name?.toLowerCase(),
+                    r.description?.toLowerCase(),
+                    r.category_name?.toLowerCase(),
+                    startDate.toLowerCase(),
+                    endDate.toLowerCase(),
+                    formattedAmount,
+                    r.type?.toLowerCase(),
+                    r.frequency?.toLowerCase()
+                ].some(field => field && field.includes(term));
+            });
         }
         if (typeFilter !== 'all') {
             filteredData = filteredData.filter(r => r.type === typeFilter);
@@ -136,7 +149,7 @@ export async function fetchRecurring(accountId = null, filters = {}) {
         } else {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="empty-state">No recurring items found</td>
+                    <td colspan="8" class="table-empty-state">No recurring items found</td>
                 </tr>
             `;
         }

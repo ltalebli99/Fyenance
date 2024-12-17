@@ -1,4 +1,4 @@
-import { formatCurrency, capitalizeFirstLetter } from '../utils/formatters.js';
+import { formatCurrency, capitalizeFirstLetter, formatDateForInput, getAmountValue } from '../utils/formatters.js';
 import { fetchTransactions } from '../services/transactionsService.js';
 import { openSection, openModal, closeModal, showError } from '../utils/utils.js';
 import { populateAccountDropdowns, populateCategoryDropdowns, populateProjectDropdowns } from '../utils/dropdownHelpers.js';
@@ -40,7 +40,8 @@ if (addTransactionForm) {
     // Get form elements using the correct IDs
     const accountId = document.getElementById('add-transaction-account')?.value;
     const categoryId = document.getElementById('add-transaction-category')?.value;
-    const amount = document.getElementById('add-transaction-amount')?.value;
+    const amountInput = document.getElementById('add-transaction-amount');
+    const amount = getAmountValue(amountInput);
     const date = document.getElementById('add-transaction-date')?.value;
     const description = document.getElementById('add-transaction-description')?.value;
 
@@ -150,7 +151,7 @@ export async function showEditTransactionForm(transaction) {
         document.getElementById('edit-transaction-account').value = transaction.account_id;
         document.getElementById('edit-transaction-category').value = transaction.category_id;
         document.getElementById('edit-transaction-amount').value = Math.abs(transaction.amount);
-        document.getElementById('edit-transaction-date').value = transaction.date;
+        document.getElementById('edit-transaction-date').value = formatDateForInput(transaction.date);
         document.getElementById('edit-transaction-description').value = transaction.description || '';
 
         // Get and set selected projects
@@ -186,11 +187,14 @@ export async function showEditTransactionForm(transaction) {
     const categoryText = selectedOption?.textContent || '';
     const type = categoryText.split('-')[0].trim().toLowerCase();
 
+    const amountInput = document.getElementById('edit-transaction-amount');
+    const amount = getAmountValue(amountInput);
+
     const updateData = {
       account_id: document.getElementById('edit-transaction-account').value,
       category_id: document.getElementById('edit-transaction-category').value,
       type,
-      amount: parseFloat(document.getElementById('edit-transaction-amount').value),
+      amount: parseFloat(amount),
       date: document.getElementById('edit-transaction-date').value,
       description: document.getElementById('edit-transaction-description').value
     };
@@ -310,7 +314,7 @@ export async function loadTransactions(filters = {}) {
     // Initialize pagination if not already done
     if (!transactionsPagination) {
       transactionsPagination = new TablePagination('transactions-table-body', {
-        itemsPerPage: 15,
+        itemsPerPage: 10,
         onPageChange: async (page) => {
           const filters = {
             type: document.getElementById('transaction-type-filter')?.value || 'all',
@@ -344,7 +348,7 @@ export async function loadTransactions(filters = {}) {
       const emptyRow = document.createElement('tr');
       emptyRow.innerHTML = `
         <td colspan="6" class="empty-state-cell">
-          <div class="empty-state">
+          <div class="table-empty-state">
             <p>No transactions found</p>
           </div>
         </td>

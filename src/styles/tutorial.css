@@ -99,7 +99,7 @@
 }
 
 .tutorial-tooltip .next-btn {
-    background: white;
+    background: var(--modal-background);
     color: var(--primary);
 }
 
@@ -139,4 +139,11 @@
         opacity: 1;
         transform: scale(1);
     }
+}
+
+
+.tutorial-sub-message {
+    margin-top: 10px;
+    font-size: .875rem !important;
+    color: var(--gray-200) !important;
 }

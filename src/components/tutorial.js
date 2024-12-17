@@ -6,14 +6,15 @@ export class Tutorial {
         this.steps = [
             {
                 element: '.logo',
-                message: 'Welcome to Fyenance! Let\'s take a quick tour of the app.',
+                message: '👋 Welcome to Fyenance! Let\'s take a quick tour of the app.',
+                subMessage: 'Select your currency type to get started.',
                 position: 'bottom-left',
                 type: 'currency-select',
                 offset: { x: 20, y: 20 }
             },
             {
                 element: '[data-section="Dashboard"]',
-                message: 'This is your Dashboard, where you can see an overview of your finances.',
+                message: '📊 This is your Dashboard, where you can see an overview of your finances.',
                 position: 'bottom',
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Dashboard');
@@ -21,7 +22,7 @@ export class Tutorial {
             },
             {
                 element: '[data-section="Accounts"]',
-                message: 'Manage your bank accounts, credit cards, and other financial accounts here.',
+                message: '🏦 Manage your bank accounts, credit cards, and other financial accounts here.',
                 position: 'bottom',
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Accounts');
@@ -29,7 +30,7 @@ export class Tutorial {
             },
             {
                 element: '[data-section="Transactions"]',
-                message: 'Track your income and expenses by adding transactions.',
+                message: '💰 Track your income and expenses by adding transactions.',
                 position: 'bottom',
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Transactions');
@@ -37,13 +38,13 @@ export class Tutorial {
             },
             {
                 element: '#quick-entry-input',
-                message: 'Quickly add transactions using the smart entry feature. Try it out!',
+                message: '⚡ Quickly add transactions using the smart entry feature. Try it out!',
                 position: 'top-right',
                 offset: { x: -20, y: 20 }
             },
             {
                 element: '[data-section="Recurring"]',
-                message: 'Set up recurring transactions for bills, subscriptions, or regular income.',
+                message: '🔄 Set up recurring transactions for bills, subscriptions, or regular income.',
                 position: 'bottom',
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Recurring');
@@ -51,7 +52,7 @@ export class Tutorial {
             },
             {
                 element: '[data-section="Categories"]',
-                message: 'Organize your transactions with custom categories to better track your spending.',
+                message: '🏷️ Organize your transactions with custom categories to better track your spending.',
                 position: 'bottom',
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Categories');
@@ -59,7 +60,7 @@ export class Tutorial {
             },
             {
                 element: '[data-section="Reports"]',
-                message: 'View detailed reports and analytics about your spending habits.',
+                message: '📈 View detailed reports and analytics about your spending habits.',
                 position: 'bottom',
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Reports');
@@ -67,7 +68,7 @@ export class Tutorial {
             },
             { 
                 element: '[data-section="Projects"]',
-                message: 'Manage projects and track your progress.',
+                message: '📋 Manage projects and track your progress.',
                 position: 'bottom',
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Projects');
@@ -75,7 +76,7 @@ export class Tutorial {
             },
             {
                 element: '[data-section="Settings"]',
-                message: 'Customize your experience, manage your data, and configure app preferences here.',
+                message: '⚙️ Customize your experience, manage your data, and configure app preferences here.',
                 position: 'bottom',
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Settings');
@@ -83,8 +84,18 @@ export class Tutorial {
             },
             {
                 element: '[data-section="smart-import-btn"]',
-                message: 'Import your bank statement with the smart import feature. Just upload your CSV bank statement and we\'ll do the rest!',
-                position: 'bottom'
+                message: '📥 Import your bank statement with the smart import feature. Just upload your CSV bank statement and we\'ll do the rest!',
+                position: 'bottom',
+            },
+            {
+                element: 'body',
+                message: '🎉 Congratulations! You\'re all set to take control of your finances.',
+                subMessage: 'Visit the Settings page anytime to find help documentation, check for updates, and customize your experience. We\'re here to support your financial journey! 💪',
+                position: 'center',
+                action: async (element) => {
+                    await openSection({ currentTarget: element }, 'Dashboard');
+                },
+                isFinal: true
             }
         ];
         
@@ -316,6 +327,7 @@ export class Tutorial {
                 const currencies = getAllCurrencies();
                 tooltip.innerHTML = `
                     <p>${step.message}</p>
+                    <p class="tutorial-sub-message">${step.subMessage}</p>
                     <div class="currency-select-container">
                         <select id="currency-preference" class="currency-select">
                             ${currencies.map(c => `
@@ -336,6 +348,26 @@ export class Tutorial {
                     const selectedCurrency = tooltip.querySelector('#currency-preference').value;
                     setCurrencyPreference(selectedCurrency);
                     this.nextStep();
+                });
+            }
+
+            if (step.isFinal) {
+                this.removeHighlight();
+                tooltip.style.position = 'fixed';
+                tooltip.style.left = '50%';
+                tooltip.style.top = '50%';
+                tooltip.style.transform = 'translate(-50%, -50%) scale(0.95)';
+                tooltip.innerHTML = `
+                    <p>${step.message}</p>
+                    <p class="tutorial-sub-message">${step.subMessage}</p>
+                    <div class="tutorial-buttons">
+                        <button class="next-btn">Finish</button>
+                    </div>
+                `;
+
+                // Override click handler for final step
+                tooltip.querySelector('.next-btn').addEventListener('click', () => {
+                    this.complete();
                 });
             }
         }, oldTooltip ? 300 : 0); // Wait for old tooltip to fade if it exists

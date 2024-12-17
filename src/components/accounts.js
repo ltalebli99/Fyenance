@@ -1,4 +1,4 @@
-import { formatCurrency } from '../utils/formatters.js';
+import { formatCurrency, getAmountValue } from '../utils/formatters.js';
 import { openSection, openModal, closeModal } from '../utils/utils.js';
 import { fetchTotalBalance } from '../services/reportsService.js';
 import { renderDashboardCharts } from '../services/chartsService.js';
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         addAccountForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('account-name').value;
-            const balance = parseFloat(document.getElementById('account-balance').value);
+            const balance = parseFloat(getAmountValue(document.getElementById('account-balance')));
 
             const { error } = await window.databaseApi.addAccount({
               name,

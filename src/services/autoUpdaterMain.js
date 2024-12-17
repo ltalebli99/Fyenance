@@ -12,10 +12,24 @@ function setupAutoUpdater(mainWindow) {
   // Configure logging
   autoUpdater.logger = electronLog;
   autoUpdater.logger.transports.file.level = 'debug';
+  electronLog.info('Auto Updater starting...');
+
+  // Force enable updates even in dev mode
+  // autoUpdater.forceDevUpdateConfig = true;
+  // autoUpdater.allowDowngrade = true;
+  autoUpdater.allowPrerelease = process.env.NODE_ENV === 'development';
+
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'ltalebli99',
+    repo: 'Fyenance',
+    private: true
+  });
+
+  electronLog.info('Current version:', app.getVersion());
 
   // Configure updater options
   autoUpdater.autoDownload = false;
-  autoUpdater.allowPrerelease = false;
   autoUpdater.fullChangelog = true;
 
   // Helper function to send status to window
@@ -25,9 +39,9 @@ function setupAutoUpdater(mainWindow) {
     }
   }
 
-  // Auto-updater events
+  // Auto-updater events with enhanced error logging
   autoUpdater.on('error', (error) => {
-    console.error('Auto-updater error details:', {
+    electronLog.error('Auto-updater error:', {
       message: error.message,
       stack: error.stack,
       code: error.code,
@@ -37,51 +51,59 @@ function setupAutoUpdater(mainWindow) {
   });
 
   autoUpdater.on('checking-for-update', () => {
+    electronLog.info('Checking for updates...');
     sendStatusToWindow('Checking for updates...');
   });
 
   autoUpdater.on('update-available', (info) => {
+    electronLog.info('Update available:', info);
     sendStatusToWindow('Update available.');
     mainWindow.webContents.send('update-available', info);
   });
 
   autoUpdater.on('update-not-available', (info) => {
+    electronLog.info('Update not available:', info);
     sendStatusToWindow('Up to date.');
   });
 
   autoUpdater.on('download-progress', (progressObj) => {
-    sendStatusToWindow(
-      `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`
-    );
+    const message = `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`;
+    electronLog.info('Download progress:', message);
+    sendStatusToWindow(message);
+    mainWindow.webContents.send('download-progress', progressObj);
   });
 
   autoUpdater.on('update-downloaded', (info) => {
-    sendStatusToWindow('Update downloaded; will install now');
+    electronLog.info('Update downloaded:', info);
+    sendStatusToWindow('Update downloaded; will install on next launch');
     autoUpdater.quitAndInstall(false, true);
   });
 
-  // Register IPC handlers
-  safeIpcHandle('get-app-version', () => app.getVersion());
-  
   safeIpcHandle('check-for-updates', async () => {
     try {
-      console.log('Checking for updates...');
-      console.log('Current version:', app.getVersion());
+      electronLog.info('Checking for updates...');
+      electronLog.info('Current version:', app.getVersion());
       
       const result = await autoUpdater.checkForUpdates();
-      console.log('Check result:', result);
-      return result;
+      electronLog.info('Check result:', result);
+      return {
+        updateAvailable: result.updateInfo.version !== app.getVersion(),
+        currentVersion: app.getVersion(),
+        latestVersion: result.updateInfo.version,
+        ...result
+      };
     } catch (error) {
-      console.error('Update check error:', error);
+      electronLog.error('Update check error:', error);
       throw error;
     }
   });
 
   safeIpcHandle('start-update', async () => {
     try {
+      electronLog.info('Starting update download...');
       return await autoUpdater.downloadUpdate();
     } catch (error) {
-      console.error('Error downloading update:', error);
+      electronLog.error('Error downloading update:', error);
       return { status: 'error', message: error.message };
     }
   });
@@ -90,7 +112,7 @@ function setupAutoUpdater(mainWindow) {
   if (process.env.NODE_ENV === 'production') {
     setTimeout(() => {
       autoUpdater.checkForUpdates().catch(err => {
-        console.error('Initial update check failed:', err);
+        electronLog.error('Initial update check failed:', err);
       });
     }, 3000);
   }

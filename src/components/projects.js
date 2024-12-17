@@ -1,7 +1,7 @@
 import { openModal, closeModal, showError } from '../utils/utils.js';
 import { fetchProjects } from '../services/projectsService.js';
 import { refreshData } from '../utils/refresh.js';
-import { formatCurrency, formatDate } from '../utils/formatters.js';
+import { formatCurrency, formatDate, getAmountValue } from '../utils/formatters.js';
 
 export function initializeProjects() {
     // Add Project Button
@@ -30,7 +30,7 @@ export function initializeProjects() {
         const project = {
             name: document.getElementById('project-name').value,
             description: document.getElementById('project-description').value,
-            budget: parseFloat(document.getElementById('project-budget').value) || null,
+            budget: parseFloat(getAmountValue(document.getElementById('project-budget'))) || null,
             status: document.getElementById('project-status').value,
             start_date: document.getElementById('project-start-date').value || null,
             end_date: document.getElementById('project-end-date').value || null
@@ -57,7 +57,7 @@ export function initializeProjects() {
         const project = {
             name: document.getElementById('edit-project-name').value,
             description: document.getElementById('edit-project-description').value,
-            budget: parseFloat(document.getElementById('edit-project-budget').value) || null,
+            budget: parseFloat(getAmountValue(document.getElementById('edit-project-budget'))) || null,
             status: document.getElementById('edit-project-status').value,
             start_date: document.getElementById('edit-project-start-date').value || null,
             end_date: document.getElementById('edit-project-end-date').value || null

@@ -1,8 +1,10 @@
 @import 'components/projects.css';
 @import 'components/modals.css';
 @import 'components/pagination.css';
-
-
+@import 'components/datePicker.css';
+@import 'components/backups.css';
+@import 'components/emptyState.css';
+@import 'components/help.css';
 
     .status-btn {
       padding: 0.25rem 0.75rem;
@@ -53,7 +55,7 @@
       right: 0;
       height: var(--header-height);
       background: var(--nav-bg);
-      border-bottom: 1px solid var(--nav-border);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -453,7 +455,7 @@
       padding: 0.5rem 1rem;
       border: 1px solid var(--gray-200);
       border-radius: var(--radius);
-      background: white;
+      background: var(--modal-background);
       color: var(--gray-800);
       font-size: 0.875rem;
     }
@@ -519,7 +521,7 @@
     .form-card {
       max-width: 600px;
       margin: 0 auto 1.5rem;
-      background: white;
+      background: var(--modal-background);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       margin-bottom: 2rem;
@@ -544,14 +546,14 @@
 
     .form-group label {
       display: block;
-      margin-bottom: 0.5rem;
       color: var(--gray-700);
       font-size: 0.875rem;
       font-weight: 500;
     }
 
     .form-group input,
-    .form-group select {
+    .form-group select,
+    .form-group textarea {
       width: 100%;
       padding: 0.75rem;
       border: 1px solid var(--gray-200);
@@ -1326,6 +1328,13 @@
   justify-content: flex-end;
 }
 
+#bulk-entry-add-row,
+#bulk-entry-paste {
+  height: 2.5rem;
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+}
+
 .action-btn {
   background: transparent;
   color: var(--gray-700);
@@ -1623,7 +1632,7 @@
   margin: 0;
   padding: 3rem;
   max-width: 400px;
-  background: white;
+  background: var(--modal-background);
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -1763,6 +1772,8 @@
   display: flex;
   gap: 0.5rem;
   flex: 1;
+  background: var(--modal-background);
+  width: 20rem;
 }
 
 .search-input {
@@ -1771,7 +1782,7 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 0.9rem;
-  background: white;
+  background: var(--modal-background);
   color: var(--text-primary);
 }
 
@@ -1797,7 +1808,7 @@
   gap: 0.5rem;
   padding: 0.25rem 0.5rem;
   font-size: 0.9rem;
-  background: white;
+  background: var(--modal-background);
   border: 1px solid var(--border);
   border-radius: 4px;
   cursor: pointer;
@@ -1806,7 +1817,7 @@
 }
 
 .advanced-filters-btn:hover {
-  background: white;
+  background: var(--modal-background);
   border-color: var(--primary);
 }
 
@@ -2084,7 +2095,7 @@
   font-family: inherit;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: white;
+  background: var(--modal-background);
 }
 
 /* Ensure consistent spacing for display text */
@@ -2295,5 +2306,87 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: var(--primary-color);
+  accent-color: var(--primary);
 }
+
+
+
+.quick-entry-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.quick-entry-tooltip {
+  position: relative;
+  cursor: help;
+}
+
+.quick-entry-tooltip .fa-info-circle {
+  color: var(--gray-600);
+  font-size: 16px;
+}
+
+.quick-entry-tooltip .tooltip-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-95%);
+  background: var(--modal-background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  width: 320px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.quick-entry-tooltip:hover .tooltip-content {
+  display: block;
+}
+
+.quick-entry-tooltip h4 {
+  margin: 0 0 8px 0;
+  color: var(--primary);
+}
+
+.quick-entry-tooltip p {
+  margin: 4px 0;
+  color: var(--gray-600);
+}
+
+.quick-entry-tooltip ul {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.quick-entry-tooltip li {
+  color: var(--gray-600);
+  margin: 2px 0;
+}
+
+.quick-entry-tooltip h5 {
+  margin: 12px 0 4px 0;
+  color: var(--primary);
+  font-size: 0.9em;
+}
+
+.quick-entry-tooltip ul ul {
+  margin-left: 8px;
+  font-size: 0.9em;
+  color: var(--gray-600);
+}
+
+.quick-entry-tooltip ul ul li {
+  font-style: italic;
+}
+
+.tooltip-note {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 0.9em;
+  color: var(--gray-600);
+}
+

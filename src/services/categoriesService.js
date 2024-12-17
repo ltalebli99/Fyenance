@@ -50,10 +50,21 @@ export async function fetchCategories(filters = {}) {
       // Search filter
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        filteredData = filteredData.filter(c => 
-          c.name.toLowerCase().includes(searchTerm) ||
-          c.type.toLowerCase().includes(searchTerm)
-        );
+        filteredData = filteredData.filter(c => {
+          // Format budget amount for searching
+          const budgetAmount = c.budget_amount ? c.budget_amount.toString() : '';
+          // Format last used date for searching
+          const lastUsed = c.last_used ? new Date(c.last_used).toLocaleDateString() : '';
+          
+          return [
+            c.name?.toLowerCase(),
+            c.type?.toLowerCase(),
+            budgetAmount,
+            c.budget_frequency?.toLowerCase(),
+            lastUsed,
+            c.description?.toLowerCase()
+          ].some(field => field && field.includes(searchTerm));
+        });
       }
 
       // Apply sorting
@@ -96,7 +107,7 @@ export async function fetchCategories(filters = {}) {
     } else {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="7" class="empty-state">No categories found</td>
+          <td colspan="7" class="table-empty-state">No categories found</td>
         </tr>
       `;
     }
@@ -128,7 +139,7 @@ function createCategoryRow(category) {
     <td>${capitalizeFirstLetter(category.type)}</td>
     <td>${category.usage_count || 0}</td>
     <td>${lastUsedDate}</td>
-    <td>${category.budget_amount ? '$' + formatCurrency(category.budget_amount) : '-'}</td>
+    <td>${category.budget_amount ? formatCurrency(category.budget_amount) : '-'}</td>
     <td>${category.budget_frequency ? capitalizeFirstLetter(category.budget_frequency) : '-'}</td>
     <td>
       <div class="action-buttons">

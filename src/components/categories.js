@@ -1,4 +1,4 @@
-import { capitalizeFirstLetter } from '../utils/formatters.js';
+import { capitalizeFirstLetter, getAmountValue } from '../utils/formatters.js';
 import { openModal, closeModal, showError } from '../utils/utils.js';
 import { debounce, positionFilterPanel } from '../utils/filters.js';
 import { fetchCategories } from '../services/categoriesService.js';
@@ -10,14 +10,14 @@ export async function handleAddCategory(e) {
     e.preventDefault();
     const name = document.getElementById('add-category-name').value;
     const type = document.getElementById('add-category-type').value;
-    const budgetAmount = document.getElementById('add-category-budget').value;
+    const budgetAmount = getAmountValue(document.getElementById('add-category-budget'));
     const budgetFrequency = document.getElementById('add-category-frequency').value;
   
     const { error } = await window.databaseApi.addCategory({ 
       name, 
       type,
-      budget_amount: budgetAmount || null,
-      budget_frequency: budgetFrequency || null
+      budget_amount: budgetAmount || "0.00",
+      budget_frequency: budgetFrequency || "monthly"
     });
     if (error) {
       console.error('Error adding category:', error);
@@ -35,14 +35,14 @@ export async function handleAddCategory(e) {
     const id = document.getElementById('edit-category-id').value;
     const name = document.getElementById('edit-category-name').value;
     const type = document.getElementById('edit-category-type').value;
-    const budgetAmount = document.getElementById('edit-category-budget').value;
+    const budgetAmount = getAmountValue(document.getElementById('edit-category-budget'));
     const budgetFrequency = document.getElementById('edit-category-frequency').value;
   
     const { error } = await window.databaseApi.updateCategory(id, { 
       name, 
       type,
-      budget_amount: budgetAmount || null,
-      budget_frequency: budgetFrequency || null
+      budget_amount: budgetAmount || "0.00",
+      budget_frequency: budgetFrequency || "monthly"
     });
   
     if (error) {
@@ -102,7 +102,7 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
     const updateData = {
       name: document.getElementById('edit-category-name').value.trim(),
       type: document.getElementById('edit-category-type').value,
-      budget_amount: document.getElementById('edit-category-budget').value || null,
+      budget_amount: getAmountValue(document.getElementById('edit-category-budget')),
       budget_frequency: document.getElementById('edit-category-frequency').value || null
     };
   
@@ -126,7 +126,7 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
     const newCategory = {
       name: document.getElementById('add-category-name').value.trim(),
       type: document.getElementById('add-category-type').value,
-      budget_amount: document.getElementById('add-category-budget').value || null,
+      budget_amount: getAmountValue(document.getElementById('add-category-budget')),
       budget_frequency: document.getElementById('add-category-frequency').value || null
     };
   

@@ -5,6 +5,7 @@ let monthlyComparisonChartInstance;
 let expenseCategoriesChartInstance;
 let trendChartInstance;
 let cashFlowChartInstance = null;
+let isInitialized = false;
 
 // Calculate Monthly Recurring
 export async function calculateMonthlyRecurring(accountId = 'all') {
@@ -104,6 +105,12 @@ export async function fetchTotalBalance(accountId = 'all') {
 
 // Update the updateReports function to include recurring
 export async function updateReports(period = 'month', accountIds = ['all']) {
+  // Add initialization guard
+  if (!isInitialized) {
+    console.log('Reports not yet initialized, skipping update');
+    return;
+  }
+
   try {
     // Normalize account IDs
     const normalizedAccountIds = Array.isArray(accountIds) ? accountIds : [accountIds];
@@ -1074,8 +1081,7 @@ function initializeCustomMultiSelect() {
   };
 }
 
-// Update the event listener initialization
-document.addEventListener('DOMContentLoaded', () => {
+function setupReportsEventListeners() {
   const multiSelect = initializeCustomMultiSelect();
   
   if (multiSelect) {
@@ -1083,6 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const accountSelector = document.getElementById('reports-account-selector');
     if (accountSelector) {
       accountSelector.addEventListener('accountschange', (event) => {
+        if (!isInitialized) return; // Skip if not initialized
         const selectedAccounts = event.detail;
         const periodSelector = document.getElementById('reports-period-selector');
         const period = periodSelector ? periodSelector.value : 'month';
@@ -1094,12 +1101,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const periodSelector = document.getElementById('reports-period-selector');
     if (periodSelector) {
       periodSelector.addEventListener('change', () => {
+        if (!isInitialized) return; // Skip if not initialized
         const selectedAccounts = multiSelect.getSelectedAccounts();
         updateReports(periodSelector.value, selectedAccounts);
       });
     }
   }
-});
+  
+  return multiSelect;
+}
+
+// Export the setup function
+export { setupReportsEventListeners };
 
 // Add this function
 async function renderCashFlowTimeline(transactions, recurring, period = 'month', accountIds = ['all']) {
@@ -1293,6 +1306,11 @@ export async function updateBudgetTracking(accountIds = ['all'], period = 'month
     } catch (error) {
         console.error('Error updating budget tracking:', error);
     }
+}
+
+// Export a function to mark initialization as complete
+export function markReportsInitialized() {
+  isInitialized = true;
 }
 
 

@@ -55,6 +55,20 @@ function formatDate(date) {
   });
 }
 
+function formatDateForInput(dateString) {
+    if (!dateString) return '';
+    
+    // Handle the date string directly without adding time
+    const date = new Date(dateString);
+    
+    // Format as YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
 function formatDateForDisplay(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -82,4 +96,87 @@ function getOrdinalSuffix(day) {
     }
 }
 
-export { formatCurrency, capitalizeFirstLetter, hexToRgb, sanitizeHTML, setTextContent, formatDate, formatDateForDisplay };
+function formatAmountInput(input) {
+  const symbol = getCurrencySymbol();
+  
+  // Clear any existing timeout
+  clearTimeout(input.formatTimeout);
+  
+  // Remove currency symbol and any non-numeric characters except decimal point
+  let value = input.value.replace(symbol, '').replace(/[^\d.-]/g, '');
+  
+  // Ensure only one decimal point
+  const parts = value.split('.');
+  if (parts.length > 2) {
+    parts[1] = parts.slice(1).join('');
+    value = parts.join('.');
+  }
+
+  // Store the raw numeric value
+  input.dataset.amount = value;
+
+  // If actively typing, just add the symbol and wait
+  if (!input.formatTimeout) {
+    input.value = symbol + value;
+    const cursorPosition = input.selectionStart;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  }
+
+  // Set a timeout to format after typing stops
+  input.formatTimeout = setTimeout(() => {
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue)) {
+      // Format with commas and currency symbol
+      const formatted = symbol + new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(Math.abs(numValue));
+
+      input.value = formatted;
+    } else {
+      input.value = symbol;
+      input.setSelectionRange(symbol.length, symbol.length);
+    }
+  }, 500); // Wait 500ms after typing stops before formatting
+}
+
+// When initializing an empty input, set cursor after symbol
+function initializeAmountInput(input) {
+  const symbol = getCurrencySymbol();
+  if (!input.value || input.value === symbol) {
+    input.value = symbol;
+    input.setSelectionRange(symbol.length, symbol.length);
+  }
+}
+
+function getAmountValue(input) {
+  if (!input || !input.value || input.value.trim() === '' || input.value === getCurrencySymbol()) {
+    return null;
+  }
+  
+  // Remove currency symbol and any formatting characters
+  const value = input.value
+    .replace(getCurrencySymbol(), '')
+    .replace(/,/g, '')
+    .trim();
+    
+  // If empty after cleaning, return null
+  if (!value) return null;
+  
+  // Convert to number and validate
+  const numValue = parseFloat(value);
+  return isNaN(numValue) ? null : numValue.toString();
+}
+
+export { formatCurrency, 
+    capitalizeFirstLetter, 
+    hexToRgb, 
+    sanitizeHTML, 
+    setTextContent, 
+    formatDate, 
+    formatDateForDisplay,
+    formatDateForInput,
+    formatAmountInput,
+    getAmountValue,
+    initializeAmountInput
+};

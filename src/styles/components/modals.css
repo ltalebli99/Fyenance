@@ -96,7 +96,6 @@
   
       .modal label {
         display: block;
-        margin-bottom: 8px;
         color: var(--text-color);
         font-weight: 500;
       }

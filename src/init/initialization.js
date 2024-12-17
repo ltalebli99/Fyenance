@@ -1,4 +1,4 @@
-import { fetchTotalBalance, updateReports } from '../services/reportsService.js';
+import { fetchTotalBalance, updateReports, setupReportsEventListeners, markReportsInitialized } from '../services/reportsService.js';
 import { fetchAccounts } from '../services/accountsService.js';
 import { fetchCategories } from '../services/categoriesService.js';
 import { populateAccountDropdowns, populateCategoryDropdowns } from '../utils/dropdownHelpers.js';
@@ -11,6 +11,7 @@ import { setupLicenseHandlers } from '../components/license.js';
 import { initializeCategories } from '../components/categories.js';
 import { initializeProjects } from '../components/projects.js';
 import { fetchProjects } from '../services/projectsService.js';
+
 
 const checkLicense = () => window.licenseApi.checkLicenseExists();
 const updateLicenseInfo = () => window.licenseApi.getLicenseInfo();
@@ -62,7 +63,7 @@ export async function initializeMainApp() {
     // Initialize core components first
     await Promise.all([
       updateLicenseInfo().catch(err => console.error('Failed to update license info:', err)),
-      initializeCategories().catch(err => console.error('Failed to initialize categories:', err))
+      initializeCategories().catch(err => console.error('Failed to initialize categories:', err)),
     ]);
 
     // Then fetch data
@@ -74,11 +75,19 @@ export async function initializeMainApp() {
       populateCategoryDropdowns().catch(err => console.error('Failed to populate category dropdowns:', err)),
       fetchTransactions().catch(err => console.error('Failed to fetch transactions:', err)),
       fetchProjects().catch(err => console.error('Failed to fetch projects:', err)),
-      renderDashboardCharts().catch(err => console.error('Failed to render charts:', err)),
       fetchRecurring().catch(err => console.error('Failed to fetch recurring:', err)),
-      updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err)),
+    ]);
+
+    // After all data is loaded, update UI components
+    await Promise.all([
+      renderDashboardCharts().catch(err => console.error('Failed to render charts:', err)),
       updateBannerData().catch(err => console.error('Failed to update banner data:', err))
     ]);
+
+    // Set up reports components
+    setupReportsEventListeners();
+    markReportsInitialized();
+    await updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err));
 
     // Update UI states last
     await updateEmptyStates().catch(err => console.error('Failed to update empty states:', err));

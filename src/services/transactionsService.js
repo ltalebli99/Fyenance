@@ -24,10 +24,20 @@ export async function fetchTransactions(filters = {}) {
       
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        filteredData = filteredData.filter(t => 
-          t.description?.toLowerCase().includes(searchTerm) ||
-          t.category_name?.toLowerCase().includes(searchTerm)
-        );
+        filteredData = filteredData.filter(t => {
+          // Format date for searching
+          const formattedDate = new Date(t.date).toLocaleDateString();
+          // Format amount for searching
+          const formattedAmount = t.amount.toString();
+          
+          return [
+            t.description?.toLowerCase(),
+            t.category_name?.toLowerCase(),
+            formattedDate.toLowerCase(),
+            formattedAmount,
+            t.type?.toLowerCase()
+          ].some(field => field && field.includes(searchTerm));
+        });
       }
 
       // Apply sorting

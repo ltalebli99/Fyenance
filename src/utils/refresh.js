@@ -47,10 +47,6 @@ export async function refreshData(options = { all: true }) {
             refreshTasks.push(fetchRecurring());
         }
 
-        if (options.all || options.projects) {
-            refreshTasks.push(fetchProjects());
-        }
-
         if (options.all || options.charts) {
             refreshTasks.push(renderDashboardCharts());
         }
@@ -60,6 +56,10 @@ export async function refreshData(options = { all: true }) {
                 updateReports(),
                 updateBannerData()
             );
+        }
+        
+        if (options.all || options.projects) {
+            refreshTasks.push(fetchProjects());
         }
 
         if (options.all || options.dropdowns) {

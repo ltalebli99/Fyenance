@@ -1,0 +1,101 @@
+.backups-section {
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  
+  .backup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 0.25rem;
+    background: var(--background);
+  }
+
+  .backups-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .backup-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .backup-name {
+    padding-left: .5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+  
+  .backup-date, .backup-size {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+  
+  .backup-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .backups-expanded {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+  }
+  
+  .show-more-btn {
+    width: 100%;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--gray-600);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .show-more-btn:hover {
+    background: var(--warning);
+  }
+  
+  .hidden {
+    display: none;
+  }
+
+  .backups-btn {
+    background: var(--gray-100);
+    color: var(--gray-600);
+    padding: 0.5rem 1rem;
+  }
+
+  .backups-btn:hover {
+    color: white;
+  }
+
+  .backups-btn.danger:hover {
+    background: var(--danger);
+  }
+  
+  .empty-state, .error-state {
+    text-align: center;
+    padding: 1rem;
+    color: var(--gray-600);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    margin: 1rem 0;
+  }
+  
+  .error-state {
+    color: var(--danger);
+    border-color: var(--danger);
+  }

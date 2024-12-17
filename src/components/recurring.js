@@ -1,11 +1,7 @@
-import { formatCurrency, capitalizeFirstLetter } from '../utils/formatters.js';
+import { formatCurrency, capitalizeFirstLetter, getAmountValue } from '../utils/formatters.js';
 import { openModal, closeModal, showError } from '../utils/utils.js';
 import { populateAccountDropdowns, populateCategoryDropdowns, populateProjectDropdowns } from '../utils/dropdownHelpers.js';
 import { fetchRecurring } from '../services/recurringService.js';
-import { updateReports } from '../services/reportsService.js';
-import { fetchTotalBalance } from '../services/reportsService.js';
-import { renderDashboardCharts } from '../services/chartsService.js';
-import { updateEmptyStates } from '../utils/emptyStates.js';
 import { showCreateFirstModal } from '../utils/modals.js';
 import { debounce } from '../utils/filters.js';
 import { refreshData } from '../utils/refresh.js';
@@ -135,7 +131,7 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
       const recurring = {
         account_id: parseInt(accountSelect.value, 10),
         name: nameInput.value.trim(),
-        amount: parseFloat(amountInput.value),
+        amount: parseFloat(getAmountValue(amountInput)),
         category_id: parseInt(categorySelect.value, 10),
         start_date: startDate,
         end_date: endDate,
@@ -301,7 +297,7 @@ document.getElementById('edit-recurring-form')?.addEventListener('submit', async
         const updateData = {
             account_id: parseInt(accountSelect.value),
             name: nameInput.value.trim(),
-            amount: parseFloat(amountInput.value),
+            amount: parseFloat(getAmountValue(amountInput)),
             category_id: parseInt(categorySelect.value),
             type: type,
             start_date: startDateInput.value,

@@ -10,6 +10,8 @@ import { initializeWindowControls } from './services/windowService.js';
 import { initializeSettings } from './components/settings.js';
 import { initializeDatabaseControls } from './utils/database.js';
 import { initializeProjects } from './components/projects.js';
+import { initializeAmountInputs } from './utils/validation.js';
+
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', async () => {
@@ -28,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeQuickEntry();
     initializeBulkEntry();
     initializeProjects();
-    
+    initializeAmountInputs();
     // Initialize filters
     initializeFilters();
     
