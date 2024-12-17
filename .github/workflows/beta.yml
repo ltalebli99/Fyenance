@@ -18,7 +18,11 @@ jobs:
       
       - name: Get version from package.json
         id: get-version
-        run: echo "version=$(node -p "require('./package.json').version")-beta" >> $GITHUB_OUTPUT
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          BETA_VERSION="$PACKAGE_VERSION-beta"
+          echo "version=$BETA_VERSION" >> $GITHUB_OUTPUT
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Create or Update Beta Release
         uses: softprops/action-gh-release@v1
@@ -66,6 +70,7 @@ jobs:
           release: true
           skip_build: false
           args: >
+            -c.extraMetadata.version=${{ needs.prepare-release.outputs.version }}
             --publish always
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12 --config.productName="Fyenance Beta"' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance Beta"' ||
@@ -82,7 +87,7 @@ jobs:
           trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
           certificate-profile-name: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
           files-folder: ${{ github.workspace }}/dist/win-unpacked
-          files-folder-filter: "exe,dll"  # Only sign executables and DLLs
+          files-folder-filter: "exe,dll"
           file-digest: "SHA256"
           timestamp-rfc3161: "http://timestamp.acs.microsoft.com"
           timestamp-digest: "SHA256"
