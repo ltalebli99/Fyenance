@@ -67,9 +67,9 @@ jobs:
           skip_build: false
           args: >
             --publish always
-            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12 --config.productName="Your App Beta"' ||
-                matrix.os == 'windows-latest' && '--win --config.productName="Your App Beta"' ||
-                matrix.os == 'ubuntu-latest' && '--linux --config.productName="Your App Beta"' }}
+            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12 --config.productName="Fyenance Beta"' ||
+                matrix.os == 'windows-latest' && '--win --config.productName="Fyenance Beta"' ||
+                matrix.os == 'ubuntu-latest' && '--linux --config.productName="Fyenance Beta"' }}
 
       - name: Sign Windows Build
         if: matrix.os == 'windows-latest'
