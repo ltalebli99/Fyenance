@@ -34,7 +34,8 @@
     "cross-env": "^7.0.3",
     "electron": "^33.2.1",
     "electron-builder": "^24.13.3",
-    "electron-rebuild": "^3.2.9"
+    "electron-rebuild": "^3.2.9",
+    "dmg-license": "^1.0.11" 
   },
   "build": {
     "appId": "com.fyenance.app",
