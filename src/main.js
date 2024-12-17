@@ -1,4 +1,4 @@
-const { app } = require('electron');
+const { app, BrowserWindow } = require('electron');
 const { createMainWindow } = require('./core/window');
 const { initializeDatabase } = require('./services/initDatabase');
 const { setupAutoUpdater } = require('./services/autoUpdaterMain');

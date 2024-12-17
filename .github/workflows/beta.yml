@@ -69,12 +69,13 @@ jobs:
 
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: true
-          skip_build: false
+          skip_build: true
           args: >
-            -c.extraMetadata.version=${{ needs.prepare-release.outputs.version }}
             --publish always
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12 --config.productName="Fyenance Beta"' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance Beta"' ||
