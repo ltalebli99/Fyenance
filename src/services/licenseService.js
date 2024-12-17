@@ -49,8 +49,13 @@ class LicenseService {
   }
 
   isValidKeyFormat(key) {
-    // Format: XXXX-XXXX-XXXX-XXXX
-    return /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key);
+    // Our format: XXXX-XXXX-XXXX-XXXX
+    const ourFormat = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+    
+    // AppSumo format: 8-4-4-4-12 UUID format
+    const appSumoFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    return ourFormat.test(key) || appSumoFormat.test(key);
   }
 
   saveLicense(licenseKey) {
@@ -131,4 +136,8 @@ class LicenseService {
   }
 }
 
-module.exports = new LicenseService();
+// Create and export a single instance
+const licenseService = new LicenseService();
+module.exports = licenseService; 
+
+

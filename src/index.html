@@ -33,6 +33,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/tutorial.css">
+    <link rel="stylesheet" href="styles/smart-import.css">
+    <link rel="stylesheet" href="styles/components/multiSelect.css">
+    <link rel="stylesheet" href="styles/variables.css">
+    <link rel="stylesheet" href="styles/components/reports.css">
 </head>
 <body class="preload">
     <!-- Loading Screen -->
@@ -75,6 +79,10 @@
                 <i class="fas fa-chart-bar"></i>
                 <span>Reports</span>
             </button>
+            <button class="tablink" data-section="Projects">
+                <i class="fas fa-project-diagram"></i>
+                <span>Projects</span>
+            </button>
             <button class="tablink" data-section="Settings">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
@@ -83,11 +91,14 @@
         
         <!-- Window Controls -->
         <div class="window-controls">
-            <button class="window-control-button minimize" id="minimizeButton">
-                <i class="fas fa-minus-circle"></i>
+            <button class="window-control-button minimize-btn" id="minimizeButton">
+                <i class="fas fa-minus"></i>
             </button>
-            <button class="window-control-button close" id="closeButton">
-                <i class="fas fa-times-circle"></i>
+            <button class="window-control-button maximize-btn" id="maximizeButton">
+                <i class="fas fa-square"></i>
+            </button>
+            <button class="window-control-button close-btn" id="closeButton">
+                <i class="fas fa-times"></i>
             </button>
         </div>
     </header>
@@ -111,7 +122,7 @@
                     <div class="banner-content">
                         <div class="banner-stat">
                             <span class="banner-label">Net Worth</span>
-                            <h2>$<span id="total-net-worth">0.00</span></h2>
+                            <h2><span id="total-net-worth">0.00</span></h2>
                         </div>
                         <div class="banner-insights">
                             <div class="insight">
@@ -129,21 +140,21 @@
                 <div class="stats-grid">
                     <div class="stat-card">
                         <h3>This Month's Balance</h3>
-                        <div class="value">$<span id="this-month-balance">0.00</span></div>
+                        <div class="value"><span id="this-month-balance">0.00</span></div>
                     </div>
                     <div class="stat-card">
                         <h3>This Month's Income</h3>
-                        <div class="value positive">$<span id="this-month-income">0.00</span></div>
+                        <div class="value positive"><span id="this-month-income">0.00</span></div>
                     </div>
                     <div class="stat-card">
                         <h3>This Month's Expenses</h3>
-                        <div class="value negative">$<span id="this-month-expenses">0.00</span></div>
+                        <div class="value negative"><span id="this-month-expenses">0.00</span></div>
                     </div>
                 </div>
 
                 <div class="charts-grid">
                     <div class="chart-container daily-spending">
-                        <h3>Daily Spending</h3>
+                        <h3>Daily Spending This Month</h3>
                         <canvas id="dailySpendingChart"></canvas>
                     </div>
                     <div class="chart-container upcoming-expenses">
@@ -152,15 +163,17 @@
                 </div>
             </div>
 
-            <div id="dashboard-empty-state" class="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-chart-line"></i>
+            <div class="empty-state-container" id="dashboard-empty-state">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Welcome to Your Financial Dashboard</h3>
+                    <p>Start by adding your first account to track your finances</p>
+                    <button class="primary-btn" id="add-first-account-btn">
+                        <i class="fas fa-plus"></i> Add Your First Account
+                    </button>
                 </div>
-                <h3>Welcome to Your Financial Dashboard</h3>
-                <p>Start by adding your first account to track your finances</p>
-                <button class="primary-btn" id="add-first-account-btn">
-                    <i class="fas fa-plus"></i> Add Your First Account
-                </button>
             </div>
         </div>
 
@@ -178,10 +191,14 @@
 
                 <div class="card">
                     <table>
-                        <thead>
+                        <thead id="accounts-table-header">
                             <tr>
                                 <th>Account Name</th>
-                                <th>Balance</th>
+                                <th>Starting Balance</th>
+                                <th>Current Balance</th>
+                                <th>This Month's Change</th>
+                                <th>Last Transaction</th>
+                                <th>Activity Status</th>
                                 <th class="text-right">Actions</th>
                             </tr>
                         </thead>
@@ -192,37 +209,48 @@
             </div>
 
             <div id="add-account-modal" class="modal">
-              <div class="modal-backdrop"></div>
-              <div class="modal-content">
-                  <span class="close" id="close-add-account">&times;</span>
-                  <h3>Add New Account</h3>
-                  <form id="add-account-form">
-                      <div class="form-group">
-                          <label for="account-name">Account Name</label>
-                          <input type="text" id="account-name" name="name" placeholder="e.g., Checking Account" required>
-                      </div>
-                      <div class="form-group">
-                          <label for="account-balance">Initial Balance</label>
-                          <input type="number" id="account-balance" name="balance" placeholder="0.00" step="0.01" required>
-                      </div>
-                      <div class="form-actions">
-                          <button type="submit" class="primary-btn">Add Account</button>
-                          <button type="button" class="secondary-btn" id="cancel-add-account">Cancel</button>
-                      </div>
-                  </form>
-              </div>
-          </div>
+                <div class="modal-backdrop"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add New Account</h3>
+                        <span class="close" id="close-add-account">&times;</span>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <form id="add-account-form">
+                            <div class="form-group">
+                                <label for="account-name">Account Name</label>
+                                <input type="text" id="account-name" name="name" placeholder="e.g., Checking Account" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="account-balance">Initial Balance</label>
+                                <input type="number" id="account-balance" name="balance" placeholder="0.00" step="0.01" required>
+                                <small class="help-text">Enter the current balance of your account. You can always adjust this later if needed.</small>
+                            </div>
+                        </form>
+                    </div>
 
-            <div id="accounts-empty-state" class="empty-state">
-              <div class="empty-state-icon">
-                  <i class="fas fa-wallet"></i>
-              </div>
-              <h3>No Accounts Yet</h3>
-              <p>Add your bank accounts, credit cards, or cash to start tracking</p>
-              <button class="primary-btn" onclick="document.getElementById('show-add-account').click()">
-                  <i class="fas fa-plus"></i> Add Account
-              </button>
-          </div>
+                    <div class="modal-footer">
+                        <div class="form-actions">
+                            <button type="button" class="secondary-btn" id="cancel-add-account">Cancel</button>
+                            <button type="submit" form="add-account-form" class="primary-btn">Add Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="empty-state-container" id="accounts-empty-state">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <h3>No Accounts Yet</h3>
+                    <p>Add your bank accounts, credit cards, or cash to start tracking</p>
+                    <button class="primary-btn" onclick="document.getElementById('show-add-account').click()">
+                        <i class="fas fa-plus"></i> Add Account
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div id="Transactions" class="section">
@@ -233,8 +261,8 @@
                   <div class="global-search">
                       <input type="text" class="search-input" placeholder="Search transactions...">
                       <button class="advanced-filters-btn" data-target="transactions-filters">
-                          <i class="fas fa-sliders-h"></i>
-                          Filters
+                        <i class="fas fa-sliders-h"></i>
+                        Filters
                       </button>
                   </div>
                   <button class="add-btn" id="add-transaction-btn">+ Add Transaction</button>
@@ -243,34 +271,33 @@
           
           <!-- Transactions Advanced Filters Panel -->
           <div id="transactions-filters" class="advanced-filters-panel">
-              <div class="filters-header">
-                  <h3>Transaction Filters</h3>
-                  <button class="close-filters"><i class="fas fa-times"></i></button>
+            <div class="filters-header">
+              <h3>Transaction Filters</h3>
+              <div class="filters-header-actions">
+                <button class="clear-filters" id="reset-transaction-filters">Clear</button>
+                <button class="close-filters"><i class="fas fa-times"></i></button>
               </div>
-              <div class="filters-content">
-                  <div class="filter-group">
-                      <select id="transaction-type-filter" class="select-styled">
-                          <option value="all">All Types</option>
-                          <option value="income">Income</option>
-                          <option value="expense">Expense</option>
-                      </select>
-                      <select id="transaction-category-filter" class="select-styled">
-                          <option value="all">All Categories</option>
-                      </select>
-                  </div>
-                  <div class="sort-group">
-                      <select id="transaction-sort" class="select-styled">
-                          <option value="date-desc">Date (Newest)</option>
-                          <option value="date-asc">Date (Oldest)</option>
-                          <option value="amount-desc">Amount (Highest)</option>
-                          <option value="amount-asc">Amount (Lowest)</option>
-                      </select>
-                  </div>
+            </div>
+            <div class="filters-content">
+              <div class="filter-group">
+                <select id="transaction-type-filter" class="select-styled">
+                  <option value="all">All Types</option>
+                  <option value="income">Income</option>
+                  <option value="expense">Expense</option>
+                </select>
+                <select id="transaction-category-filter" class="select-styled">
+                  <option value="all">All Categories</option>
+                </select>
               </div>
-              <div class="filters-footer">
-                  <button class="secondary-btn" id="reset-transaction-filters">Reset</button>
-                  <button class="primary-btn" id="apply-transaction-filters">Apply</button>
+              <div class="sort-group">
+                <select id="transaction-sort" class="select-styled">
+                  <option value="date-desc">Date (Newest)</option>
+                  <option value="date-asc">Date (Oldest)</option>
+                  <option value="amount-desc">Amount (Highest)</option>
+                  <option value="amount-asc">Amount (Lowest)</option>
+                </select>
               </div>
+            </div>
           </div>
           
           <div class="entry-tools">
@@ -315,76 +342,83 @@
             </div>
           </div>
           <!-- Empty State -->
-          <div id="transactions-empty-state" class="empty-state">
-              <div class="empty-state-icon">
-                  <i class="fas fa-exchange-alt"></i>
+          <div class="empty-state-container" id="transactions-empty-state">
+              <div class="empty-state">
+                  <div class="empty-state-icon">
+                      <i class="fas fa-exchange-alt"></i>
+                  </div>
+                  <h3>No Transactions Yet</h3>
+                  <p>Start tracking your income and expenses</p>
+                  <button class="primary-btn" onclick="document.getElementById('add-transaction-btn').click()">
+                      <i class="fas fa-plus"></i> Add Transaction
+                  </button>
               </div>
-              <h3>No Transactions Yet</h3>
-              <p>Start tracking your income and expenses</p>
-              <button class="primary-btn" onclick="document.getElementById('add-transaction-btn').click()">
-                  <i class="fas fa-plus"></i> Add Transaction
-              </button>
           </div>
       
           <!-- Add Transaction Modal -->
           <div id="add-transaction-modal" class="modal">
               <div class="modal-backdrop"></div>
               <div class="modal-content">
-                  <span class="close" id="close-add-transaction">&times;</span>
-                  <h3>Add Transaction</h3>
+                  <div class="modal-header">
+                      <h3>Add Transaction</h3>
+                      <span class="close" id="close-add-transaction">&times;</span>
+                  </div>
                   
                   <form id="add-transaction-form">
-                      <div class="form-row">
-                          <div class="form-group">
-                              <label for="add-transaction-account">Account</label>
-                              <select id="add-transaction-account" name="account" required></select>
+                      <div class="modal-body">
+                          <div class="form-row">
+                              <div class="form-group">
+                                  <label for="add-transaction-account">Account</label>
+                                  <select id="add-transaction-account" name="account" required></select>
+                              </div>
+                              <div class="form-group">
+                                  <label for="add-transaction-date">Date</label>
+                                  <input type="date" id="add-transaction-date" name="date" required>
+                              </div>
                           </div>
+
+                          <div class="form-row">
+                              <div class="form-group">
+                                  <label for="add-transaction-category">Category</label>
+                                  <select id="add-transaction-category" name="category" required></select>
+                              </div>
+                              <div class="form-group">
+                                  <label for="add-transaction-amount">Amount</label>
+                                  <input type="number" id="add-transaction-amount" name="amount" placeholder="0.00" step="0.01" required>
+                              </div>
+                          </div>
+
                           <div class="form-group">
-                              <label for="add-transaction-type">Type</label>
-                              <select id="add-transaction-type" name="type" required>
-                                  <option value="income">Income</option>
-                                  <option value="expense">Expense</option>
+                              <label for="add-transaction-description">Description</label>
+                              <input type="text" id="add-transaction-description" name="description" placeholder="Optional description">
+                          </div>
+
+                          <div class="form-group">
+                              <label for="transaction-projects">Projects</label>
+                              <select id="transaction-projects" class="project-select" multiple>
+                                  <!-- Will be populated dynamically -->
                               </select>
+                              <small class="help-text">Hold Ctrl/Cmd to select multiple projects</small>
                           </div>
-                          <div class="form-group">
-                              <label for="add-transaction-date">Date</label>
-                              <input type="date" id="add-transaction-date" name="date" required>
+
+                          <div class="templates-section">
+                              <div class="templates-header">
+                                  <h4>Templates</h4>
+                                  <button type="button" id="save-as-template" class="secondary-btn">
+                                      <i class="fas fa-save"></i> Save as Template
+                                  </button>
+                              </div>
+                              <div id="templates-list" class="templates-list">
+                                  <!-- Templates will be dynamically inserted here -->
+                              </div>
                           </div>
                       </div>
 
-                      <div class="form-row">
-                          <div class="form-group">
-                              <label for="add-transaction-category">Category</label>
-                              <select id="add-transaction-category" name="category" required></select>
+                      <div class="modal-footer">
+                          <div class="form-actions">
+                              <button type="button" class="secondary-btn" id="cancel-add-transaction">Cancel</button>
+                              <button type="submit" class="primary-btn">Add Transaction</button>
                           </div>
-                          <div class="form-group">
-                              <label for="add-transaction-amount">Amount</label>
-                              <input type="number" id="add-transaction-amount" name="amount" placeholder="0.00" step="0.01" required>
-                          </div>
-                      </div>
-
-                      <div class="form-group full-width">
-                          <label for="add-transaction-description">Description</label>
-                          <input type="text" id="add-transaction-description" name="description" placeholder="Optional description">
-                      </div>
-
-                      <hr class="section-divider">
-
-                      <div class="templates-section">
-                          <div class="templates-header">
-                              <h4>Templates</h4>
-                              <button type="button" id="save-as-template" class="secondary-btn">
-                                  <i class="fas fa-save"></i> Save as Template
-                              </button>
-                          </div>
-                          <div id="templates-list" class="templates-list">
-                              <!-- Templates will be dynamically inserted here -->
-                          </div>
-                      </div>
-
-                      <div class="form-actions full-width">
-                          <button type="submit" class="primary-btn">Add Transaction</button>
-                          <button type="button" class="secondary-btn" id="cancel-add-transaction">Cancel</button>
                       </div>
                   </form>
               </div>
@@ -394,51 +428,58 @@
           <div id="edit-transaction-modal" class="modal">
               <div class="modal-backdrop"></div>
               <div class="modal-content">
-                  <span class="close" id="close-edit-transaction">&times;</span>
-                  <h3>Edit Transaction</h3>
+                  <div class="modal-header">
+                      <h3>Edit Transaction</h3>
+                      <span class="close" id="close-edit-transaction">
+                        &times;
+                      </span>
+                  </div>
+                  
                   <form id="edit-transaction-form">
-                    <div class="form-row">
-                      <div class="form-group">
-                          <label for="edit-transaction-account">Account</label>
-                          <select id="edit-transaction-account" name="account" required></select>
+                      <div class="modal-body">
+                          <div class="form-row">
+                              <div class="form-group">
+                                  <label for="edit-transaction-account">Account</label>
+                                  <select id="edit-transaction-account" name="account" required></select>
+                              </div>
+                              <div class="form-group">
+                                  <label for="edit-transaction-date">Date</label>
+                                  <input type="date" id="edit-transaction-date" name="date" required>
+                              </div>
+                          </div>
+
+                          <div class="form-row">
+                              <div class="form-group">
+                                  <label for="edit-transaction-category">Category</label>
+                                  <select id="edit-transaction-category" name="category" required></select>
+                              </div>
+                              <div class="form-group">
+                                  <label for="edit-transaction-amount">Amount</label>
+                                  <input type="number" id="edit-transaction-amount" name="amount" step="0.01" required>
+                              </div>
+                          </div>
+
+                          <div class="form-group">
+                              <label for="edit-transaction-description">Description</label>
+                              <input type="text" id="edit-transaction-description" name="description" placeholder="Optional description">
+                          </div>
+
+                          <div class="form-group">
+                              <label for="edit-transaction-projects">Projects</label>
+                              <select id="edit-transaction-projects" class="project-select" multiple>
+                                  <!-- Will be populated dynamically -->
+                              </select>
+                              <small class="help-text">Hold Ctrl/Cmd to select multiple projects</small>
+                          </div>
+
+                          <input type="hidden" id="edit-transaction-id" name="id">
                       </div>
-                      <div class="form-group">
-                          <label for="edit-transaction-type">Type</label>
-                          <select id="edit-transaction-type" name="type" required>
-                              <option value="income">Income</option>
-                              <option value="expense">Expense</option>
-                          </select>
+
+                      <div class="modal-footer">
+                          <button type="button" class="secondary-btn" id="cancel-edit-transaction">Cancel</button>
+                          <button type="submit" class="primary-btn">Update Transaction</button>
                       </div>
-                      <div class="form-group">
-                          <label for="edit-transaction-date">Date</label>
-                          <input type="date" id="edit-transaction-date" name="date" required>
-                      </div>
-                  </div>
-      
-                  <div class="form-row">
-                      <div class="form-group">
-                          <label for="edit-transaction-category">Category</label>
-                          <select id="edit-transaction-category" name="category" required></select>
-                      </div>
-                      <div class="form-group">
-                          <label for="edit-transaction-amount">Amount</label>
-                          <input type="number" id="edit-transaction-amount" name="amount" placeholder="0.00" step="0.01" required>
-                      </div>
-                  </div>
-      
-                  <div class="form-group full-width">
-                      <label for="edit-transaction-description">Description</label>
-                      <input type="text" id="edit-transaction-description" name="description" placeholder="Optional description">
-                  </div>
-      
-                  <input type="hidden" id="edit-transaction-id" name="id">
-      
-      
-                  <div class="form-actions full-width">
-                      <button type="submit" class="primary-btn">Update Transaction</button>
-                      <button type="button" class="secondary-btn" id="cancel-edit-transaction">Cancel</button>
-                  </div>
-                </form>
+                  </form>
               </div>
           </div>
       
@@ -473,47 +514,291 @@
                         <option value="year">This Year</option>
                         <option value="all">All Time</option>
                     </select>
-                    <select id="reports-account-selector" class="select-styled">
-                        <option value="all">All Accounts</option>
-                    </select>
+                    <div class="custom-multi-select" id="reports-account-selector">
+                        <div class="select-header">
+                            <span class="selected-text">Select Accounts</span>
+                            <span class="arrow"></span>
+                        </div>
+                        <div class="select-dropdown">
+                            <div class="select-all-option">
+                                <input type="checkbox" id="select-all-accounts">
+                                <label for="select-all-accounts">Select All</label>
+                            </div>
+                            <div class="options-container">
+                                <!-- Account options will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Total Income</h3>
-                    <div class="value positive">$<span id="reports-total-income">0.00</span></div>
+            <!-- Reports Content -->
+            <div id="reports-content" class="content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Income</h3>
+                        <div class="value positive"><span id="reports-total-income">0.00</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Expenses</h3>
+                        <div class="value negative"><span id="reports-total-expenses">0.00</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Net Savings</h3>
+                        <div class="value" id="reports-savings-value"><span id="reports-net-savings">0.00</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Savings Rate</h3>
+                        <div class="value"><span id="reports-savings-rate">0</span>%</div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3>Total Expenses</h3>
-                    <div class="value negative">$<span id="reports-total-expenses">0.00</span></div>
+
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <h3>Comparison Chart</h3>
+                        <canvas id="monthlyComparisonChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Expense Categories</h3>
+                        <div id="expenseCategoriesChart"></div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Income vs Expenses Trend</h3>
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Cash Flow Timeline</h3>
+                        <canvas id="cashFlowTimeline"></canvas>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3>Net Savings</h3>
-                    <div class="value" id="reports-savings-value">$<span id="reports-net-savings">0.00</span></div>
-                </div>
-                <div class="stat-card">
-                    <h3>Savings Rate</h3>
-                    <div class="value"><span id="reports-savings-rate">0</span>%</div>
+                <div class="budget-tracking-section">
+                    <h3>Budget Tracking</h3>
+                    <table class="budget-tracking-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Budget</th>
+                                <th>Spent</th>
+                                <th>Remaining</th>
+                                <th>Status</th>
+                                <th>Transactions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="budget-tracking-body">
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="charts-grid">
-                <div class="chart-container">
-                    <h3>Monthly Comparison</h3>
-                    <canvas id="monthlyComparisonChart"></canvas>
+            <!-- Reports Empty State -->
+            <div class="empty-state-container" id="reports-empty-state">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3>No Financial Data Yet</h3>
+                    <p>Add some transactions to see your financial reports and analytics</p>
+                    <div class="empty-state-actions">
+                        <button class="primary-btn" onclick="document.getElementById('add-transaction-btn').click()">
+                            <i class="fas fa-plus"></i> Add Transaction
+                        </button>
+                    </div>
                 </div>
-                <div class="chart-container">
-                    <h3>Expense Categories</h3>
-                    <canvas id="expenseCategoriesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Projects Section -->
+        <div id="Projects" class="section">
+            <div class="section-header">
+                <h2>Projects</h2>
+                <button class="add-btn" id="add-project-btn">+ Add Project</button>
+            </div>
+
+            <div id="projects-content" class="content">
+                <div class="projects-grid">
+                    <!-- Projects will be dynamically added here -->
                 </div>
-                <div class="chart-container">
-                    <h3>Income vs Expenses Trend</h3>
-                    <canvas id="trendChart"></canvas>
+            </div>
+
+                <!-- Add Project Modal -->
+            <div id="add-project-modal" class="modal">
+                <div class="modal-backdrop"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add New Project</h3>
+                        <span class="close" id="close-add-project">&times;</span>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <form id="add-project-form">
+                            <div class="form-group">
+                                <label for="project-name">Project Name</label>
+                                <input type="text" id="project-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="project-description">Description</label>
+                                <textarea id="project-description" rows="3"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="project-budget">Budget</label>
+                                    <input type="number" id="project-budget" step="0.01" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="project-status">Status</label>
+                                    <select id="project-status">
+                                        <option value="active">Active</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="on-hold">On Hold</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="project-start-date">Start Date</label>
+                                    <input type="date" id="project-start-date">
+                                </div>
+                                <div class="form-group">
+                                    <label for="project-end-date">End Date</label>
+                                    <input type="date" id="project-end-date">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="secondary-btn" id="cancel-add-project">Cancel</button>
+                        <button type="submit" form="add-project-form" class="primary-btn">Create Project</button>
+                    </div>
                 </div>
-                <div class="chart-container">
-                    <h3>Top Spending Categories</h3>
-                    <div id="top-spending-list" class="spending-list"></div>
+            </div>
+
+            <!-- Project Details Modal -->
+            <div id="project-details-modal" class="modal">
+                <div class="modal-backdrop"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="project-details-title">Project Details</h3>
+                        <span class="close" id="close-project-details">&times;</span>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="label">Status</span>
+                                <span id="project-details-status" class="status-badge">Active</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Budget</span>
+                                <span id="project-details-budget">0.00</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Income</span>
+                                <span id="project-details-income" class="income">0.00</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Spent</span>
+                                <span id="project-details-spent" class="expense">0.00</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Duration</span>
+                                <span id="project-details-duration">No dates set</span>
+                            </div>
+                        </div>
+
+                        <div class="description-section">
+                            <span class="label">Description</span>
+                            <p id="project-details-description">No description provided</p>
+                        </div>
+
+                        <div class="transactions-section">
+                            <h4>Recurring Transactions</h4>
+                            <div id="project-recurring-list" class="transactions-list">
+                                <!-- Will be populated dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="transactions-section">
+                            <h4>Transactions</h4>
+                            <div id="project-transactions-list" class="transactions-list">
+                                <!-- Will be populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="danger-btn" id="delete-project-btn">Delete Project</button>
+                        <button class="secondary-btn" id="edit-project-btn">Edit Project</button>
+                        <button class="primary-btn" id="close-project-details-btn">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Project Modal -->
+            <div id="edit-project-modal" class="modal">
+                <div class="modal-backdrop"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Project</h3>
+                        <span class="close" id="close-edit-project">&times;</span>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <form id="edit-project-form">
+                            <div class="form-group">
+                                <label for="edit-project-name">Project Name</label>
+                                <input type="text" id="edit-project-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-project-description">Description</label>
+                                <textarea id="edit-project-description" rows="3"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="edit-project-budget">Budget</label>
+                                    <input type="number" id="edit-project-budget" step="0.01" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-project-status">Status</label>
+                                    <select id="edit-project-status">
+                                        <option value="active">Active</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="on-hold">On Hold</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="edit-project-start-date">Start Date</label>
+                                    <input type="date" id="edit-project-start-date">
+                                </div>
+                                <div class="form-group">
+                                    <label for="edit-project-end-date">End Date</label>
+                                    <input type="date" id="edit-project-end-date">
+                                </div>
+                            </div>
+                            <input type="hidden" id="edit-project-id">
+                        </form>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="secondary-btn" id="cancel-edit-project">Cancel</button>
+                        <button type="submit" form="edit-project-form" class="primary-btn">Update Project</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state-container" id="projects-empty-state">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <h3>No Projects Yet</h3>
+                    <p>Create projects to track related transactions and expenses</p>
+                    <button class="primary-btn" onclick="document.getElementById('add-project-btn').click()">
+                        <i class="fas fa-plus"></i> Create Project
+                    </button>
                 </div>
             </div>
         </div>
@@ -538,7 +823,10 @@
             <div id="categories-filters" class="advanced-filters-panel">
                 <div class="filters-header">
                     <h3>Category Filters</h3>
-                    <button class="close-filters"><i class="fas fa-times"></i></button>
+                    <div class="filters-header-actions">
+                        <button class="clear-filters" id="reset-category-filters">Clear</button>
+                        <button class="close-filters"><i class="fas fa-times"></i></button>
+                    </div>
                 </div>
                 <div class="filters-content">
                     <div class="filter-group">
@@ -548,8 +836,8 @@
                             <option value="expense">Expense</option>
                         </select>
                         <select id="category-usage-filter" class="select-styled">
-                            <option value="all">All Categories</option>
-                            <option value="active">In Use</option>
+                            <option value="all">All Usage</option>
+                            <option value="active">Active</option>
                             <option value="unused">Unused</option>
                         </select>
                     </div>
@@ -557,22 +845,16 @@
                         <select id="category-sort" class="select-styled">
                             <option value="name-asc">Name (A-Z)</option>
                             <option value="name-desc">Name (Z-A)</option>
-                            <option value="usage-desc">Most Used</option>
-                            <option value="usage-asc">Least Used</option>
+                            <option value="usage-desc">Usage (Most)</option>
+                            <option value="usage-asc">Usage (Least)</option>
+                            <option value="last_used-desc">Last Used (Recent)</option>
+                            <option value="last_used-asc">Last Used (Oldest)</option>
                         </select>
                     </div>
-                </div>
-                <div class="filters-footer">
-                    <button class="secondary-btn small-btn" id="reset-category-filters">Reset</button>
-                    <button class="primary-btn small-btn" id="apply-category-filters">Apply</button>
                 </div>
             </div>
 
             <div id="categories-content" class="content">
-                
-
-                
-
                 <div class="card">
                     <table>
                         <thead>
@@ -581,76 +863,127 @@
                                 <th>Type</th>
                                 <th>Usage Count</th>
                                 <th>Last Used</th>
+                                <th>Budget Amount</th>
+                                <th>Budget Frequency</th>
                                 <th class="text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="categories-table-body">
-                        </tbody>
+                        <tbody id="categories-table-body"></tbody>
                     </table>
                 </div>
             </div>
-            
-            <div id="add-category-modal" class="modal">
-              <div class="modal-backdrop"></div>
-              <div class="modal-content">
-                  <span class="close" id="close-add-category">&times;</span>
-                  <h3>Add Category</h3>
-                  <form id="add-category-form">
-                      <div class="form-group">
-                          <label for="add-category-name">Name</label>
-                          <input type="text" id="add-category-name" name="name" required>
-                      </div>
-                      <div class="form-group">
-                          <label for="add-category-type">Type</label>
-                          <select id="add-category-type" name="type" required>
-                              <option value="income">Income</option>
-                              <option value="expense">Expense</option>
-                          </select>
-                      </div>
-                      <div class="form-actions">
-                          <button type="submit" class="primary-btn">Add Category</button>
-                          <button type="button" class="secondary-btn" id="cancel-add-category">Cancel</button>
-                      </div>
-                  </form>
-              </div>
-          </div>
 
-          <!-- Edit Category Modal -->
-          <div id="edit-category-modal" class="modal">
-              <div class="modal-backdrop"></div>
-              <div class="modal-content">
-                  <span class="close" id="close-edit-category">&times;</span>
-                  <h3>Edit Category</h3>
-                  <form id="edit-category-form">
-                      <div class="form-group">
-                          <label for="edit-category-name">Name</label>
-                          <input type="text" id="edit-category-name" name="name" required>
-                      </div>
-                      <div class="form-group">
-                          <label for="edit-category-type">Type</label>
-                          <select id="edit-category-type" name="type" required>
-                              <option value="income">Income</option>
-                              <option value="expense">Expense</option>
-                          </select>
-                      </div>
-                      <input type="hidden" id="edit-category-id" name="id">
-                      <div class="form-actions">
-                          <button type="submit" class="primary-btn">Update Category</button>
-                          <button type="button" class="secondary-btn" id="cancel-edit-category">Cancel</button>
-                      </div>
-                  </form>
-              </div>
-          </div>
-            <div id="categories-empty-state" class="empty-state">
-              <div class="empty-state-icon">
-                  <i class="fas fa-tags"></i>
-              </div>
-              <h3>No Categories Yet</h3>
-              <p>Create categories to organize your transactions</p>
-              <button class="primary-btn" onclick="document.getElementById('show-add-category').click()">
-                  <i class="fas fa-plus"></i> Add Category
-              </button>
-          </div>
+            <!-- Add Category Modal -->
+            <div id="add-category-modal" class="modal">
+                <div class="modal-backdrop"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add Category</h3>
+                        <span class="close" id="close-add-category">&times;</span>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <form id="add-category-form">
+                            <div class="form-group">
+                                <label for="add-category-name">Name</label>
+                                <input type="text" id="add-category-name" name="name" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="add-category-type">Type</label>
+                                <select id="add-category-type" name="type" required>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="add-category-budget">Budget Amount</label>
+                                <input type="number" id="add-category-budget" name="budget_amount" step="0.01" min="0">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="add-category-frequency">Budget Frequency</label>
+                                <select id="add-category-frequency" name="budget_frequency">
+                                    <option value="">No Budget</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="yearly">Yearly</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="secondary-btn" id="cancel-add-category">Cancel</button>
+                        <button type="submit" form="add-category-form" class="primary-btn">Add Category</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Category Modal -->
+            <div id="edit-category-modal" class="modal">
+                <div class="modal-backdrop"></div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Category</h3>
+                        <span class="close" id="close-edit-category">&times;</span>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <form id="edit-category-form">
+                            <div class="form-group">
+                                <label for="edit-category-name">Name</label>
+                                <input type="text" id="edit-category-name" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-category-type">Type</label>
+                                <select id="edit-category-type" name="type" required>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-category-budget">Budget Amount</label>
+                                <input type="number" id="edit-category-budget" name="budget_amount" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-category-frequency">Budget Frequency</label>
+                                <select id="edit-category-frequency" name="budget_frequency">
+                                    <option value="">No Budget</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="yearly">Yearly</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="edit-category-id" name="id">
+                        </form>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="secondary-btn" id="cancel-edit-category">Cancel</button>
+                        <button type="submit" form="edit-category-form" class="primary-btn">Update Category</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="empty-state-container" id="categories-empty-state">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <h3>No Categories Yet</h3>
+                    <p>Start with our recommended categories or create your own</p>
+                    <div class="empty-state-actions">
+                        <button class="primary-btn" id="create-default-categories">Use Recommended Categories</button>
+                        <button class="secondary-btn" onclick="document.getElementById('show-add-category').click()">
+                            Create Custom Category
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Recurring Section -->
@@ -673,7 +1006,10 @@
             <div id="recurring-filters" class="advanced-filters-panel">
                 <div class="filters-header">
                     <h3>Recurring Filters</h3>
-                    <button class="close-filters"><i class="fas fa-times"></i></button>
+                    <div class="filters-header-actions">
+                        <button class="clear-filters" id="reset-recurring-filters">Clear</button>
+                        <button class="close-filters"><i class="fas fa-times"></i></button>
+                    </div>
                 </div>
                 <div class="filters-content">
                     <div class="filter-group">
@@ -695,54 +1031,89 @@
                             <option value="date-desc">Date (Latest)</option>
                             <option value="date-asc">Date (Earliest)</option>
                         </select>
+                        <select id="recurring-status-filter" class="select-styled">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
                     </div>
-                </div>
-                <div class="filters-footer">
-                    <button class="secondary-btn" id="reset-recurring-filters">Reset</button>
-                    <button class="primary-btn" id="apply-recurring-filters">Apply</button>
                 </div>
             </div>
 
             <div id="add-recurring-modal" class="modal">
                 <div class="modal-backdrop"></div>
                 <div class="modal-content">
-                    <span class="close" id="close-add-recurring">&times;</span>
-                    <h3>Add Recurring</h3>
-                    <form id="add-recurring-form" class="two-column-form">
-                        <div class="form-group">
-                            <label for="add-recurring-account">Account</label>
-                            <select id="add-recurring-account" name="account" required></select>
+                    <div class="modal-header">
+                        <h3>Add Recurring Transaction</h3>
+                        <span class="close" id="close-add-recurring">&times;</span>
+                    </div>
+                    
+                    <form id="add-recurring-form">
+                        <div class="modal-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="add-recurring-account">Account</label>
+                                    <select id="add-recurring-account" name="account" required></select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="add-recurring-category">Category</label>
+                                    <select id="add-recurring-category" name="category" required></select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="add-recurring-amount">Amount</label>
+                                    <input type="number" id="add-recurring-amount" name="amount" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="add-recurring-frequency">Frequency</label>
+                                    <select id="add-recurring-frequency" name="frequency" required>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="recurring-start-date">Start Date</label>
+                                    <input type="date" id="recurring-start-date" name="startDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recurring-end-date">End Date (Optional)</label>
+                                    <input type="date" id="recurring-end-date" name="endDate">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="recurring-frequency">Frequency</label>
+                                <select id="recurring-frequency" name="frequency" required>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="yearly">Yearly</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="recurring-projects">Projects</label>
+                                <select id="recurring-projects" class="project-select" multiple>
+                                    <!-- Will be populated dynamically -->
+                                </select>
+                                <small class="help-text">Hold Ctrl/Cmd to select multiple projects</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="add-recurring-description">Description</label>
+                                <input type="text" id="add-recurring-description" name="description" placeholder="Optional description">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="add-recurring-name">Name</label>
-                            <input type="text" id="add-recurring-name" name="name" required placeholder="Netflix, Spotify, etc.">
-                        </div>
-                        <div class="form-group">
-                            <label for="add-recurring-amount">Amount</label>
-                            <input type="number" id="add-recurring-amount" name="amount" placeholder="0.00" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="add-recurring-category">Category</label>
-                            <select id="add-recurring-category" name="category" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label for="add-recurring-billing-date">Billing Date</label>
-                            <input type="number" id="add-recurring-billing-date" name="billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
-                        </div>
-                        <div class="form-group">
-                            <label for="add-recurring-type">Type</label>
-                            <select id="add-recurring-type" name="type" required>
-                                <option value="income">Income</option>
-                                <option value="expense">Expense</option>
-                            </select>
-                        </div>
-                        <div class="form-group full-width">
-                            <label for="add-recurring-description">Description</label>
-                            <input type="text" id="add-recurring-description" name="description" placeholder="Optional description">
-                        </div>
-                        <div class="form-actions full-width">
-                            <button type="submit" class="primary-btn">Add Recurring</button>
+
+                        <div class="modal-footer">
                             <button type="button" class="secondary-btn" id="cancel-add-recurring">Cancel</button>
+                            <button type="submit" class="primary-btn">Add Recurring</button>
                         </div>
                     </form>
                 </div>
@@ -758,7 +1129,7 @@
                                 <th>Amount</th>
                                 <th>Type</th>
                                 <th>Category</th>
-                                <th>Billing Date</th>
+                                <th>Schedule</th>
                                 <th>Description</th>
                                 <th>Status</th>
                                 <th class="text-right">Actions</th>
@@ -773,61 +1144,98 @@
                 <div id="edit-recurring-modal" class="modal">
                     <div class="modal-backdrop"></div>
                     <div class="modal-content">
-                        <span class="close" id="close-edit-recurring">&times;</span>
-                        <h3>Edit Recurring</h3>
-                        <form id="edit-recurring-form" class="two-column-form">
-                            <div class="form-group">
-                                <label for="edit-recurring-account">Account</label>
-                                <select id="edit-recurring-account" name="account" required></select>
+                        <div class="modal-header">
+                            <h3>Edit Recurring Transaction</h3>
+                            <span class="close" id="close-edit-recurring">&times;</span>
+                        </div>
+                        
+                        <form id="edit-recurring-form">
+                            <div class="modal-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-recurring-account">Account</label>
+                                        <select id="edit-recurring-account" name="account" required></select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-recurring-name">Name</label>
+                                        <input type="text" id="edit-recurring-name" name="name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="edit-recurring-category">Category</label>
+                                        <select id="edit-recurring-category" name="category" required></select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-recurring-amount">Amount</label>
+                                        <input type="number" id="edit-recurring-amount" name="amount" step="0.01" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="edit-recurring-frequency">Frequency</label>
+                                        <select id="edit-recurring-frequency" name="frequency" required>
+                                            <option value="monthly">Monthly</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="daily">Daily</option>
+                                            <option value="yearly">Yearly</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-recurring-start-date">Start Date</label>
+                                        <input type="date" id="edit-recurring-start-date" name="startDate" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="edit-recurring-end-date">End Date (Optional)</label>
+                                        <input type="date" id="edit-recurring-end-date" name="endDate">
+                                    </div>
+                                </div>
+
+                                
+
+                                <div class="form-group">
+                                    <label for="edit-recurring-projects">Projects</label>
+                                    <select id="edit-recurring-projects" class="project-select" multiple>
+                                        <!-- Will be populated dynamically -->
+                                    </select>
+                                    <small class="help-text">Hold Ctrl/Cmd to select multiple projects</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-recurring-description">Description</label>
+                                    <input type="text" id="edit-recurring-description" name="description" placeholder="Optional description">
+                                </div>
+
+                                <input type="hidden" id="edit-recurring-id" name="id">
                             </div>
-                            <div class="form-group">
-                                <label for="edit-recurring-name">Name</label>
-                                <input type="text" id="edit-recurring-name" name="name" required placeholder="Netflix, Spotify, etc.">
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recurring-amount">Amount</label>
-                                <input type="number" id="edit-recurring-amount" name="amount" placeholder="0.00" step="0.01" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recurring-category">Category</label>
-                                <select id="edit-recurring-category" name="category" required></select>
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recurring-billing-date">Billing Date</label>
-                                <input type="number" id="edit-recurring-billing-date" name="billing-date" min="1" max="31" required placeholder="Day of month (1-31)">
-                            </div>
-                            <div class="form-group">
-                                <label for="edit-recurring-type">Type</label>
-                                <select id="edit-recurring-type" name="type" required>
-                                    <option value="income">Income</option>
-                                    <option value="expense">Expense</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group full-width">
-                                <label for="edit-recurring-description">Description</label>
-                                <input type="text" id="edit-recurring-description" name="description" placeholder="Optional description">
-                            </div>
-                            <input type="hidden" id="edit-recurring-id" name="id">
-                            <div class="form-actions full-width">
-                                <button type="submit" class="primary-btn">Update Recurring</button>
+
+                            <div class="modal-footer">
                                 <button type="button" class="secondary-btn" id="cancel-edit-recurring">Cancel</button>
+                                <button type="submit" class="primary-btn">Update Recurring</button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
 
-            <div id="recurring-empty-state" class="empty-state">
-              <div class="empty-state-icon">
-                  <i class="fas fa-sync"></i>
-              </div>
-              <h3>No Recurring Transactions</h3>
-              <p>Set up recurring payments and income for better tracking</p>
-              <button class="primary-btn" onclick="document.getElementById('add-recurring-btn').click()">
-                  <i class="fas fa-plus"></i> Add Recurring Transaction
-              </button>
-          </div>
+            <div class="empty-state-container" id="recurring-empty-state">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-sync"></i>
+                    </div>
+                    <h3>No Recurring Transactions</h3>
+                    <p>Set up recurring payments and income for better tracking</p>
+                    <button class="primary-btn" onclick="document.getElementById('add-recurring-btn').click()">
+                        <i class="fas fa-plus"></i> Add Recurring Transaction
+                    </button>
+                </div>
+            </div>
+
         </div>
 
         <!-- Settings Section -->
@@ -842,6 +1250,14 @@
                     <h3>Data Management</h3>
                     <p class="settings-description">Export or import your financial data for backup or transfer to another device.</p>
                     <div class="settings-actions">
+                        <button class="settings-btn" id="smart-import-btn" data-section="smart-import-btn">
+                            <i class="fas fa-file-import"></i>
+                            Import Bank Statement
+                        </button>
+                        <button class="settings-btn" id="import-btn">
+                            <i class="fas fa-upload"></i>
+                            Import Database
+                        </button>
                         <button class="settings-btn" id="export-btn">
                             <i class="fas fa-download"></i>
                             Export Database
@@ -850,25 +1266,32 @@
                             <i class="fas fa-file-csv"></i>
                             Export as CSV
                         </button>
-                        <button class="settings-btn" id="import-btn">
-                            <i class="fas fa-upload"></i>
-                            Import Database
-                        </button>
                         <button class="settings-btn danger" id="delete-db-btn">
                             Delete Database
                         </button>
                     </div>
                 </div>
 
-                <!-- Appearance Card -->
+                <!-- Appearance & Preferences Card -->
                 <div class="settings-card">
-                    <h3>Appearance</h3>
-                    <p class="settings-description">Switch between light and dark mode.</p>
+                    <h3>Appearance & Preferences</h3>
+                    <p class="settings-description">Customize the app's appearance, navigation style, and currency preferences.</p>
                     <div class="settings-actions">
                         <button class="settings-btn" id="toggle-theme-btn">
                             <i class="fas fa-adjust"></i>
                             Toggle Theme
                         </button>
+                        <button class="settings-btn" id="toggle-nav-style-btn">
+                            <i class="fas fa-bars"></i>
+                            Static Navigation
+                        </button>
+                        <!-- Currency Preference Card -->
+                        <div class="currency-select-container">
+                            <label for="currency-preference-setting" class="currency-select-label">Currency Preference: </label>
+                            <select id="currency-preference-setting" class="currency-select">
+                                <!-- Will be populated dynamically -->
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -911,6 +1334,8 @@
                         <p>Activated: <span id="license-activation-date"></span></p>
                     </div>
                 </div>
+
+                
             </div>
         </div>
     </div>
@@ -919,9 +1344,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <script src="./renderer.js" defer></script>
+    <script type="module" src="./renderer.js"></script>
 
-    <!-- Add this right after <body> -->
     <div id="license-overlay" class="license-overlay">
 
         <div class="window-controls license-window-controls">
@@ -945,25 +1369,180 @@
         </div>
     </div>
 
-    <!-- Add this at the end of the body -->
-    <div id="delete-db-modal" class="modal">
+    <div id="smart-import-modal" class="modal">
         <div class="modal-backdrop"></div>
-        <div class="modal-content">
-            <span class="close" id="close-delete-db">&times;</span>
-            <h3>Delete Database</h3>
-            <p class="warning-text">⚠️ This cannot be undone! All your financial data will be permanently deleted.</p>
-            <p>Type <strong>DELETE</strong> to confirm:</p>
-            <div class="form-group">
-                <input type="text" id="delete-db-confirm" placeholder="Type DELETE here">
+        <div class="modal-content wide-modal">
+            <!-- Fixed Header -->
+            <div class="smart-import-header">
+                <div class="smart-import-header-content">
+                    <h3>Import Bank Statement</h3>
+                    <span class="close" id="close-smart-import">&times;</span>
+                </div>
+                
+                <div class="step-progress">
+                    <div class="step-item active" data-step="1">
+                        <i class="fas fa-file-upload"></i>
+                        <span>Upload File</span>
+                    </div>
+                    <div class="step-item" data-step="2">
+                        <i class="fas fa-columns"></i>
+                        <span>Map Columns</span>
+                    </div>
+                    <div class="step-item" data-step="3">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Review & Import</span>
+                    </div>
+                </div>
             </div>
-            <div class="form-actions">
-                <button type="button" class="danger-btn" id="confirm-delete-db" disabled>Delete Database</button>
-                <button type="button" class="secondary-btn" id="cancel-delete-db">Cancel</button>
+
+            <!-- Scrollable Content Area -->
+            <div class="modal-body">
+                <div class="import-steps">
+                    <!-- Step 1 content -->
+                    <div class="import-step" id="step-1">
+                        <div class="form-group">
+                            <label for="import-account-select">Select Account</label>
+                            <select id="import-account-select" class="select-styled">
+                                <option value="">Choose an account</option>
+                            </select>
+                        </div>
+
+                        <div class="file-upload-area">
+                            <input type="file" id="statement-file" accept=".csv,.pdf" style="display: none;">
+                            <div class="upload-zone" id="trigger-file-upload">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Drop your bank statement here or click to browse</p>
+                                <p class="file-types">Supported formats: CSV, PDF</p>
+                            </div>
+                            <div id="file-name" class="file-name"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 content -->
+                    <div class="import-step" id="step-2" style="display: none;">
+                        <div class="auto-detect-message">
+                            <i class="fas fa-magic"></i>
+                            We've automatically detected the columns based on your statement
+                        </div>
+                        
+                        <div class="column-mapping">
+                            <div class="mapping-preview">
+                                <table id="preview-table" class="preview-table"></table>
+                            </div>
+                            
+                            <div class="mapping-controls">
+                                <div class="mapping-field">
+                                    <label>Date Column</label>
+                                    <select id="date-column" class="select-styled"></select>
+                                    <span class="helper-text">Select the column containing transaction dates</span>
+                                </div>
+                                
+                                <div class="mapping-field">
+                                    <label>Amount Column</label>
+                                    <select id="amount-column" class="select-styled"></select>
+                                    <span class="helper-text">Choose how amounts are represented in your statement</span>
+                                </div>
+                                
+                                <div class="mapping-field">
+                                    <label>Description Column</label>
+                                    <select id="description-column" class="select-styled"></select>
+                                    <span class="helper-text">Select the column containing transaction details</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 content -->
+                    <div class="import-step" id="step-3" style="display: none;">
+                        <!-- Summary stats -->
+                        <div class="summary-stats">
+                            <div class="summary-stat-card">
+                                <span class="stat-label">Total Transactions</span>
+                                <div class="stat-value" id="total-tx">0</div>
+                            </div>
+                            <div class="summary-stat-card">
+                                <span class="stat-label">New Transactions</span>
+                                <div class="stat-value" id="new-tx">0</div>
+                            </div>
+                            <div class="summary-stat-card">
+                                <span class="stat-label">Duplicates Found</span>
+                                <div class="stat-value" id="duplicate-tx">0</div>
+                            </div>
+                        </div>
+
+                        <!-- Transaction preview list -->
+                        <div class="transaction-list">
+
+                            <!-- Preview list will be populated here -->
+                            <div id="preview-list"></div>
+
+                            <!-- Pagination -->
+                            <div class="si-pagination">
+                                <div class="si-pagination-info">
+                                    Showing <span id="showing-start">1</span>-<span id="showing-end">10</span> of <span id="total-items">0</span>
+                                </div>
+                                <div class="si-pagination-controls">
+                                    <button id="prev-page" disabled>
+                                        <i class="fas fa-chevron-left"></i>
+                                        Previous
+                                    </button>
+                                    <button id="next-page" disabled>
+                                        Next
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixed Footer -->
+            <div class="modal-footer">
+                <button class="secondary-btn" id="prev-step" style="display: none;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <button class="primary-btn" id="next-step">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Add this after your other modals -->
+    <!-- Delete Database Modal -->
+    <div id="delete-db-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Delete Database</h3>
+                <span class="close" id="close-delete-db">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <p class="warning-text">⚠️ This cannot be undone! All your financial data will be permanently deleted.</p>
+                <p>Type <strong>DELETE</strong> to confirm:</p>
+                <div class="form-group">
+                    <input type="text" 
+                           id="delete-db-confirm" 
+                           class="form-control" 
+                           placeholder="Type DELETE to confirm">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div class="form-actions">
+                    <button type="button" 
+                            class="secondary-btn" 
+                            id="cancel-delete-db">Cancel</button>
+                    <button type="button" 
+                            class="danger-btn" 
+                            id="confirm-delete-db" 
+                            disabled>Delete Database</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="save-template-modal" class="modal">
         <div class="modal-backdrop"></div>
         <div class="modal-content">
@@ -982,5 +1561,7 @@
         </div>
     </div>
 
-    <script src="tutorial.js"></script>
+    <script type="module" src="components/tutorial.js"></script>
+
+
 </html>

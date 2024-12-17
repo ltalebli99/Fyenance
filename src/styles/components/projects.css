@@ -1,0 +1,595 @@
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    padding: 1rem;
+}
+
+.project-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.project-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.project-title-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: start;
+}
+
+.project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.project-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.project-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+}
+
+.project-status.active {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.project-status.completed {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.project-body {
+    padding: 1.25rem;
+}
+
+.project-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--gray-700);
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.project-progress {
+    margin-top: 1rem;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar-container {
+    height: 6px;
+    background: var(--gray-100);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.progress-bar-fill.warning {
+    background: var(--warning);
+}
+
+.progress-bar-fill.danger {
+    background: var(--danger);
+}
+
+.project-info {
+    padding: 1.5rem;
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+}
+
+.info-row {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.info-row .label {
+    min-width: 100px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.info-row.description {
+    flex-direction: column;
+}
+
+.info-row.description p {
+    margin-top: 0.5rem;
+    color: var(--text);
+    line-height: 1.5;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.status-badge.completed {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.status-badge.on-hold {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.project-transactions {
+    margin-top: 1.5rem;
+}
+
+.project-transactions h4 {
+    margin-bottom: 1rem;
+    color: var(--text);
+}
+
+.transactions-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.transaction-item .date {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.transaction-item .amount {
+    font-weight: 500;
+}
+
+.transaction-item .amount.expense {
+    color: var(--danger);
+}
+
+.transaction-item .amount.income {
+    color: var(--success);
+}
+
+.project-info .income {
+    color: var(--success);
+    font-weight: 500;
+}
+
+.project-info .expense {
+    color: var(--danger);
+    font-weight: 500;
+}
+
+.transaction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.transaction-info .category {
+    font-size: 0.75rem;
+    color: var(--text-light);
+}
+
+.empty-message {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-light);
+    font-style: italic;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+.multi-select {
+    height: auto;
+    min-height: 100px;
+}
+
+.multi-select option {
+    padding: 8px;
+}
+
+.help-text {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.transaction-item.recurring {
+    border-left: 3px solid var(--accent-color);
+}
+
+.recurring-details {
+    font-size: 0.8em;
+    color: var(--text-muted);
+}
+
+.transactions-section {
+    margin-bottom: 2rem;
+}
+
+.transactions-section h4 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.transactions-list {
+    background: var(--surface-color);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.transaction-item.recurring {
+    border-left: 3px solid var(--accent-color);
+}
+
+.transaction-info {
+    flex: 1;
+}
+
+.transaction-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.transaction-date,
+.recurring-details {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.amount {
+    font-weight: 600;
+    text-align: right;
+}
+
+.amount.income {
+    color: var(--success);
+}
+
+.amount.expense {
+    color: var(--danger);
+}
+
+.empty-message {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.status-badge.completed {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.status-badge.on-hold {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+.project-stats.three-col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .projects-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Project Details Modal Specific Styles */
+.project-details-modal .modal-body {
+    padding: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Info Grid at the top */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border);
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.info-item .label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.info-item .value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Description Section */
+.description-section {
+    padding: 1.5rem;
+    background: var(--background);
+    border-bottom: 1px solid var(--border);
+}
+
+.description-section .label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.description-section p {
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Transactions Sections */
+.transactions-section {
+    padding: 1.5rem;
+    background: var(--surface-color);
+}
+
+.transactions-section h4 {
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.transactions-section h4::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.transactions-list {
+    background: var(--background);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.2s;
+}
+
+.transaction-item:hover {
+    background: var(--hover-color);
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.transaction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.transaction-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.transaction-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.transaction-meta .category {
+    padding: 0.125rem 0.5rem;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 1rem;
+    font-size: 0.75rem;
+}
+
+.transaction-amount {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.transaction-amount.income {
+    color: var(--success);
+}
+
+.transaction-amount.expense {
+    color: var(--danger);
+}
+
+/* Empty States */
+.empty-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+.empty-message i {
+    font-size: 2rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+/* Modal Footer Adjustments */
+.project-details-modal .modal-footer {
+    padding: 1rem 1.5rem;
+    background: var(--surface-color);
+    border-top: 1px solid var(--border);
+}
+
+/* Scrollbar Styling */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}

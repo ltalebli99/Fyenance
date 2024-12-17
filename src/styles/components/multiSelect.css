@@ -1,0 +1,162 @@
+.custom-multi-select {
+    position: relative;
+    width: 200px; /* Made smaller */
+    font-family: 'Inter', sans-serif;
+    font-size: 14px; /* Added smaller font size */
+  }
+  
+  .select-header {
+    padding: 8px 12px; /* Reduced padding */
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    height: 36px; /* Fixed height to match other inputs */
+    box-sizing: border-box;
+  }
+  
+  .select-header:hover {
+    border-color: #cbd5e0;
+  }
+  
+  .select-header.active {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+  }
+  
+  .arrow {
+    font-size: 8px;
+    color: #4a5568;
+    transition: transform 0.2s ease;
+    margin-left: 6px;
+    width: 10px;
+    height: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .arrow::after {
+    content: '';
+    display: block;
+    width: 5px;
+    height: 5px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+    transform-origin: 75% 75%;
+  }
+  
+  .active .arrow::after {
+    transform: rotate(-135deg);
+  }
+  .select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    display: none;
+    z-index: 1000;
+    max-height: 250px; /* Made smaller */
+    overflow-y: auto;
+  }
+  
+  .select-dropdown.show {
+    display: block;
+  }
+  
+  .select-all-option {
+    padding: 6px 12px; /* Reduced padding */
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px; /* Slightly smaller font */
+  }
+  
+  .options-container {
+    padding: 4px 0;
+  }
+  
+  .option {
+    padding: 6px 12px; /* Reduced padding */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 13px; /* Slightly smaller font */
+  }
+  
+  .option:hover {
+    background-color: #f7fafc;
+  }
+  
+  .option input[type="checkbox"] {
+    accent-color: #4299e1;
+    width: 14px; /* Smaller checkbox */
+    height: 14px; /* Smaller checkbox */
+  }
+  
+  .option label {
+    flex-grow: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Scrollbar styling */
+  .select-dropdown::-webkit-scrollbar {
+    width: 4px; /* Made smaller */
+  }
+  
+  .select-dropdown::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  .select-dropdown::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 2px;
+  }
+  
+  .select-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+  }
+  
+  /* Selected accounts pills */
+  .selected-accounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  
+  .account-pill {
+    background: #ebf8ff;
+    color: #2b6cb0;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .remove-account {
+    cursor: pointer;
+    color: #4299e1;
+    font-weight: bold;
+  }

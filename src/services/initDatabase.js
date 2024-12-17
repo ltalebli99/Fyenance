@@ -1,5 +1,5 @@
 const { app } = require('electron');
-const DatabaseService = require('./database');
+const DatabaseService = require('./databaseService');
 
 let databaseInstance = null;
 

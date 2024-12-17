@@ -1,0 +1,90 @@
+.budget-tracking-section {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--modal-background);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.budget-grid {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.budget-tracking-section h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: 1rem;
+}
+
+.budget-grid table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.budget-grid th,
+.budget-grid td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.budget-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+}
+
+.budget-status.under {
+    background: var(--success);
+    color: white;
+}
+
+.budget-status.over {
+    background: var(--danger);
+    color: white;
+}
+
+.budget-status.warning {
+    background: var(--warning);
+    color: white;
+}
+
+.empty-state-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.empty-state-content i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    opacity: 0.5;
+}
+
+.empty-state-content h3 {
+    margin: 0.5rem 0;
+    font-weight: 500;
+}
+
+.empty-state-content p {
+    margin: 0.5rem 0 1.5rem 0;
+    font-size: 0.9rem;
+}
+
+.empty-state-content .primary-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+#budget-tracking-body .empty-state {
+    background: var(--background-light);
+    border: none;
+}

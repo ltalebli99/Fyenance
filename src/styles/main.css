@@ -1,47 +1,6 @@
-    :root {
-      /* Primary Colors */
-      --primary: #2E7D32;      /* Main green */
-      --primary-dark: #1B5E20; /* Darker green for hover states */
-      --primary-light: #4CAF50; /* Lighter green for highlights */
-
-      /* Border Colors */
-      --border: #D1D6D1;
-      --border-light: #E8EBE8;
-      
-      /* Semantic Colors */
-      --success: #43A047;     /* Success green */
-      --danger: #D32F2F;      /* Error/delete red */
-      --warning: #F57C00;     /* Warning orange */
-      
-      /* Neutral Colors */
-      --gray-50: #F8FAF8;     /* Slightly green-tinted white */
-      --gray-100: #F1F4F1;    /* Very light green-gray */
-      --gray-200: #E8EBE8;    /* Light green-gray */
-      --gray-300: #D1D6D1;    /* Medium green-gray */
-      --gray-700: #2F3B2F;    /* Dark green-gray */
-      --gray-800: #1F291F;    /* Darker green-gray */
-      --gray-900: #121912;    /* Almost black with green tint */
-      
-      /* Other Variables */
-      --radius: 8px;
-      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      --header-height: 64px;
-      --nav-bg: white;
-      --nav-border: var(--gray-200);
-      
-      /* Font */
-      --font-primary: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-      /* Theme Colors */
-      --background-color: var(--gray-50);
-      --text-color: var(--gray-800);
-      --text-light: var(--gray-600);
-
-      --modal-background: white;
-      --button-background: var(--primary);
-      --button-text-color: white;
-    }
+@import 'components/projects.css';
+@import 'components/modals.css';
+@import 'components/pagination.css';
 
 
 
@@ -99,7 +58,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 2rem;
-      z-index: 1000;
+      z-index: 10;
       box-shadow: var(--shadow);
       -webkit-app-region: drag;
       color: var(--text-color);
@@ -210,6 +169,48 @@
       min-width: 1.125rem;
     }
 
+    /* Static Navigation Style */
+    body.static-nav .tablink {
+      width: 40px;
+      padding: 0;
+      justify-content: center;
+      min-width: 40px;
+    }
+
+    body.static-nav .tablink:hover {
+      width: 40px;
+      padding: 0;
+      color: var(--primary);
+      background: var(--gray-50);
+      justify-content: center;
+    }
+
+    /* Hide text in static mode */
+    body.static-nav .tablink span {
+      display: none;
+      width: 0;
+      margin: 0;
+    }
+
+    /* Original hover styles (only for non-static mode) */
+    body:not(.static-nav) .tablink:hover {
+      color: var(--primary);
+      background: var(--gray-50);
+      padding: 0 1.5rem;
+      justify-content: flex-start;
+    }
+
+    body:not(.static-nav) .tablink:hover span {
+      opacity: 1;
+      width: auto;
+      margin-left: 0.5rem;
+    }
+
+    /* Ensure icons stay centered in static mode */
+    body.static-nav .tablink i {
+      margin: 0;
+    }
+
     #content {
       width: 100%;
       max-width: 100%;
@@ -274,6 +275,7 @@
     .form-group {
       display: grid;
       gap: 0.5rem;
+      width: 100%;
     }
 
     input, select {
@@ -327,10 +329,12 @@
     }
 
     td {
-      padding: 1rem;
+      padding: 0.5rem 1rem;
       border-bottom: 1px solid var(--gray-200);
       font-family: var(--font-primary);
       font-weight: 400;
+      font-size: 0.875rem;
+      line-height: 1.25;
     }
 
     tr:hover {
@@ -347,6 +351,9 @@
 
     /* Chart Styles */
     .chart-container {
+      position: relative;
+      height: 400px;
+      width: 100%;
       background: var(--modal-background);
       border-radius: var(--radius);
       padding: 1rem;
@@ -359,7 +366,7 @@
     .chart-container canvas {
       margin-top: 1rem;
       width: 100% !important;
-      height: auto !important;
+      height: calc(100% - 40px) !important;
     }
 
     /* Update section styles */
@@ -393,6 +400,53 @@
     .account-selector {
       min-width: 200px;
     }
+
+    /* Add to your existing CSS */
+.status-indicator {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  text-align: center;
+  width: fit-content;
+}
+
+.status-indicator.active {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.status-indicator.semi-active {
+  background-color: var(--warning-light);
+  color: var(--warning);
+}
+
+.status-indicator.inactive {
+  background-color: var(--gray-100);
+  color: var(--gray-600);
+}
+
+.last-tx-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+}
+
+.last-tx-date {
+  color: var(--gray-600);
+}
+
+.last-tx-amount {
+  font-weight: 500;
+}
+
+.positive {
+  color: var(--success);
+}
+
+.negative {
+  color: var(--danger);
+}
 
     .select-styled {
       width: 100%;
@@ -444,11 +498,11 @@
     }
 
     .add-btn {
-      background: var(--success);
+      background: var(--primary-light);
     }
 
     .add-btn:hover {
-      background: #16a34a;
+      background: var(--primary);
     }
 
     .chart-container h3 {
@@ -456,65 +510,6 @@
       font-weight: 500;
       color: var(--gray-700);
     }
-
-    .window-controls {
-        display: flex;
-        gap: 0.25rem;
-        margin-left: 16px;
-        -webkit-app-region: no-drag;
-        align-items: center;
-        padding: 0 8px;
-      }
-      
-      .window-control-button {
-        border: none;
-        background: transparent;
-        color: var(--primary);
-        width: 16px;
-        height: 16px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        font-size: 16px;
-        padding: 1rem 1rem;
-        position: relative;
-        opacity: 0.85;
-      }
-      
-      .window-control-button:hover {
-        opacity: 1;
-        background: var(--gray-200);  /* Slightly darker on hover */
-        transform: translateY(-1px);
-      }
-      
-      .window-control-button:active {
-        transform: translateY(0);
-        background: var(--gray-300);  /* Even darker when clicked */
-      }
-      
-      /* Minimize button */
-      .minimize-btn:hover {
-        background: var(--gray-300);
-      }
-      
-      /* Close button */
-      .close-btn {
-        color: var(--gray-700);
-      }
-      
-      .close-btn:hover {
-        background: var(--danger);
-        color: white;
-        opacity: 1;
-      }
-      
-      /* Remove the shadow effect since we have backgrounds now */
-      .window-control-button::after {
-        display: none;
-      }
 
     canvas {
       max-width: 100%;
@@ -572,12 +567,7 @@
       box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
     }
 
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-    }
+ 
 
     .form-actions button {
       padding: 0.75rem 1.5rem;
@@ -621,6 +611,9 @@
       flex-direction: column;
       gap: 0.75rem;
       padding: 1rem 0;
+      padding-top: 0.5rem;
+      overflow-y: auto;
+      padding-right: 0.5rem;
     }
 
     .spending-item {
@@ -655,23 +648,7 @@
       transition: width 0.3s ease;
     }
 
-    .spending-list {
-      height: calc(100% - 40px);
-      overflow-y: auto;
-      padding-right: 0.5rem;
-    }
 
-    canvas {
-      width: 100% !important;
-      height: calc(100% - 40px) !important;
-    }
-
-    /* The chart canvas should fill remaining space */
-    .chart-container canvas {
-      flex: 1;
-      width: 100% !important;
-      height: 100% !important;
-    }
 
     /* Main layout */
     body {
@@ -711,6 +688,12 @@
       overflow: visible;
     }
 
+    #transactions-content,
+    #recurring-content,
+    #categories-content {
+      padding-bottom: 30px; /* Space for pagination */
+    }
+
     /* Ensure tables work with new layout */
     .table-container {
       margin-top: 1rem;
@@ -718,159 +701,7 @@
       overflow-x: auto;
     }
 
-    /* Modal styles */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 1000;
-    }
 
-    .modal-backdrop {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
-    }
-
-    .modal.show {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-content {
-      position: relative;
-      z-index: 1001;
-      background-color: var(--modal-background);
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      padding: 24px;
-      width: 90%;
-      max-width: 600px;
-      animation: modalSlideIn 0.3s ease-out;
-      cursor: default;
-      color: var(--text-color);
-      transition: background-color 0.3s ease,
-                  color 0.3s ease,
-                  border-color 0.3s ease,
-                  box-shadow 0.3s ease;
-    }
-
-    @keyframes modalSlideIn {
-      from {
-        transform: translateY(-20px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    .modal-content h3 {
-      margin: 0 0 20px 0;
-      font-size: 1.5rem;
-      color: var(--text-color);
-    }
-
-    .modal .close {
-      position: absolute;
-      right: 24px;
-      top: 24px;
-      font-size: 24px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: color 0.2s;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-
-    .modal .close:hover {
-      color: var(--text-color);
-      background-color: var(--hover-color);
-    }
-
-    /* Form styling within modal */
-    .modal .form-group {
-      margin-bottom: 16px;
-    }
-
-    .modal label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--text-color);
-      font-weight: 500;
-    }
-
-    .modal input,
-    .modal select {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius);
-      background-color: white;
-      color: var(--gray-800);
-      font-size: 0.875rem;
-      transition: all 0.2s;
-    }
-
-    .modal input:focus,
-    .modal select:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
-    }
-
-    .modal .form-actions {
-      margin-top: 24px;
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-    }
-
-    .modal .primary-btn,
-    .modal .secondary-btn {
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-
-    .modal .primary-btn {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-    }
-
-    .modal .primary-btn:hover {
-      background-color: var(--primary-dark);
-    }
-
-    .modal .secondary-btn {
-      background-color: transparent;
-      color: var(--text-color);
-      border: 1px solid var(--border-light);
-    }
-
-    .modal .secondary-btn:hover {
-      background-color: var(--hover-color);
-    }
-
-    /* Ensure modal is hidden by default */
-    .modal[style*="display: none"] {
-      display: none !important;
-    }
 
     .table-controls {
       display: flex;
@@ -1115,7 +946,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: 1000;
   opacity: 1;
   transition: opacity 0.5s ease;
 }
@@ -1337,7 +1168,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
 }
 
 .license-modal {
@@ -1450,7 +1281,7 @@
     top: 0;
     right: 0;
     padding: 1rem;
-    z-index: 10000;
+    z-index: 10;
 }
 
 /* Ensure the license overlay doesn't cover the controls */
@@ -1513,6 +1344,11 @@
 .action-btn:hover {
   background: var(--gray-100);
   transform: translateY(-1px);
+}
+
+.edit-btn {
+  color: var(--primary);
+  background: var(--gray-100);
 }
 
 .action-btn.edit-btn:hover {
@@ -1709,11 +1545,7 @@
 }
 
 
-.modal p {
-  margin: 1rem 0;
-  color: var(--text);
-  text-align: center;
-}
+
 
 .first-item-modal .modal-content {
   max-width: 400px;
@@ -1769,19 +1601,31 @@
   background: rgba(0, 0, 0, 0.5);
 }
 
+.empty-state-container {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  height: calc(50vh);
+  width: 100%;
+}
+
 
 .empty-state {
-  display: none; /* Hidden by default, shown via JS when needed */
+  display: flex; 
+  min-height: 200px;
+  min-width: 200px;
+  height: 100%;
+  width: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  margin: 0;
   padding: 3rem;
-  margin: 2rem auto;
   max-width: 400px;
-  background: var(--card-bg);
+  background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .empty-state-icon {
@@ -1824,6 +1668,13 @@
   font-size: 0.9rem;
 }
 
+.empty-state-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+}
+
 /* Animation for empty states */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
@@ -1850,7 +1701,7 @@
 }
 
 /* Bulk Entry Styles */
-.wide-modal .modal-content {
+.wide-modal  {
   width: 90%;
   max-width: 1200px;
 }
@@ -1960,65 +1811,65 @@
 }
 
 .advanced-filters-panel {
-  position: fixed; /* Changed from absolute to fixed */
+  display: none;
+  position: fixed;
   background: var(--modal-background);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  display: none;
-  width: 300px;
+  border-radius: var(--radius);
+  padding: 1rem;
+  z-index: 5;
+  min-width: 300px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* This ensures the panel is visible when active */
-.advanced-filters-panel.active {
+.advanced-filters-panel.active,
+.advanced-filters-panel.show {
   display: block;
-}
-
-/* Position the panel relative to the button */
-.table-controls {
-  position: relative;
 }
 
 .filters-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: .5rem;
   border-bottom: 1px solid var(--border);
-  background: var(--background-color);
-  border-radius: 8px 8px 0 0;
+}
+
+.filters-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.clear-filters {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.clear-filters:hover {
+  color: var(--text-color);
+  background: none !important; 
 }
 
 .filters-content {
-  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
 .filters-footer {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  padding: 1rem;
-  border-top: 1px solid var(--border);
-  background: var(--background-color);
-  border-radius: 0 0 8px 8px;
 }
 
-/* Add styles for the filter groups */
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.filter-group, .sort-group {
   margin-bottom: 1rem;
 }
 
-.sort-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* Style the select elements inside the filter panel */
 .advanced-filters-panel select {
   width: 100%;
   padding: 0.5rem;
@@ -2029,8 +1880,9 @@
 }
 
 .close-filters {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
+  padding: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2047,4 +1899,401 @@
 
 .small-btn {
   padding: 0.5rem 1rem !important;
+}
+
+
+/* Window Controls - Minimal style with green theme and subtle icons */
+.window-controls {
+  display: flex;
+  gap: 8px;
+  margin-left: 16px;
+  -webkit-app-region: no-drag;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.window-control-button {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  border-radius: 25%;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  opacity: 0.7;
+}
+
+#minimizeButton {
+  background-color: var(--primary-light); /* Light green */
+  opacity: 0.4;
+}
+
+#maximizeButton {
+  background-color: var(--primary); /* Medium green */
+  opacity: 0.4;
+}
+
+#closeButton {
+  background-color: var(--primary-dark); /* Dark green */
+  opacity: 0.4;
+}
+
+/* Show tiny icons */
+.window-control-button i {
+  display: block;
+  font-size: 7px;  /* Very small icon size */
+  color: rgba(255, 255, 255, 0.8);  /* Subtle white color */
+  opacity: 0;  /* Hidden by default */
+  transition: opacity 0.2s ease;
+}
+
+/* Show icons on hover */
+.window-control-button:hover i {
+  opacity: 1;
+}
+
+/* Hover states */
+.window-control-button:hover {
+  opacity: 1 !important;
+  transform: scale(1.2);
+}
+
+/* Close button special handling */
+#closeButton:hover {
+  background-color: var(--danger);
+  opacity: 1;
+}
+
+/* Dark mode adjustments */
+.dark-mode .window-control-button {
+  opacity: 0.6;
+}
+
+.dark-mode .window-control-button:hover {
+  opacity: 1;
+}
+
+/* Optional: Add subtle border */
+.window-control-button {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .window-control-button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+
+
+
+
+.error-popup {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--error-color, #ff4444);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.error-popup.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.success-popup {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--success);
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.success-popup.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+
+/* Add these rules to your existing table styles */
+#accounts-table-body td {
+  height: 48px; /* Set a fixed height for table cells */
+  vertical-align: middle;
+}
+
+/* Force table headers to stay on one line */
+#accounts-table-header th {
+  white-space: nowrap !important;
+  text-wrap: none !important;
+  overflow: visible !important;
+}
+
+/* Set fixed widths for each column */
+#accounts-table-body td:nth-child(1) {
+  width: 25%;
+  max-width: 250px;
+}
+
+#accounts-table-body td:nth-child(2),
+#accounts-table-body td:nth-child(3),
+#accounts-table-body td:nth-child(4) {
+  width: 15%;
+}
+
+#accounts-table-body td:nth-child(5) {
+  width: 20%;
+}
+
+#accounts-table-body td:nth-child(6) {
+  width: 15%;
+}
+
+#accounts-table-body td:last-child {
+  width: 10%;
+}
+
+/* Style the input fields to match the display text */
+#accounts-table-body .name-edit,
+#accounts-table-body .balance-edit {
+  width: 100%;
+  height: 36px;
+  padding: 0.5rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: white;
+}
+
+/* Ensure consistent spacing for display text */
+#accounts-table-body .name-display,
+#accounts-table-body .balance-display {
+  display: inline-block;
+  padding: 0.5rem 0;
+  min-height: 36px;
+}
+
+/* Chart layout */
+.chart-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-top: 1rem;
+  background: var(--background);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  min-height: 350px;
+  width: 100%;
+}
+
+/* Pie chart */
+.custom-pie-chart {
+  width: min(100%, 320px);
+  height: min(100%, 320px);
+  min-width: 200px;
+  min-height: 200px;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease, background 0.3s ease; /* Add background to transition */
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  transition: background 0.3s ease;
+}
+
+.custom-pie-chart.transitioning {
+  transition: all 0.3s ease, background 0.3s ease;
+}
+
+/* Legend */
+.pie-chart-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: .5rem;
+}
+
+/* Add responsive adjustments */
+@media (max-width: 768px) {
+  .chart-wrapper {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .custom-pie-chart {
+    width: min(100%, 250px);
+    height: min(100%, 250px);
+  }
+
+  .pie-chart-legend {
+    width: 100%;
+    max-height: none;
+  }
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  background: var(--background);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  min-width: 200px;  
+  opacity: 1;
+  transition: all 0.3s ease, opacity 0.3s ease, transform 0.2s ease;
+}
+
+.legend-item:hover {
+  background: var(--background-hover);
+  transform: translateX(2px);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.legend-label {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legend-value {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* Scrollbar styling for legend */
+.pie-chart-legend::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pie-chart-legend::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 3px;
+}
+
+.pie-chart-legend::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.pie-chart-legend::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Empty and error states */
+.empty-state, .error-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-light);
+  background: var(--modal-background);
+  border-radius: var(--radius);
+  margin: 1rem 0;
+}
+
+
+
+
+/* Add to your existing CSS */
+.table-container {
+  position: relative;
+  padding-bottom: 60px; /* Space for pagination */
+  margin-bottom: 2rem; /* Additional margin after the entire container */
+}
+
+
+
+.modal-close-btn {
+  position: absolute;
+  top: 0rem;
+  right: 0rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--gray-600);
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--gray-100);
+  border-color: var(--gray-300);
+  color: var(--gray-800);
+}
+
+.currency-select-container {
+  position: relative;
+  margin-top: .5rem;
+}
+
+.currency-select {
+  width: 100%;
+  border: 1px solid var(--border);
+}
+
+.currency-select-label {
+  font-size: 0.6rem;
+  color: var(--gray-600);
+  position: absolute;
+  top: -.75rem;
+  left: 0;
+}
+
+.currency-preference-setting {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+
+.table-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
 }

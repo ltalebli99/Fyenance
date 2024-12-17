@@ -1,0 +1,693 @@
+/* =================
+   Smart Import CSS
+   ================= */
+
+/* --------------------
+   Layout & Container
+   -------------------- */
+   .import-steps {
+    position: relative;
+}
+
+.import-step {
+    display: none;
+    flex-direction: column;
+    align-items: center;   
+    justify-content: center;
+}
+
+.wide-modal {
+    max-width: 900px !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* --------------------
+   Step Progress Bar
+   -------------------- */
+.step-progress {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1.5rem 0 0 0;
+    position: relative;
+    padding: 0;
+}
+
+.step-progress::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--border);
+    z-index: 1;
+}
+
+.step-item {
+    position: relative;
+    z-index: 2;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 2px solid var(--border);
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.step-item.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--gray-100);
+}
+
+.step-item.completed {
+    border-color: var(--success);
+    color: var(--success);
+}
+
+/* --------------------
+   File Upload Area
+   -------------------- */
+.file-upload-area {
+    background: var(--gray-100);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary);
+    background: var(--background-hover);
+}
+
+.file-upload-area i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* --------------------
+   Column Mapping
+   -------------------- */
+.column-mapping {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin: 0;
+    height: 100%;
+    align-items: start;
+}
+
+.mapping-controls {
+    position: sticky;
+    top: 0;
+    background: var(--background-secondary);
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    width: 100%;
+    height: fit-content;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.mapping-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mapping-field label {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.mapping-field select {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--gray-50);
+    margin-top: 0.5rem;
+}
+
+.mapping-field select:hover {
+    border-color: var(--primary);
+}
+
+.mapping-field select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.mapping-field .helper-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* --------------------
+   Preview Table
+   -------------------- */
+.mapping-preview {
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    padding: 0;
+    overflow-x: auto;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    max-height: 400px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.preview-table {
+    width: max-content;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+.preview-table th,
+.preview-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.preview-table tr:hover td {
+    background: var(--background-hover);
+}
+
+.preview-table .highlight-column {
+    background-color: var(--primary-light) !important;
+}
+
+/* --------------------
+   Transaction Preview
+   -------------------- */
+.transaction-list {
+    margin: 2rem 0;
+    background: var(--background-secondary);
+    border-radius: var(--radius);
+    overflow: visible;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    width: 100%;
+}
+
+.preview-item {
+    display: grid;
+    grid-template-columns: 40px 120px 120px minmax(200px, 1fr) 180px 40px;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.5rem 0rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.preview-item:hover {
+    background: var(--background-hover);
+}
+
+.preview-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-date {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.preview-amount {
+    font-weight: 500;
+}
+
+.preview-amount.negative {
+    color: var(--danger);
+}
+
+.preview-amount.positive {
+    color: var(--success);
+}
+
+.preview-description {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.category-tag {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    background: var(--background-secondary);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.preview-recurring {
+    display: flex;
+    align-items: center;
+}
+
+.recurring-label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    background: var(--background-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    margin-bottom: 0 !important;
+}
+
+.recurring-label:hover {
+    background: var(--background-hover);
+}
+
+.recurring-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+.recurring-label span {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* --------------------
+   Duplicate & Matches
+   -------------------- */
+.preview-item.duplicate {
+    background-color: var(--danger-light);
+}
+
+.preview-item.potential-match {
+    background-color: var(--warning-light);
+}
+
+.potential-match-info {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    z-index: 1000;
+}
+
+.potential-match-info i {
+    font-size: 1rem;
+    color: var(--warning);
+}
+
+.potential-match-info i.fa-ban {
+    color: var(--danger);
+}
+
+.match-details {
+    display: none;
+    position: absolute;
+    right: -10px;
+    top: 100%;
+    background-color: white;
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: var(--radius);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    z-index: 1000;
+    width: 300px;
+    margin-top: 0.5rem;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.match-details::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 12px;
+    width: 12px;
+    height: 12px;
+    background-color: var(--modal-background);
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    transform: rotate(45deg);
+}
+
+.preview-item:last-child .match-details {
+    bottom: 100%;
+    top: auto;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.preview-item:last-child .match-details::before {
+    top: auto;
+    bottom: -6px;
+    transform: rotate(225deg);
+}
+
+/* --------------------
+   Summary Stats
+   -------------------- */
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    gap: 1rem;
+}
+
+.summary-stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* --------------------
+   Pagination
+   -------------------- */
+.si-pagination {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-top: 1px solid var(--border);
+}
+
+.si-pagination-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.si-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.si-pagination button {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    background: var(--background-secondary);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--primary);
+}
+
+.si-pagination button:hover:not(:disabled) {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.si-pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.si-pagination button i {
+    font-size: 0.8rem;
+}
+
+/* --------------------
+   Modal Components
+   -------------------- */
+.modal-header {
+    border-bottom: 1px solid var(--border);
+    background: white;
+    border-radius: var(--radius) var(--radius) 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding-bottom: 1rem;
+}
+
+
+.modal-header h3 {
+    margin: 0;
+}
+
+.modal-content-area {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    margin: 1rem 0rem;
+}
+
+.modal-actions {
+    background: white;
+    border-top: 1px solid var(--border);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: .5rem;
+    padding-top: 1rem;
+}
+
+.modal-actions button {
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.smart-import-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    background-color: var(--modal-background);
+    flex-direction: column;
+  }
+
+
+.smart-import-header-content {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+/* --------------------
+   Helper Classes
+   -------------------- */
+.auto-detect-message {
+    padding: 0.75rem;
+    background: var(--success-light);
+    border-radius: var(--radius);
+    color: var(--success);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.auto-detect-message i {
+    font-size: 1.1rem;
+}
+
+/* Preview Header Styles */
+.preview-header {
+    background: var(--background-secondary);
+    padding: 1rem 0rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.import-legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.legend-color.duplicate {
+    background: var(--danger);
+}
+
+.legend-color.potential {
+    background: var(--warning);
+}
+
+.preview-instructions {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Add hover effect for preview items */
+.preview-item:hover {
+    background: var(--modal-background);
+}
+
+.potential-match-info:hover .match-details {
+    display: block;
+}
+
+/* Style the tooltip content */
+.match-details-content {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    background-color: var(--background);
+}
+
+.match-details strong {
+    color: var(--text);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.match-details-content div {
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+/* --------------------
+   Tooltip Styles Enhancement
+   -------------------- */
+
+/* Ensure parent containers allow tooltip visibility */
+.transaction-list,
+.preview-table,
+.import-step {
+    position: relative; /* Establish a new positioning context if not already set */
+    overflow: visible;  /* Allow tooltips to overflow outside the container */
+}
+
+/* Existing Tooltip Styles */
+.potential-match-info {
+    position: relative;
+    cursor: pointer;
+}
+
+.match-details {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-90%);
+    background-color: white;
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: var(--radius);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    width: 300px;
+    /* Ensure tooltip is above other elements */
+    z-index: 9999;
+}
+
+.match-details::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 90%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 12px;
+    height: 12px;
+    background-color: white;
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    z-index: 1001; /* Above the tooltip box */
+}
+
+.potential-match-info:hover .match-details {
+    display: block;
+}
+
+.match-details-content {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    background-color: var(--background);
+}
+
+.match-details strong {
+    color: var(--text);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.match-details-content div {
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+/* Optional: Add transition for smooth appearance */
+.match-details {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.potential-match-info:hover .match-details {
+    opacity: 1;
+    visibility: visible;
+}

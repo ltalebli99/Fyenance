@@ -1,10 +1,14 @@
-class Tutorial {
+import { openSection } from '../utils/utils.js';
+import { getAllCurrencies, setCurrencyPreference } from '../services/currencyService.js';
+
+export class Tutorial {
     constructor() {
         this.steps = [
             {
                 element: '.logo',
                 message: 'Welcome to Fyenance! Let\'s take a quick tour of the app.',
                 position: 'bottom-left',
+                type: 'currency-select',
                 offset: { x: 20, y: 20 }
             },
             {
@@ -33,7 +37,7 @@ class Tutorial {
             },
             {
                 element: '#quick-entry-input',
-                message: 'Quickly add transactions using the quick entry feature. Just type the amount and description!',
+                message: 'Quickly add transactions using the smart entry feature. Try it out!',
                 position: 'top-right',
                 offset: { x: -20, y: 20 }
             },
@@ -61,6 +65,14 @@ class Tutorial {
                     await openSection({ currentTarget: element }, 'Reports');
                 }
             },
+            { 
+                element: '[data-section="Projects"]',
+                message: 'Manage projects and track your progress.',
+                position: 'bottom',
+                action: async (element) => {
+                    await openSection({ currentTarget: element }, 'Projects');
+                }
+            },
             {
                 element: '[data-section="Settings"]',
                 message: 'Customize your experience, manage your data, and configure app preferences here.',
@@ -68,6 +80,11 @@ class Tutorial {
                 action: async (element) => {
                     await openSection({ currentTarget: element }, 'Settings');
                 }
+            },
+            {
+                element: '[data-section="smart-import-btn"]',
+                message: 'Import your bank statement with the smart import feature. Just upload your CSV bank statement and we\'ll do the rest!',
+                position: 'bottom'
             }
         ];
         
@@ -198,6 +215,10 @@ class Tutorial {
         window.removeEventListener('resize', this.resizeHandler);
     }
 
+    nextStep() {
+        this.showStep(this.currentStep + 1);
+    }
+
     showStep(index) {
         if (this.isAnimating) return;
         this.currentStep = index;
@@ -290,6 +311,33 @@ class Tutorial {
             tooltip.querySelector('.skip-btn').addEventListener('click', () => {
                 this.complete();
             });
+
+            if (step.type === 'currency-select') {
+                const currencies = getAllCurrencies();
+                tooltip.innerHTML = `
+                    <p>${step.message}</p>
+                    <div class="currency-select-container">
+                        <select id="currency-preference" class="currency-select">
+                            ${currencies.map(c => `
+                                <option value="${c.code}">${c.name} (${c.symbol})</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    <div class="tutorial-buttons">
+                        <button class="next-btn">Continue</button>
+                    </div>
+                `;
+
+                tooltip.querySelector('#currency-preference').addEventListener('change', (e) => {
+                    setCurrencyPreference(e.target.value);
+                });
+
+                tooltip.querySelector('.next-btn').addEventListener('click', () => {
+                    const selectedCurrency = tooltip.querySelector('#currency-preference').value;
+                    setCurrencyPreference(selectedCurrency);
+                    this.nextStep();
+                });
+            }
         }, oldTooltip ? 300 : 0); // Wait for old tooltip to fade if it exists
     }
 
@@ -313,3 +361,5 @@ class Tutorial {
         await window.tutorialAPI.setTutorialComplete();
     }
 }
+
+window.tutorial = new Tutorial();

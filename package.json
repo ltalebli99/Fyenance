@@ -25,7 +25,9 @@
     "dotenv": "^16.4.7",
     "electron-log": "^5.2.4",
     "electron-updater": "^6.3.9",
-    "path": "^0.12.7"
+    "papaparse": "^5.4.1",
+    "path": "^0.12.7",
+    "pdf.js-extract": "^0.2.1"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
