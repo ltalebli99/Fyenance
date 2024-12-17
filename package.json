@@ -45,7 +45,8 @@
     "files": [
       "src/**/*",
       "assets/**/*",
-      "package.json"
+      "package.json",
+      "installer.nsh"
     ],
     "mac": {
       "icon": "assets/images/favicon.icns",
@@ -88,7 +89,18 @@
       "uninstallerIcon": "assets/images/favicon.ico",
       "uninstallDisplayName": "Fyenance",
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Fyenance",
+      "license": "LICENSE.txt",
+      "include": "installer.nsh",
+      "menuCategory": true,
+      "displayLanguageSelector": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "installerSidebar": "assets/images/installer-sidebar.bmp",
+      "uninstallerSidebar": "assets/images/uninstaller-sidebar.bmp",
+      "installerHeader": "assets/images/installer-header.bmp"
     },
     "publish": {
       "provider": "github",
