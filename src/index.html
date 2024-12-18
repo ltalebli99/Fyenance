@@ -1073,6 +1073,19 @@
                         <div class="modal-body">
                             <div class="form-row">
                                 <div class="form-group">
+                                    <label for="add-recurring-name" class="required">Name</label>
+                                    <input 
+                                        type="text" 
+                                        id="add-recurring-name" 
+                                        name="name" 
+                                        class="form-control" 
+                                        required 
+                                        placeholder="Enter name for recurring transaction"
+                                    >
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
                                     <label for="add-recurring-account">Account</label>
                                     <select id="add-recurring-account" name="account" required></select>
                                 </div>
@@ -1092,6 +1105,7 @@
                                     <select id="add-recurring-frequency" name="frequency" required>
                                         <option value="monthly">Monthly</option>
                                         <option value="weekly">Weekly</option>
+                                        <option value="daily">Daily</option>
                                         <option value="yearly">Yearly</option>
                                     </select>
                                 </div>
@@ -1099,28 +1113,18 @@
 
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="recurring-start-date">Start Date</label>
-                                    <input type="date" id="recurring-start-date" name="startDate" required>
+                                    <label for="add-recurring-start-date">Start Date</label>
+                                    <input type="date" id="add-recurring-start-date" name="startDate" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="recurring-end-date">End Date (Optional)</label>
-                                    <input type="date" id="recurring-end-date" name="endDate">
+                                    <label for="add-recurring-end-date">End Date (Optional)</label>
+                                    <input type="date" id="add-recurring-end-date" name="endDate">
                                 </div>
                             </div>
 
                             <div class="form-group">
-                                <label for="recurring-frequency">Frequency</label>
-                                <select id="recurring-frequency" name="frequency" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="daily">Daily</option>
-                                    <option value="yearly">Yearly</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="recurring-projects">Projects</label>
-                                <select id="recurring-projects" class="project-select" multiple>
+                                <label for="add-recurring-projects">Projects</label>
+                                <select id="add-recurring-projects" class="project-select" multiple>
                                     <!-- Will be populated dynamically -->
                                 </select>
                                 <small class="help-text">Hold Ctrl/Cmd to select multiple projects</small>
@@ -1174,15 +1178,15 @@
                             <div class="modal-body">
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="edit-recurring-account">Account</label>
-                                        <select id="edit-recurring-account" name="account" required></select>
+                                        <label for="edit-recurring-name">Name</label>
+                                        <input type="text" id="edit-recurring-name" name="name" required>
                                     </div>
                                 </div>
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="edit-recurring-name">Name</label>
-                                        <input type="text" id="edit-recurring-name" name="name" required>
+                                        <label for="edit-recurring-account">Account</label>
+                                        <select id="edit-recurring-account" name="account" required></select>
                                     </div>
                                     <div class="form-group">
                                         <label for="edit-recurring-category">Category</label>

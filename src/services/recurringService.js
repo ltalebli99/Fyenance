@@ -88,6 +88,17 @@ export async function fetchRecurring(accountId = null, filters = {}) {
 
         if (filteredData && filteredData.length > 0) {
             filteredData.forEach(item => {
+                // Adjust dates for timezone
+                const startDate = item.start_date ? new Date(item.start_date) : null;
+                if (startDate) {
+                    startDate.setMinutes(startDate.getMinutes() + startDate.getTimezoneOffset());
+                }
+                
+                const endDate = item.end_date ? new Date(item.end_date) : null;
+                if (endDate) {
+                    endDate.setMinutes(endDate.getMinutes() + endDate.getTimezoneOffset());
+                }
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item.name}</td>
@@ -98,8 +109,8 @@ export async function fetchRecurring(accountId = null, filters = {}) {
                     <td>${item.category_name || 'Uncategorized'}</td>
                     <td>
                         ${capitalizeFirstLetter(item.frequency)} starting 
-                        ${item.start_date ? formatDateForDisplay(item.start_date) : 'Invalid Date'}
-                        ${item.end_date ? ` until ${formatDateForDisplay(item.end_date)}` : ''}
+                        ${startDate ? formatDateForDisplay(startDate.toISOString().split('T')[0]) : 'Invalid Date'}
+                        ${endDate ? ` until ${formatDateForDisplay(endDate.toISOString().split('T')[0])}` : ''}
                     </td>
                     <td>${item.description || '-'}</td>
                     <td>

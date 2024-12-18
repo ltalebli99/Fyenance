@@ -57,21 +57,16 @@ function formatDate(date) {
 
 function formatDateForInput(dateString) {
     if (!dateString) return '';
-    
-    // Handle the date string directly without adding time
-    const date = new Date(dateString);
-    
-    // Format as YYYY-MM-DD
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    
-    return `${year}-${month}-${day}`;
+    // Create date in UTC
+    const date = new Date(dateString + 'T00:00:00Z');
+    return date.toISOString().split('T')[0];
 }
 
 function formatDateForDisplay(dateString) {
     if (!dateString) return '';
+    // Create date and adjust for timezone
     const date = new Date(dateString);
+    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
     
     // Get month abbreviation
     const month = date.toLocaleString('en-US', { month: 'short' });
@@ -80,7 +75,7 @@ function formatDateForDisplay(dateString) {
     const day = date.getDate();
     const suffix = getOrdinalSuffix(day);
     
-    // Get 2-digit year
+    // Get year
     const year = date.getFullYear().toString();
     
     return `${month} ${day}${suffix}, ${year}`;

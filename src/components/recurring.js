@@ -128,13 +128,21 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
     }
   
     try {
+      // Create dates in UTC
+      const startDateObj = new Date(startDate + 'T00:00:00Z');
+      
+      let endDateObj = null;
+      if (endDate) {
+        endDateObj = new Date(endDate + 'T00:00:00Z');
+      }
+
       const recurring = {
         account_id: parseInt(accountSelect.value, 10),
         name: nameInput.value.trim(),
         amount: parseFloat(getAmountValue(amountInput)),
         category_id: parseInt(categorySelect.value, 10),
-        start_date: startDate,
-        end_date: endDate,
+        start_date: startDateObj.toISOString().split('T')[0],
+        end_date: endDateObj ? endDateObj.toISOString().split('T')[0] : null,
         frequency: frequencySelect.value,
         description: (descriptionInput?.value || '').trim(),
         type,
@@ -148,7 +156,7 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
         return;
       }
   
-      const projectIds = Array.from(document.getElementById('recurring-projects').selectedOptions)
+      const projectIds = Array.from(document.getElementById('add-recurring-projects').selectedOptions)
           .map(option => parseInt(option.value))
           .filter(id => !isNaN(id));
   
@@ -182,8 +190,9 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
 
   function formatDateForInput(dateString) {
     if (!dateString) return '';
-    // Create date in UTC
-    const date = new Date(dateString + 'T00:00:00Z');
+    // Create date and adjust for timezone
+    const date = new Date(dateString);
+    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
     return date.toISOString().split('T')[0];
 }
 
@@ -202,7 +211,7 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
         const nameInput = document.getElementById('edit-recurring-name');
         const amountInput = document.getElementById('edit-recurring-amount');
         const categorySelect = document.getElementById('edit-recurring-category');
-        const frequencySelect = document.getElementById('recurring-frequency');
+        const frequencySelect = document.getElementById('edit-recurring-frequency');
         const startDateInput = document.getElementById('edit-recurring-start-date');
         const endDateInput = document.getElementById('edit-recurring-end-date');
         const descriptionInput = document.getElementById('edit-recurring-description');
