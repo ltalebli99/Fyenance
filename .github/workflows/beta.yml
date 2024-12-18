@@ -20,15 +20,14 @@ jobs:
         id: get-version
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          BETA_VERSION="$PACKAGE_VERSION-beta"
-          echo "version=$BETA_VERSION" >> $GITHUB_OUTPUT
-          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "beta_version=$PACKAGE_VERSION-beta" >> $GITHUB_OUTPUT 
 
       - name: Create or Update Beta Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.get-version.outputs.version }}
-          name: Beta Release ${{ steps.get-version.outputs.version }}
+          name: Beta Release ${{ steps.get-version.outputs.beta_version }} 
           draft: false
           prerelease: true
           token: ${{ secrets.GH_TOKEN }}
