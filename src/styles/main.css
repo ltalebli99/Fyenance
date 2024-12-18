@@ -2389,13 +2389,3 @@
   font-size: 0.9em;
   color: var(--gray-600);
 }
-
-
-
-.platform-darwin .window-controls {
-  display: none !important;
-}
-
-.platform-darwin .logo {
-  padding-left: 80px; /* Increased padding to account for traffic lights */
-}
