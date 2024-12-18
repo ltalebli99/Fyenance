@@ -20,6 +20,7 @@ function createMainWindow(packageJson) {
     minHeight: 600,
     icon: getIconPath(),
     titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 20, y: 20 },
     frame: false,
     transparent: false,
     backgroundColor: '#ffffff',

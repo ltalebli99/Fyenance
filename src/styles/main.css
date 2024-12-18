@@ -2390,3 +2390,13 @@
   color: var(--gray-600);
 }
 
+
+
+/* Platform specific window control adjustments */
+.platform-darwin .window-controls {
+  display: none;
+}
+
+.platform-darwin .logo {
+  padding-left: 70px; /* Make room for traffic lights */
+}

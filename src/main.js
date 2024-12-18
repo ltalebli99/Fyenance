@@ -98,7 +98,7 @@ app.whenReady().then(() => {
       if (mainWindow.isMinimized()) {
         mainWindow.restore();
       }
-      mainWindow.show();
+      mainWindow.focus();
     } else if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
