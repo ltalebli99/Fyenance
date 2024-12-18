@@ -19,7 +19,7 @@ function createMainWindow(packageJson) {
     minWidth: 800,
     minHeight: 600,
     icon: getIconPath(),
-    titleBarStyle: 'hidden',
+    titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 20, y: 20 },
     frame: false,
     transparent: false,
@@ -62,6 +62,12 @@ function createMainWindow(packageJson) {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+  });
+
+  mainWindow.on('show', () => {
+    if (process.platform === 'darwin') {
+      mainWindow.setWindowButtonVisibility(false);
+    }
   });
 
   return mainWindow;

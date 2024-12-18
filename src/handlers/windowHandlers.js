@@ -1,5 +1,5 @@
 // src/handlers/windowHandlers.js
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
 
 function setupWindowHandlers(mainWindow) {
     ipcMain.on('minimize-window', () => {
@@ -7,8 +7,20 @@ function setupWindowHandlers(mainWindow) {
     });
 
     ipcMain.on('close-window', () => {
-        mainWindow.close();
+        if (process.platform === 'darwin') {
+            mainWindow.hide();
+        } else {
+            mainWindow.close();
+        }
     });
+
+    // Add dock click handler for macOS
+    if (process.platform === 'darwin') {
+        app.on('activate', () => {
+            mainWindow.show();
+            mainWindow.setWindowButtonVisibility(false);
+        });
+    }
 
     ipcMain.on('toggle-maximize-window', () => {
         if (mainWindow.isMaximized()) {
