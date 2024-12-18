@@ -56,7 +56,7 @@ async function createWindow() {
   setupImportHandlers(database);
 
   // Set up auto-updater in production
-    setupAutoUpdater(mainWindow);
+  setupAutoUpdater(mainWindow, database);
 
   // Add marketing shortcuts
   setupMarketingShortcuts(mainWindow);

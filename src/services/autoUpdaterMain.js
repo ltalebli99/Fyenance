@@ -4,8 +4,9 @@ const electronLog = require('electron-log');
 const { safeIpcHandle } = require('../core/ipcSafety');
 const { app } = require('electron');
 const { dialog } = require('electron');
+const BackupService = require('./backupService');
 
-function setupAutoUpdater(mainWindow) {
+function setupAutoUpdater(mainWindow, database) {
   if (!mainWindow) {
     throw new Error('MainWindow is required for auto updater');
   }
@@ -118,6 +119,11 @@ function setupAutoUpdater(mainWindow) {
   safeIpcHandle('start-update', async () => {
     try {
       electronLog.info('Starting update download...');
+
+      // Create backup before update
+      const backupService = new BackupService(database);
+      await backupService.createBackup('pre-update');
+
       return await autoUpdater.downloadUpdate();
     } catch (error) {
       electronLog.error('Error downloading update:', error);

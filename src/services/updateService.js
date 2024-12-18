@@ -40,10 +40,6 @@ export async function startUpdate() {
         updateStatus.textContent = 'Starting download...';
         startUpdateBtn.style.display = 'none';
 
-        // Create backup before update
-        const BackupService = require('./services/backupService');
-        const backupService = new BackupService(database);
-        await backupService.createBackup('pre-update');
         
         // Platform-specific messaging
         if (window.electronAPI.platform === 'darwin') {
