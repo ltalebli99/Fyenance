@@ -3,6 +3,7 @@ const { autoUpdater } = require('electron-updater');
 const electronLog = require('electron-log');
 const { safeIpcHandle } = require('../core/ipcSafety');
 const { app } = require('electron');
+const { dialog } = require('electron');
 
 function setupAutoUpdater(mainWindow) {
   if (!mainWindow) {
@@ -75,8 +76,24 @@ function setupAutoUpdater(mainWindow) {
 
   autoUpdater.on('update-downloaded', (info) => {
     electronLog.info('Update downloaded:', info);
-    sendStatusToWindow('Update downloaded; will install on next launch');
-    autoUpdater.quitAndInstall(false, true);
+    
+    if (process.platform === 'darwin') {
+      dialog.showMessageBox({
+        type: 'question',
+        buttons: ['Install and Restart', 'Later'],
+        defaultId: 0,
+        message: 'A new version has been downloaded. Would you like to install and restart the app now?'
+      }).then(selection => {
+        if (selection.response === 0) {
+          // User clicked 'Install and Restart'
+          autoUpdater.quitAndInstall();
+        }
+      });
+    } else {
+      // On Windows/Linux continue with normal quit and install
+      sendStatusToWindow('Update downloaded; will install now');
+      autoUpdater.quitAndInstall(false, true);
+    }
   });
 
   safeIpcHandle('check-for-updates', async () => {
