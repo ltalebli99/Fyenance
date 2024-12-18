@@ -1,4 +1,4 @@
-const { BrowserWindow } = require('electron');
+const { BrowserWindow, app } = require('electron');
 const path = require('path');
 
 function getIconPath() {
@@ -19,9 +19,8 @@ function createMainWindow(packageJson) {
     minWidth: 800,
     minHeight: 600,
     icon: getIconPath(),
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
-    frame: process.platform === 'darwin',
-    trafficLightPosition: { x: 20, y: 20 },
+    titleBarStyle: 'hidden',
+    frame: false,
     transparent: false,
     backgroundColor: '#ffffff',
     webPreferences: {
@@ -34,6 +33,16 @@ function createMainWindow(packageJson) {
     maximizable: true,
     fullscreenable: true,
     center: true
+  });
+
+  if (process.platform === 'darwin') {
+    mainWindow.setWindowButtonVisibility(false);
+  }
+
+  mainWindow.on('close', () => {
+    if (process.platform === 'darwin') {
+      app.quit();
+    }
   });
 
   mainWindow.on('maximize', () => {

@@ -56,7 +56,7 @@ async function createWindow() {
   setupImportHandlers(database);
 
   // Set up auto-updater in production
-  setupAutoUpdater(mainWindow);
+    setupAutoUpdater(mainWindow);
 
   // Add marketing shortcuts
   setupMarketingShortcuts(mainWindow);
@@ -94,7 +94,12 @@ app.whenReady().then(() => {
   createWindow();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+    } else if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
