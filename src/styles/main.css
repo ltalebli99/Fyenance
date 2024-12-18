@@ -2389,3 +2389,10 @@
   font-size: 0.9em;
   color: var(--gray-600);
 }
+
+.beta-tag {
+  font-size: 0.8em;
+  color: var(--gray-600);
+  font-weight: 500;
+  margin-bottom: 0.125rem;
+}

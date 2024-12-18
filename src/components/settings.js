@@ -170,7 +170,7 @@ export function initializeSettings() {
 
     document.getElementById('issues-link')?.addEventListener('click', async (e) => {
         e.preventDefault();
-        await window.electronAPI.openExternal('https://fyenanceapp.com/logs');
+        await window.electronAPI.openExternal('https://fyenanceapp.com/hub');
     });
 
     // Support email uses default mailto: behavior
