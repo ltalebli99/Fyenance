@@ -2,27 +2,33 @@
 const { ipcMain } = require('electron');
 
 function setupWindowHandlers(mainWindow) {
-    ipcMain.on('minimize-window', () => {
-        mainWindow.minimize();
-    });
+    // Only set up these handlers for non-Mac platforms
+    if (process.platform !== 'darwin') {
+        ipcMain.on('minimize-window', () => {
+            mainWindow.minimize();
+        });
 
-    ipcMain.on('close-window', () => {
-        mainWindow.close();
-    });
+        ipcMain.on('close-window', () => {
+            mainWindow.close();
+        });
 
-    ipcMain.on('toggle-maximize-window', () => {
-        if (mainWindow.isMaximized()) {
-            mainWindow.unmaximize();
-        } else {
-            mainWindow.maximize();
-        }
-    });
+        ipcMain.on('toggle-maximize-window', () => {
+            if (mainWindow.isMaximized()) {
+                mainWindow.unmaximize();
+            } else {
+                mainWindow.maximize();
+            }
+        });
+    }
 
+    // These handlers are needed for all platforms
     ipcMain.handle('get-window-state', () => {
-        return { isMaximized: mainWindow.isMaximized() };
+        return { 
+            isMaximized: mainWindow.isMaximized(),
+            platform: process.platform
+        };
     });
 
-    // Listen for maximize/unmaximize events and notify renderer
     mainWindow.on('maximize', () => {
         mainWindow.webContents.send('window-state-change', { isMaximized: true });
     });

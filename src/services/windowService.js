@@ -2,6 +2,12 @@
 export function initializeWindowControls() {
     console.log('Window controls initialization started');
 
+    // Don't initialize custom window controls on Mac
+    if (window.electronAPI?.platform === 'darwin') {
+        console.log('Skipping custom window controls on macOS');
+        return;
+    }
+
     const minimizeButton = document.getElementById('minimizeButton');
     const maximizeButton = document.getElementById('maximizeButton');
     const closeButton = document.getElementById('closeButton');

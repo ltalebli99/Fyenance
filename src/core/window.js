@@ -19,8 +19,9 @@ function createMainWindow(packageJson) {
     minWidth: 800,
     minHeight: 600,
     icon: getIconPath(),
-    titleBarStyle: 'hidden',
-    frame: false,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    frame: process.platform === 'darwin',
+    trafficLightPosition: { x: 20, y: 20 },
     transparent: false,
     backgroundColor: '#ffffff',
     webPreferences: {
