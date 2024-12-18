@@ -58,22 +58,23 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
-      
+
       - name: Install macOS Dependencies
         if: matrix.os == 'macos-latest'
         run: npm install --save-dev dmg-license
 
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: true
-          skip_build: true
           args: >
             --publish always
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
-                matrix.os == 'windows-latest' && '--win' ||
-                matrix.os == 'ubuntu-latest' && '--linux' }}
+                matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
+                matrix.os == 'ubuntu-latest' && '--linux --config.productName="Fyenance"' }}
       - name: Sign Windows Build
         if: matrix.os == 'windows-latest'
         uses: azure/trusted-signing-action@v0.5.0
