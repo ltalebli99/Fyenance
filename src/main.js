@@ -56,7 +56,7 @@ async function createWindow() {
   setupImportHandlers(database);
 
   // Set up auto-updater in production
-    setupAutoUpdater(mainWindow);
+  setupAutoUpdater(mainWindow);
 
   // Add marketing shortcuts
   setupMarketingShortcuts(mainWindow);
@@ -90,7 +90,15 @@ function setupMarketingShortcuts(mainWindow) {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -98,8 +106,3 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
