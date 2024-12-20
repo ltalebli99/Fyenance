@@ -57,9 +57,27 @@ function formatDate(date) {
 
 function formatDateForInput(dateString) {
     if (!dateString) return '';
-    // Create date in UTC
-    const date = new Date(dateString + 'T00:00:00Z');
-    return date.toISOString().split('T')[0];
+    
+    try {
+        // Create a new date object
+        const date = new Date(dateString);
+        
+        // Check if the date is valid
+        if (isNaN(date.getTime())) {
+            console.error('Invalid date:', dateString);
+            return '';
+        }
+        
+        // Format the date as YYYY-MM-DD
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}`;
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return '';
+    }
 }
 
 function formatDateForDisplay(dateString) {
