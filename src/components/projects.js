@@ -1,7 +1,12 @@
 import { openModal, closeModal, showError } from '../utils/utils.js';
 import { fetchProjects } from '../services/projectsService.js';
 import { refreshData } from '../utils/refresh.js';
-import { formatCurrency, formatDate, getAmountValue } from '../utils/formatters.js';
+import { formatCurrency, formatDate, getAmountValue, formatInitialAmount, initializeAmountInput } from '../utils/formatters.js';
+import { resetFormAndInputs } from '../utils/initInputs.js';
+import { showDeleteConfirmationModal } from '../utils/modals.js';
+
+const addProjectForm = document.getElementById('add-project-form');
+const editProjectForm = document.getElementById('edit-project-form');
 
 export function initializeProjects() {
     // Add Project Button
@@ -24,30 +29,32 @@ export function initializeProjects() {
     });
 
     // Add Project Form Submit
-    document.getElementById('add-project-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const project = {
-            name: document.getElementById('project-name').value,
-            description: document.getElementById('project-description').value,
-            budget: parseFloat(getAmountValue(document.getElementById('project-budget'))) || null,
-            status: document.getElementById('project-status').value,
-            start_date: document.getElementById('project-start-date').value || null,
-            end_date: document.getElementById('project-end-date').value || null
-        };
+    if (addProjectForm) {
+        addProjectForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const project = {
+                name: document.getElementById('project-name').value,
+                description: document.getElementById('project-description').value,
+                budget: parseFloat(getAmountValue(document.getElementById('project-budget'))) || null,
+                status: document.getElementById('project-status').value,
+                start_date: document.getElementById('project-start-date').value || null,
+                end_date: document.getElementById('project-end-date').value || null
+            };
 
-        try {
-            const { error } = await window.databaseApi.createProject(project);
-            if (error) throw error;
+            try {
+                const { error } = await window.databaseApi.createProject(project);
+                if (error) throw error;
 
-            closeModal('add-project-modal');
-            e.target.reset();
-            await refreshData({ projects: true });
-        } catch (err) {
-            console.error('Error creating project:', err);
-            showError('Failed to create project');
-        }
-    });
+                resetFormAndInputs(addProjectForm);
+                closeModal('add-project-modal');
+                await refreshData({ projects: true });
+            } catch (err) {
+                console.error('Error creating project:', err);
+                showError('Failed to create project');
+            }
+        });
+    }
 
     // Edit Project Form Submit
     document.getElementById('edit-project-form')?.addEventListener('submit', async (e) => {
@@ -64,11 +71,18 @@ export function initializeProjects() {
         };
 
         try {
+            // Wait for the update to complete
             const { error } = await window.databaseApi.updateProject(projectId, project);
             if (error) throw error;
 
+            resetFormAndInputs(editProjectForm);
             closeModal('edit-project-modal');
-            await refreshData({ projects: true });
+            
+            // Wait for refresh to complete
+            await refreshData({ 
+                projects: true,
+                dropdowns: true
+            });
         } catch (err) {
             console.error('Error updating project:', err);
             showError('Failed to update project');
@@ -115,19 +129,25 @@ export function initializeProjects() {
 
     // Add event listener for delete project button
     document.getElementById('delete-project-btn')?.addEventListener('click', async (e) => {
-        if (!confirm('Are you sure you want to delete this project?')) return;
-        
         const projectId = e.currentTarget.dataset.projectId;
-        try {
-            const { error } = await window.databaseApi.deleteProject(projectId);
-            if (error) throw error;
-            
-            closeModal('project-details-modal');
-            await refreshData({ projects: true });
-        } catch (err) {
-            console.error('Error deleting project:', err);
-            showError('Failed to delete project');
-        }
+        
+        showDeleteConfirmationModal({
+            title: 'Delete Project',
+            message: 'Are you sure you want to delete this project? All associated transaction links will be removed.',
+            onConfirm: async () => {
+                try {
+                    const { error } = await window.databaseApi.deleteProject(projectId);
+                    if (error) throw error;
+                    
+                    resetFormAndInputs(editProjectForm);
+                    closeModal('project-details-modal');
+                    await refreshData({ projects: true });
+                } catch (err) {
+                    console.error('Error deleting project:', err);
+                    showError('Failed to delete project');
+                }
+            }
+        });
     });
 
     // Initialize date validation for add form
@@ -149,7 +169,8 @@ export function populateEditProjectForm(project) {
     
     document.getElementById('edit-project-name').value = project.name;
     document.getElementById('edit-project-description').value = project.description || '';
-    document.getElementById('edit-project-budget').value = project.budget || '';
+    document.getElementById('edit-project-budget').value = formatInitialAmount(project.budget) || '0.00';
+    initializeAmountInput(document.getElementById('edit-project-budget'));
     document.getElementById('edit-project-status').value = project.status;
     document.getElementById('edit-project-start-date').value = project.start_date || '';
     document.getElementById('edit-project-end-date').value = project.end_date || '';

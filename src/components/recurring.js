@@ -1,10 +1,14 @@
-import { formatCurrency, capitalizeFirstLetter, getAmountValue } from '../utils/formatters.js';
+import { formatCurrency, capitalizeFirstLetter, getAmountValue, formatInitialAmount, initializeAmountInput } from '../utils/formatters.js';
 import { openModal, closeModal, showError } from '../utils/utils.js';
 import { populateAccountDropdowns, populateCategoryDropdowns, populateProjectDropdowns } from '../utils/dropdownHelpers.js';
 import { fetchRecurring } from '../services/recurringService.js';
-import { showCreateFirstModal } from '../utils/modals.js';
+import { showCreateFirstModal, showDeleteConfirmationModal } from '../utils/modals.js';
 import { debounce } from '../utils/filters.js';
 import { refreshData } from '../utils/refresh.js';
+import { resetFormAndInputs } from '../utils/initInputs.js';
+
+const addRecurringForm = document.getElementById('add-recurring-form');
+const editRecurringForm = document.getElementById('edit-recurring-form');
 
 let recurringPagination; // Add at the top of the file
 
@@ -70,20 +74,25 @@ export async function toggleRecurringStatus(id, newStatus, item) {
     }
 }
   
-  export async function deleteRecurring(id) {
-    try {
-      const { error } = await window.databaseApi.deleteRecurring(id);
-      if (error) throw error;
-      
-      // Refresh all relevant data
-      await refreshData({
-        all: true
-      });
-    } catch (error) {
-      console.error('Error deleting recurring transaction:', error);
-      showError('Failed to delete recurring transaction');
-    }
-  }
+export async function deleteRecurring(id) {
+    showDeleteConfirmationModal({
+        title: 'Delete Recurring Transaction',
+        message: 'Are you sure you want to delete this recurring transaction?',
+        onConfirm: async () => {
+            try {
+                const { error } = await window.databaseApi.deleteRecurring(id);
+                if (error) throw error;
+                
+                await refreshData({
+                    all: true
+                });
+            } catch (error) {
+                console.error('Error deleting recurring transaction:', error);
+                showError('Failed to delete recurring transaction');
+            }
+        }
+    });
+}
 
 
 // Add recurring form handler
@@ -165,9 +174,9 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
         projectIds
       });
       if (error) throw error;
-  
+
+      resetFormAndInputs(addRecurringForm);
       closeModal('add-recurring-modal');
-      e.target.reset();
   
       refreshData({
         all: true
@@ -227,7 +236,8 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
         form.dataset.recurringId = recurring.id;
         accountSelect.value = recurring.account_id;
         nameInput.value = recurring.name;
-        amountInput.value = recurring.amount;
+        amountInput.value = formatInitialAmount(recurring.amount);
+        initializeAmountInput(document.getElementById('edit-recurring-amount'));
         categorySelect.value = recurring.category_id;
         frequencySelect.value = recurring.frequency || 'monthly';
         startDateInput.value = formatDateForInput(recurring.start_date);
@@ -328,6 +338,7 @@ document.getElementById('edit-recurring-form')?.addEventListener('submit', async
         });
         if (updateError) throw updateError;
 
+        resetFormAndInputs(editRecurringForm);
         closeModal('edit-recurring-modal');
         await refreshData({
             all: true
@@ -342,7 +353,7 @@ document.getElementById('edit-recurring-form')?.addEventListener('submit', async
 // Add cancel button event listener for edit form
 document.getElementById('cancel-edit-recurring')?.addEventListener('click', () => {
     document.getElementById('edit-recurring-card').style.display = 'none';
-    document.getElementById('edit-recurring-form').reset();
+    resetFormAndInputs(editRecurringForm);
   });
 
 // Add filter panel positioning for recurring

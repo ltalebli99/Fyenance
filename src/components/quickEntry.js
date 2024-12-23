@@ -14,7 +14,7 @@ export function initializeQuickEntry() {
         <i class="fas fa-info-circle"></i>
         <div class="tooltip-content">
             <h4>Quick Entry Format:</h4>
-            <p>amount description [account]</p>
+            <p>amount description [account] [category] [date]</p>
             
             <h5>Smart Features:</h5>
             <ul>
@@ -37,6 +37,13 @@ export function initializeQuickEntry() {
                         <li>25.99 groceries chase</li>
                         <li>1000 salary wells fargo</li>
                         <li>50 gas amex</li>
+                    </ul>
+                </li>
+                <li>Date Detection:
+                    <ul>
+                        <li>12.49 sunglasses January 5</li>
+                        <li>1000 salary Jan 5th</li>
+                        <li>50 gas 1/5/24</li>
                     </ul>
                 </li>
             </ul>
@@ -67,17 +74,21 @@ export function initializeQuickEntry() {
 
                 // Try to find account in the description
                 let accountId = null;
-                const words = parsed.description.toLowerCase().split(' ');
+                const description = parsed.description;
+                const wordsLower = description.toLowerCase().split(' ');
+                const words = description.split(' ');
                 
                 // Find any account name matches
                 for (const account of accounts) {
                     const accountName = account.name.toLowerCase();
-                    if (words.some(word => accountName.includes(word) || word.includes(accountName))) {
+                    if (wordsLower.some(word => accountName.includes(word) || word.includes(accountName))) {
                         accountId = account.id;
-                        // Remove account name from description
-                        parsed.description = words
-                            .filter(word => !accountName.includes(word) && !word.includes(accountName))
-                            .join(' ');
+                        // Remove account name from description but preserve case of remaining words
+                        const filteredWords = words.filter((word, index) => 
+                            !accountName.includes(wordsLower[index]) && 
+                            !wordsLower[index].includes(accountName)
+                        );
+                        parsed.description = filteredWords.join(' ');
                         break;
                     }
                 }

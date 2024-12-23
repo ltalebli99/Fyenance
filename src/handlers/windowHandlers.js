@@ -14,11 +14,30 @@ function setupWindowHandlers(mainWindow) {
         }
     });
 
-    // Add dock click handler for macOS
+    // Modify the activate handler for macOS
     if (process.platform === 'darwin') {
         app.on('activate', () => {
-            mainWindow.show();
+            if (mainWindow.isVisible()) {
+                mainWindow.focus();
+            } else {
+                mainWindow.show();
+                setTimeout(() => {
+                    mainWindow.focus();
+                }, 100);
+            }
             mainWindow.setWindowButtonVisibility(false);
+        });
+    }
+
+    // Add a specific handler for Windows tray/dock restore
+    if (process.platform === 'win32') {
+        app.on('second-instance', () => {
+            if (mainWindow.isMinimized()) {
+                mainWindow.restore();
+            }
+            setTimeout(() => {
+                mainWindow.focus();
+            }, 100);
         });
     }
 

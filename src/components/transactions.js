@@ -1,14 +1,43 @@
-import { formatCurrency, capitalizeFirstLetter, formatDateForInput, getAmountValue } from '../utils/formatters.js';
+import { formatCurrency, 
+  capitalizeFirstLetter, 
+  formatDateForInput, 
+  getAmountValue, 
+  initializeAmountInput, 
+  formatInitialAmount 
+} from '../utils/formatters.js';
 import { fetchTransactions } from '../services/transactionsService.js';
 import { openSection, openModal, closeModal, showError } from '../utils/utils.js';
 import { populateAccountDropdowns, populateCategoryDropdowns, populateProjectDropdowns } from '../utils/dropdownHelpers.js';
 import { filterData, sortData } from './filters.js';
-import { showCreateFirstModal } from '../utils/modals.js';
+import { showCreateFirstModal, showDeleteConfirmationModal } from '../utils/modals.js';
 import { positionFilterPanel, debounce } from '../utils/filters.js';
 import { refreshData } from '../utils/refresh.js';
 import { TablePagination } from '../utils/pagination.js';
+import { resetFormAndInputs } from '../utils/initInputs.js';
+import { populateAccountTabs } from './accounts.js';
 
 let transactionsPagination;
+
+const editTransactionForm = document.getElementById('edit-transaction-form');
+const accountSelector = document.getElementById('transactions-account-selector');
+
+if (accountSelector) {
+  accountSelector.querySelector('.select-header').addEventListener('click', () => {
+      accountSelector.querySelector('.select-dropdown').classList.toggle('show');
+  });
+
+  accountSelector.querySelector('#select-all-transactions-accounts').addEventListener('change', (e) => {
+      const checkboxes = accountSelector.querySelectorAll('.options-container input');
+      checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
+      handleTransactionFiltersChange();
+  });
+
+  accountSelector.addEventListener('change', (e) => {
+      if (e.target.type === 'checkbox' && e.target !== accountSelector.querySelector('#select-all-transactions-accounts')) {
+          handleTransactionFiltersChange();
+      }
+  });
+}
 
 // Show/Hide Transaction Form
 document.getElementById('show-add-transaction')?.addEventListener('click', () => {
@@ -80,8 +109,8 @@ if (addTransactionForm) {
             if (projectError) throw projectError;
         }
 
+        resetFormAndInputs(addTransactionForm);
         closeModal('add-transaction-modal');
-        e.target.reset();
         await refreshData({ all: true });
     } catch (err) {
         console.error('Error adding transaction:', err);
@@ -90,20 +119,30 @@ if (addTransactionForm) {
   });
 }
 
-  export async function deleteTransaction(id) {
+export async function deleteTransaction(id) {
     try {
         const { error } = await window.databaseApi.deleteTransaction(id);
         if (error) throw error;
+        
+        // First remove the row from the table
+        const row = document.querySelector(`tr[data-transaction-id="${id}"]`);
+        if (row) row.remove();
+        
+        // Then refresh the data
         await refreshData({
             transactions: true,
+            projects: true,
             charts: true,
             reports: true
         });
+
+        return { success: true };
     } catch (error) {
         console.error('Error deleting transaction:', error);
         showError('Failed to delete transaction');
+        return { success: false, error: error.message };
     }
-  }
+}
   
   document.getElementById('cancel-add-recurring')?.addEventListener('click', () => {
     document.getElementById('add-recurring-card').style.display = 'none';
@@ -137,6 +176,7 @@ export async function showEditTransactionForm(transaction) {
             populateProjectDropdowns(true)
         ]);
 
+        
         // Ensure all form elements exist
         const form = document.getElementById('edit-transaction-form');
         const projectSelect = document.getElementById('edit-transaction-projects');
@@ -150,7 +190,8 @@ export async function showEditTransactionForm(transaction) {
         document.getElementById('edit-transaction-id').value = transaction.id;
         document.getElementById('edit-transaction-account').value = transaction.account_id;
         document.getElementById('edit-transaction-category').value = transaction.category_id;
-        document.getElementById('edit-transaction-amount').value = Math.abs(transaction.amount);
+        document.getElementById('edit-transaction-amount').value = formatInitialAmount(transaction.amount);
+        initializeAmountInput(document.getElementById('edit-transaction-amount'));
         document.getElementById('edit-transaction-date').value = formatDateForInput(transaction.date);
         document.getElementById('edit-transaction-description').value = transaction.description || '';
 
@@ -177,51 +218,64 @@ export async function showEditTransactionForm(transaction) {
 }
   
   // Add event listener for the edit transaction form
-  document.getElementById('edit-transaction-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const transactionId = document.getElementById('edit-transaction-id').value;
-    
-    // Get category type from selected option
-    const categorySelect = document.getElementById('edit-transaction-category');
-    const selectedOption = categorySelect?.options[categorySelect.selectedIndex];
-    const categoryText = selectedOption?.textContent || '';
-    const type = categoryText.split('-')[0].trim().toLowerCase();
+  if (editTransactionForm) {
+    editTransactionForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const transactionId = document.getElementById('edit-transaction-id').value;
+            
+            // Get category type from selected option
+            const categorySelect = document.getElementById('edit-transaction-category');
+            const selectedOption = categorySelect?.options[categorySelect.selectedIndex];
+            const categoryText = selectedOption?.textContent || '';
+            const type = categoryText.split('-')[0].trim().toLowerCase();
 
-    const amountInput = document.getElementById('edit-transaction-amount');
-    const amount = getAmountValue(amountInput);
+            const amountInput = document.getElementById('edit-transaction-amount');
+            const amount = getAmountValue(amountInput);
 
-    const updateData = {
-      account_id: document.getElementById('edit-transaction-account').value,
-      category_id: document.getElementById('edit-transaction-category').value,
-      type,
-      amount: parseFloat(amount),
-      date: document.getElementById('edit-transaction-date').value,
-      description: document.getElementById('edit-transaction-description').value
-    };
-    
-    const projectIds = Array.from(document.getElementById('edit-transaction-projects').selectedOptions)
-        .map(option => option.value);
+            const updateData = {
+                account_id: document.getElementById('edit-transaction-account').value,
+                category_id: document.getElementById('edit-transaction-category').value,
+                type,
+                amount: parseFloat(amount),
+                date: document.getElementById('edit-transaction-date').value,
+                description: document.getElementById('edit-transaction-description').value
+            };
+            
+            // Get selected project IDs, filtering out empty values
+            const projectIds = Array.from(document.getElementById('edit-transaction-projects').selectedOptions)
+                .map(option => option.value)
+                .filter(id => id !== ''); // Filter out empty values
 
-    const { error } = await window.databaseApi.updateTransaction(transactionId, updateData);
-    if (error) {
-      console.error('Error updating transaction:', error);
-    } else {
-      closeModal('edit-transaction-modal');
-      await refreshData({
-        all: true
-      });
-      e.target.reset();
+            // First update the transaction
+            const { error } = await window.databaseApi.updateTransaction(transactionId, updateData);
+            if (error) throw error;
 
-      if (projectIds.length > 0) {
-          await window.databaseApi.updateTransactionProjects(transactionId, projectIds);
-      }
-    }
-  });
+            // Then update the project associations (even if empty)
+            const { error: projectError } = await window.databaseApi.updateTransactionProjects(transactionId, projectIds);
+            if (projectError) throw projectError;
+
+            // Only refresh after both operations are complete
+            resetFormAndInputs(editTransactionForm);
+            closeModal('edit-transaction-modal');
+            
+            await refreshData({
+                transactions: true,
+                projects: true,
+                dropdowns: true
+            });
+
+        } catch (error) {
+            console.error('Error updating transaction:', error);
+            showError('Failed to update transaction');
+        }
+    });
+  }
   
   // Add cancel button event listener for edit form
   document.getElementById('cancel-edit-transaction')?.addEventListener('click', () => {
     document.getElementById('edit-transaction-card').style.display = 'none';
-    document.getElementById('edit-transaction-form').reset();
+    resetFormAndInputs(editTransactionForm);
   });
 
 export function initializeTransactions() {
@@ -290,6 +344,7 @@ export function initializeTransactions() {
 // Initialize transactions when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    await populateAccountTabs('transaction-accounts-list');
     await initializeTransactions();
   } catch (error) {
     console.error('Failed to initialize transactions:', error);
@@ -383,16 +438,21 @@ export async function loadTransactions(filters = {}) {
       const deleteBtn = row.querySelector('.delete-btn');
 
       editBtn?.addEventListener('click', () => showEditTransactionForm(transaction));
-      deleteBtn?.addEventListener('click', async () => {
-        if (confirm('Are you sure you want to delete this transaction?')) {
-          try {
-            await deleteTransaction(transaction.id);
-            await loadTransactions(filters); // Reload the transactions with current filters
-          } catch (error) {
-            console.error('Error deleting transaction:', error);
-            showError('Failed to delete transaction');
+      deleteBtn?.addEventListener('click', () => {
+        showDeleteConfirmationModal({
+          title: 'Delete Transaction',
+          message: 'Are you sure you want to delete this transaction?',
+          onConfirm: async () => {
+            try {
+              const result = await deleteTransaction(transaction.id);
+              if (!result.success) throw new Error(result.error);
+              await loadTransactions(filters); // Reload the transactions with current filters
+            } catch (error) {
+              console.error('Error deleting transaction:', error);
+              showError('Failed to delete transaction');
+            }
           }
-        }
+        });
       });
 
       tbody.appendChild(row);
@@ -416,7 +476,7 @@ export async function handleTransactionFiltersChange() {
     sort: document.getElementById('transaction-sort')?.value || 'date-desc',
     search: document.querySelector('#Transactions .search-input')?.value || '',
     limit: transactionsPagination?.getLimit(),
-    offset: 0  // Force offset to 0 for first page
+    offset: 0  // Reset offset when filters change
   };
 
   await loadTransactions(filters);
@@ -536,3 +596,10 @@ function initializeTransactionFilters() {
     }
   });
 }
+
+// On DOMContentLoaded or appropriate initialization function
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('input[type="text"][class*="amount"]').forEach(input => {
+        initializeAmountInput(input);
+    });
+});

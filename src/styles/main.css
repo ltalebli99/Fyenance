@@ -2278,7 +2278,6 @@
 
 .currency-select-container {
   position: relative;
-  margin-top: .5rem;
 }
 
 .currency-select {
@@ -2337,7 +2336,7 @@
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 12px;
-  width: 320px;
+  width: 400px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   z-index: 1000;
 }
@@ -2395,4 +2394,55 @@
   color: var(--gray-600);
   font-weight: 500;
   margin-bottom: 0.125rem;
+}
+
+/* Account Tab Styles */
+.account-tab {
+  width: 200px;
+  background: var(--background-secondary);
+  border-right: 1px solid var(--border);
+  padding: 1rem;
+  height: calc(100vh - 180px);
+  overflow-y: auto;
+}
+
+.account-tab ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.account-tab li {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.account-tab li:hover {
+  background: var(--hover-light);
+}
+
+.account-tab li.active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.account-tab li .account-balance {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Modify existing section content */
+.section-with-sidebar {
+  display: flex;
+  gap: 1rem;
+  height: 100%;
+}
+
+.section-main-content {
+  flex: 1;
+  overflow: auto;
 }

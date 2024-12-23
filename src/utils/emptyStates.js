@@ -13,6 +13,7 @@ export async function updateEmptyStates() {
   
             toggleEmptyState('transactions-empty-state', emptyStates.transactions);
             toggleContent('transactions-content', !emptyStates.transactions);
+            document.querySelector('.entry-tools').style.display = !emptyStates.categories ? 'block' : 'none';
   
             toggleEmptyState('categories-empty-state', emptyStates.categories);
             toggleContent('categories-content', !emptyStates.categories);

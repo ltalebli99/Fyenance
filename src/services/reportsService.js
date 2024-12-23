@@ -15,42 +15,64 @@ export async function calculateMonthlyRecurring(accountId = 'all') {
       console.error('Error fetching recurring:', error);
       return 0;
     }
+
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   
-    // Only count active recurring
+    // Filter active recurring within the current month
     return recurring
-      .filter(recur => recur.is_active)
+      .filter(recur => {
+        const startDate = new Date(recur.start_date);
+        startDate.setHours(0, 0, 0, 0);
+        
+        // If recurring starts after this month, exclude it
+        if (startDate > endOfMonth) return false;
+        
+        // If recurring has ended before this month, exclude it
+        if (recur.end_date) {
+          const endDate = new Date(recur.end_date);
+          endDate.setHours(23, 59, 59, 999);
+          if (endDate < startOfMonth) return false;
+        }
+        
+        // For future recurring items, only include if they start this month
+        if (startDate > startOfMonth) {
+          return startDate.getMonth() === today.getMonth() && 
+                 startDate.getFullYear() === today.getFullYear();
+        }
+        
+        return recur.is_active;
+      })
       .reduce((total, recur) => total + parseFloat(recur.amount), 0);
 }
 
 // Fetch Total Balance
 export async function fetchTotalBalance(accountId = 'all') {
     try {
-      // Normalize account ID
-      const normalizedAccountIds = normalizeAccountIds(accountId);
-
       // Fetch accounts data
       const { data: accounts, error: accountsError } = await window.databaseApi.fetchAccounts();
       if (accountsError) throw accountsError;
   
-      // For multiple specific accounts, fetch each one
-      const { data: transactions, error: txError } = await window.databaseApi.fetchTransactions(normalizedAccountIds);
+      // Fetch transactions and recurring for the account
+      const { data: transactions, error: txError } = await window.databaseApi.getAllTransactions(accountId);
       if (txError) throw txError;
 
-      const { data: recurring, error: recError } = await window.databaseApi.fetchRecurring(normalizedAccountIds);
+      const { data: recurring, error: recError } = await window.databaseApi.getAllRecurring(accountId);
       if (recError) throw recError;
 
-      if (!transactions.length && !recurring.length) {
+      if (!transactions?.length && !recurring?.length) {
         displayEmptyState();
         return;
       }
   
       // Calculate base balance from accounts
       let accountBalance;
-      if (normalizedAccountIds.includes('all')) {
+      if (accountId === 'all') {
         accountBalance = accounts.reduce((acc, account) => acc + parseFloat(account.balance), 0);
       } else {
         accountBalance = accounts
-          .filter(acc => normalizedAccountIds.includes(acc.id))
+          .filter(acc => acc.id === accountId)
           .reduce((acc, account) => acc + parseFloat(account.balance), 0);
       }
   
@@ -74,13 +96,17 @@ export async function fetchTotalBalance(accountId = 'all') {
         .reduce((total, tx) => total + parseFloat(tx.amount), 0);
   
       // Calculate this month's recurring amounts
-      const thisMonthsRecurringIncome = recurring
-        .filter(r => r.is_active && r.type === 'income')
-        .reduce((total, r) => total + parseFloat(r.amount), 0);
+      const thisMonthsRecurringIncome = calculateRecurringForMonth(
+        recurring.filter(r => r.type === 'income'),
+        currentYear,
+        currentMonth
+      );
   
-      const thisMonthsRecurringExpenses = recurring
-        .filter(r => r.is_active && r.type === 'expense')
-        .reduce((total, r) => total + parseFloat(r.amount), 0);
+      const thisMonthsRecurringExpenses = calculateRecurringForMonth(
+        recurring.filter(r => r.type === 'expense'),
+        currentYear,
+        currentMonth
+      );
   
       // Calculate totals
       const totalMonthlyIncome = thisMonthsTransactionIncome + thisMonthsRecurringIncome;
@@ -101,10 +127,13 @@ export async function fetchTotalBalance(accountId = 'all') {
 
 
   
-
+function getPeriod() {
+  const period = document.getElementById('reports-period-selector').value;
+  return period;
+}
 
 // Update the updateReports function to include recurring
-export async function updateReports(period = 'month', accountIds = ['all']) {
+export async function updateReports(period = getPeriod(), accountIds = ['all']) {
   // Add initialization guard
   if (!isInitialized) {
     console.log('Reports not yet initialized, skipping update');
@@ -311,26 +340,79 @@ function displayErrorState(error) {
 }
 
   
-  export function calculateRecurringForPeriod(recurringItems, period) {
-    // Get number of months in the period
-    let monthsInPeriod;
-    switch (period) {
-      case 'year':
-        monthsInPeriod = 12;
-        break;
-      case 'quarter':
-        monthsInPeriod = 3;
-        break;
-      case 'month':
-      default:
-        monthsInPeriod = 1;
-        break;
+export function calculateRecurringForPeriod(recurringItems, period, referenceDate = new Date()) {
+    const today = new Date(referenceDate);
+    let periodStart = new Date(today);
+    let periodEnd = new Date(today);
+    
+    // Set period range based on period type
+    switch(period) {
+        case 'year':
+            periodStart.setMonth(0, 1);
+            periodEnd.setFullYear(periodStart.getFullYear(), 11, 31);
+            break;
+        case 'quarter':
+            const currentQuarter = Math.floor(today.getMonth() / 3);
+            periodStart.setMonth(currentQuarter * 3, 1);
+            periodEnd.setMonth(periodStart.getMonth() + 3, 0);
+            break;
+        case 'month':
+        default:
+            periodStart.setDate(1);
+            periodEnd.setMonth(periodStart.getMonth() + 1, 0);
     }
-  
-    // Sum up recurring amounts and multiply by months in period
-    return recurringItems.reduce((sum, item) => 
-      sum + (parseFloat(item.amount) * monthsInPeriod), 0);
-  }
+
+    // Reset hours to start/end of day
+    periodStart.setHours(0, 0, 0, 0);
+    periodEnd.setHours(23, 59, 59, 999);
+
+    return recurringItems.reduce((total, item) => {
+        const startDate = new Date(item.start_date);
+        startDate.setHours(0, 0, 0, 0);
+
+        // If the recurring hasn't started by period end, exclude it
+        if (startDate > periodEnd) return total;
+
+        // If there's an end_date and it ended before period start, exclude
+        if (item.end_date) {
+            const endDate = new Date(item.end_date);
+            endDate.setHours(23, 59, 59, 999);
+            if (endDate < periodStart) return total;
+        }
+
+        // Determine the effective start and end dates for the calculation
+        const effectiveStart = startDate > periodStart ? startDate : periodStart;
+        const effectiveEnd = item.end_date 
+            ? new Date(Math.min(new Date(item.end_date), periodEnd)) 
+            : periodEnd;
+
+        let occurrences = 0;
+        const amount = parseFloat(item.amount);
+
+        switch(item.frequency) {
+            case 'daily':
+                occurrences = Math.floor((effectiveEnd - effectiveStart) / (1000 * 60 * 60 * 24)) + 1;
+                break;
+            case 'weekly':
+                occurrences = Math.floor((effectiveEnd - effectiveStart) / (1000 * 60 * 60 * 24 * 7)) + 1;
+                break;
+            case 'monthly':
+                occurrences = (effectiveEnd.getFullYear() - effectiveStart.getFullYear()) * 12 
+                            + effectiveEnd.getMonth() - effectiveStart.getMonth() + 1;
+                break;
+            case 'yearly':
+                occurrences = effectiveEnd.getFullYear() - effectiveStart.getFullYear() + 
+                              ((effectiveEnd.getMonth() > effectiveStart.getMonth() || 
+                               (effectiveEnd.getMonth() === effectiveStart.getMonth() && 
+                                effectiveEnd.getDate() >= effectiveStart.getDate())) ? 1 : 0);
+                break;
+            default:
+                occurrences = 0;
+        }
+
+        return total + (amount * Math.max(0, occurrences));
+    }, 0);
+}
   
   // Update the renderMonthlyComparisonChart function
   export async function renderMonthlyComparisonChart(transactions, recurring, period = 'month') {
@@ -347,17 +429,16 @@ function displayErrorState(error) {
         monthsToShow = 12;
         break;
       case 'all':
-        // For 'all', find the date range from transactions
         const dates = transactions.map(tx => new Date(tx.date));
         const oldestDate = dates.length ? new Date(Math.min(...dates)) : new Date();
         const monthDiff = (new Date().getMonth() + 12 * new Date().getFullYear()) - 
                          (oldestDate.getMonth() + 12 * oldestDate.getFullYear());
-        monthsToShow = Math.max(monthDiff + 1, 1); // At least show current month
+        monthsToShow = Math.max(monthDiff + 1, 1);
         break;
       default:
         monthsToShow = 1;
     }
-  
+
     // Generate array of months based on period
     const months = Array.from({ length: monthsToShow }, (_, i) => {
       const d = new Date();
@@ -368,30 +449,36 @@ function displayErrorState(error) {
         month: d.getMonth()
       };
     }).reverse();
-  
+
     const monthlyData = months.map(month => {
+      // Get transactions for this month
       const monthTransactions = transactions.filter(tx => {
         const txDate = new Date(tx.date);
         return txDate.getMonth() === month.month && 
                txDate.getFullYear() === month.year;
       });
-  
-      const monthlyRecurringIncome = recurring
-        .filter(rec => rec.is_active && rec.type === 'income')
-        .reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
-  
-      const monthlyRecurringExpenses = recurring
-        .filter(rec => rec.is_active && rec.type === 'expense')
-        .reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
-  
+
+      // Calculate recurring amounts for this specific month
+      const monthlyRecurringIncome = calculateRecurringForMonth(
+        recurring.filter(rec => rec.type === 'income'),
+        month.year,
+        month.month
+      );
+
+      const monthlyRecurringExpenses = calculateRecurringForMonth(
+        recurring.filter(rec => rec.type === 'expense'),
+        month.year,
+        month.month
+      );
+
       const transactionIncome = monthTransactions
         .filter(tx => tx.type === 'income')
         .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-  
+
       const transactionExpenses = monthTransactions
         .filter(tx => tx.type === 'expense')
         .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-  
+
       return {
         recurringIncome: monthlyRecurringIncome,
         recurringExpenses: monthlyRecurringExpenses,
@@ -399,20 +486,22 @@ function displayErrorState(error) {
         transactionExpenses
       };
     });
-  
+
     const ctx = document.getElementById('monthlyComparisonChart').getContext('2d');
     
     if (monthlyComparisonChartInstance) {
       monthlyComparisonChartInstance.destroy();
     }
-  // Create gradients
-  const incomeGradient = ctx.createLinearGradient(0, 0, 0, 400);
-  incomeGradient.addColorStop(0, 'rgba(72, 187, 120, 0.7)');
-  incomeGradient.addColorStop(1, 'rgba(72, 187, 120, 0.1)');
 
-  const expenseGradient = ctx.createLinearGradient(0, 0, 0, 400);
-  expenseGradient.addColorStop(0, 'rgba(245, 101, 101, 0.7)');
-  expenseGradient.addColorStop(1, 'rgba(245, 101, 101, 0.1)');
+    // Create gradients
+    const incomeGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    incomeGradient.addColorStop(0, 'rgba(72, 187, 120, 0.7)');
+    incomeGradient.addColorStop(1, 'rgba(72, 187, 120, 0.1)');
+
+    const expenseGradient = ctx.createLinearGradient(0, 0, 0, 400);
+    expenseGradient.addColorStop(0, 'rgba(245, 101, 101, 0.7)');
+    expenseGradient.addColorStop(1, 'rgba(245, 101, 101, 0.1)');
+
     // Add period to chart title
     const periodText = {
       month: 'This Month',
@@ -420,7 +509,7 @@ function displayErrorState(error) {
       year: 'This Year',
       all: 'All Time'
     }[period] || 'This Month';
-  
+
     monthlyComparisonChartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -467,6 +556,10 @@ function displayErrorState(error) {
       options: {
         maintainAspectRatio: false,
         responsive: true,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
         aspectRatio: 2,
         plugins: {
           title: {
@@ -796,12 +889,12 @@ export function filterTransactionsByPeriod(transactions, period) {
   
   // Add the renderTrendChart function
   export async function renderTrendChart(transactions, recurring) {
-    // Set date range to last 12 months regardless of transaction history
+    // Set date range to last 12 months
     const maxDate = new Date();
     const minDate = new Date();
-    minDate.setMonth(minDate.getMonth() - 11); // Go back 11 months to show 12 months total
-    minDate.setDate(1); // Start from beginning of month
-  
+    minDate.setMonth(minDate.getMonth() - 11);
+    minDate.setDate(1);
+
     // Create array of all months in the range
     const months = [];
     const currentDate = new Date(minDate);
@@ -813,54 +906,64 @@ export function filterTransactionsByPeriod(transactions, period) {
       });
       currentDate.setMonth(currentDate.getMonth() + 1);
     }
-  
-    // Calculate monthly recurring amounts
-    const monthlyRecurringIncome = recurring
-      .filter(rec => rec.is_active && rec.type === 'income')
-      .reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
-  
-    const monthlyRecurringExpenses = recurring
-      .filter(rec => rec.is_active && rec.type === 'expense')
-      .reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
-  
-    // Calculate cumulative totals for each month
-    let cumulativeIncome = 0;
-    let cumulativeExpenses = 0;
-    
-    const cumulativeData = months.map((month) => {
+
+    // Calculate monthly totals with proper recurring handling
+    const monthlyTotals = months.map(month => {
       // Get transactions for this month
       const monthTransactions = transactions.filter(tx => {
         const txDate = new Date(tx.date);
         return txDate.getMonth() === month.month && 
                txDate.getFullYear() === month.year;
       });
-  
-      // Calculate transaction totals for this month
+
+      // Calculate recurring amounts for this specific month
+      const monthlyRecurringIncome = calculateRecurringForMonth(
+        recurring.filter(rec => rec.type === 'income'),
+        month.year,
+        month.month
+      );
+
+      const monthlyRecurringExpenses = calculateRecurringForMonth(
+        recurring.filter(rec => rec.type === 'expense'),
+        month.year,
+        month.month
+      );
+
+      // Calculate one-time transaction totals
       const monthlyTransactionIncome = monthTransactions
         .filter(tx => tx.type === 'income')
         .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-  
+
       const monthlyTransactionExpenses = monthTransactions
         .filter(tx => tx.type === 'expense')
         .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
-  
-      // Add both transaction and recurring amounts to cumulative totals
-      cumulativeIncome += (monthlyTransactionIncome + monthlyRecurringIncome);
-      cumulativeExpenses += (monthlyTransactionExpenses + monthlyRecurringExpenses);
-  
+
+      return {
+        date: month.date,
+        income: monthlyTransactionIncome + monthlyRecurringIncome,
+        expenses: monthlyTransactionExpenses + monthlyRecurringExpenses
+      };
+    });
+
+    // Calculate cumulative totals
+    let cumulativeIncome = 0;
+    let cumulativeExpenses = 0;
+    const cumulativeData = monthlyTotals.map(month => {
+      cumulativeIncome += month.income;
+      cumulativeExpenses += month.expenses;
       return {
         date: month.date,
         income: cumulativeIncome,
         expenses: cumulativeExpenses
       };
     });
-  
+
     const ctx = document.getElementById('trendChart').getContext('2d');
     
     if (trendChartInstance) {
       trendChartInstance.destroy();
     }
-  
+
     trendChartInstance = new Chart(ctx, {
       type: 'line',
       data: {
@@ -890,6 +993,10 @@ export function filterTransactionsByPeriod(transactions, period) {
       options: {
         maintainAspectRatio: false,
         responsive: true,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
         aspectRatio: 2.5,
         plugins: {
           tooltip: {
@@ -906,12 +1013,9 @@ export function filterTransactionsByPeriod(transactions, period) {
             title: {
               display: true,
               text: 'Cumulative Amount ($)'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Month'
+            },
+            ticks: {
+              callback: value => formatCurrency(value)
             }
           }
         }
@@ -1115,98 +1219,179 @@ function setupReportsEventListeners() {
 export { setupReportsEventListeners };
 
 // Add this function
-async function renderCashFlowTimeline(transactions, recurring, period = 'month', accountIds = ['all']) {
-  try {
-    // First, destroy any existing chart
-    if (cashFlowChartInstance) {
-      cashFlowChartInstance.destroy();
-      cashFlowChartInstance = null;
-    }
+export async function renderCashFlowTimeline(transactions, recurring, period = 'month', accountIds = ['all']) {
+    try {
+      if (cashFlowChartInstance) {
+        cashFlowChartInstance.destroy();
+        cashFlowChartInstance = null;
+      }
 
-    const canvas = document.getElementById('cashFlowTimeline');
-    if (!canvas) {
-      console.error('Cash flow timeline canvas not found');
-      return;
-    }
+      const canvas = document.getElementById('cashFlowTimeline');
+      if (!canvas) {
+        console.error('Cash flow timeline canvas not found');
+        return;
+      }
 
-    // Create a new canvas element
-    const newCanvas = document.createElement('canvas');
-    newCanvas.id = 'cashFlowTimeline';
-    
-    // Replace the old canvas with the new one
-    canvas.parentNode.replaceChild(newCanvas, canvas);
-    
-    const ctx = newCanvas.getContext('2d');
-    
-    const { data: cashFlowData, error } = await window.databaseApi.getCashFlowData(accountIds, period);
-    
-    if (error) {
-      console.error('Error fetching cash flow data:', error);
-      return;
-    }
+      // Create a new canvas element
+      const newCanvas = document.createElement('canvas');
+      newCanvas.id = 'cashFlowTimeline';
+      canvas.parentNode.replaceChild(newCanvas, canvas);
+      const ctx = newCanvas.getContext('2d');
 
-    // Create new chart instance
-    cashFlowChartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: cashFlowData.map(d => new Date(d.date).toLocaleDateString('default', {
-          month: 'short',
-          day: 'numeric'
-        })),
-        datasets: [{
-          label: 'Daily Balance',
-          data: cashFlowData.map(d => d.running_balance),
-          borderColor: '#2196F3',
-          backgroundColor: 'rgba(33, 150, 243, 0.1)',
-          fill: true,
-          tension: 0.4
-        }, {
-          label: 'Daily Cash Flow',
-          data: cashFlowData.map(d => d.net_amount),
-          borderColor: '#4CAF50',
-          backgroundColor: 'rgba(76, 175, 80, 0.1)',
-          fill: true,
-          tension: 0.4,
-          hidden: true
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
-          mode: 'index'
+      // Get the date range based on period
+      const today = new Date();
+      let startDate, endDate;
+      
+      switch(period) {
+        case 'year':
+          startDate = new Date(today.getFullYear(), 0, 1);
+          endDate = new Date(today.getFullYear(), 11, 31);
+          break;
+        case 'quarter':
+          const currentQuarter = Math.floor(today.getMonth() / 3) * 3;
+          startDate = new Date(today.getFullYear(), currentQuarter, 1);
+          endDate = new Date(today.getFullYear(), currentQuarter + 3, 0);
+          break;
+        case 'month':
+        default:
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      }
+
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      
+      // Filter active recurring items within date range
+      const activeRecurring = recurring.filter(item => {
+        const itemStartDate = new Date(item.start_date);
+        itemStartDate.setHours(0, 0, 0, 0);
+        
+        // Don't include if it hasn't started yet
+        if (itemStartDate > endDate) return false;
+        
+        // Don't include if it has ended
+        if (item.end_date) {
+          const itemEndDate = new Date(item.end_date);
+          itemEndDate.setHours(23, 59, 59, 999);
+          if (itemEndDate < startDate) return false;
+        }
+        
+        return item.is_active;
+      });
+
+      // Get base cash flow data
+      const { data: cashFlowData, error } = await window.databaseApi.getCashFlowData(accountIds, period);
+      if (error) throw error;
+
+      // Add recurring transactions to cash flow data
+      const enhancedCashFlow = cashFlowData.map(day => {
+        const date = new Date(day.date);
+        let dailyRecurringNet = 0;
+
+        activeRecurring.forEach(recurring => {
+          const recurringStartDate = new Date(recurring.start_date);
+          recurringStartDate.setHours(0, 0, 0, 0);
+          const recurringEndDate = recurring.end_date ? new Date(recurring.end_date) : null;
+          if (recurringEndDate) recurringEndDate.setHours(23, 59, 59, 999);
+          
+          // Only apply if the current date is within the recurring's date range
+          if (date >= recurringStartDate && (!recurringEndDate || date <= recurringEndDate)) {
+              let applies = false;
+              switch (recurring.frequency) {
+                  case 'daily':
+                      applies = true;
+                      break;
+                  case 'weekly':
+                      applies = date.getDay() === recurringStartDate.getDay();
+                      break;
+                  case 'monthly':
+                      applies = date.getDate() === recurringStartDate.getDate();
+                      break;
+                  case 'yearly':
+                      applies = date.getDate() === recurringStartDate.getDate() && 
+                               date.getMonth() === recurringStartDate.getMonth();
+                      break;
+              }
+
+              if (applies) {
+                  const amount = parseFloat(recurring.amount);
+                  dailyRecurringNet += recurring.type === 'income' ? amount : -amount;
+              }
+          }
+        });
+
+        return {
+          ...day,
+          net_amount: parseFloat(day.net_amount) + dailyRecurringNet,
+          running_balance: parseFloat(day.running_balance) + dailyRecurringNet
+        };
+      });
+
+      // Create chart
+      cashFlowChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: enhancedCashFlow.map(d => new Date(d.date).toLocaleDateString('default', {
+            month: 'short',
+            day: 'numeric'
+          })),
+          datasets: [{
+            label: 'Daily Balance',
+            data: enhancedCashFlow.map(d => d.running_balance),
+            borderColor: '#2196F3',
+            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+            fill: true,
+            tension: 0.4
+          }, {
+            label: 'Daily Cash Flow',
+            data: enhancedCashFlow.map(d => d.net_amount),
+            borderColor: '#4CAF50',
+            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+            fill: true,
+            tension: 0.4,
+            hidden: true
+          }]
         },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              title: {
+                display: true,
+                text: 'Amount ($)'
+              },
+              ticks: {
+                callback: value => formatCurrency(value)
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Date'
               }
             }
           }
-        },
-        scales: {
-          y: {
-            beginAtZero: false,
-            title: {
-              display: true,
-              text: 'Amount ($)'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Date'
-            }
-          }
         }
-      }
-    });
-  } catch (error) {
-    console.error('Error rendering cash flow timeline:', error);
-    displayErrorState(error);
-  }
+      });
+    } catch (error) {
+      console.error('Error rendering cash flow timeline:', error);
+      displayErrorState(error);
+    }
 }
 
 // Add this function at the top with other empty state handling
@@ -1311,6 +1496,18 @@ export async function updateBudgetTracking(accountIds = ['all'], period = 'month
 // Export a function to mark initialization as complete
 export function markReportsInitialized() {
   isInitialized = true;
+}
+
+// Update the recurring calculations in fetchTotalBalance
+function calculateRecurringForMonth(recurring, year, month) {
+    const referenceDate = new Date(year, month, 1);
+    return calculateRecurringForPeriod(recurring, 'month', referenceDate);
+}
+
+// Add this helper function at the top
+function getRecurringAmountForMonth(recurring, year, month) {
+    const referenceDate = new Date(year, month, 1);
+    return calculateRecurringForPeriod(recurring, 'month', referenceDate);
 }
 
 

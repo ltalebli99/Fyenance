@@ -112,11 +112,14 @@ function getOrdinalSuffix(day) {
 function formatAmountInput(input) {
   const symbol = getCurrencySymbol();
   
-  // Clear any existing timeout
-  clearTimeout(input.formatTimeout);
+  // Store cursor position relative to the end of the input
+  const cursorFromEnd = input.value.length - input.selectionStart;
   
-  // Remove currency symbol and any non-numeric characters except decimal point
-  let value = input.value.replace(symbol, '').replace(/[^\d.-]/g, '');
+  // Remove currency symbol and allow decimal point
+  let value = input.value.replace(symbol, '');
+  
+  // Then remove all non-numeric characters except decimal point
+  value = value.replace(/[^\d.]/g, '');
   
   // Ensure only one decimal point
   const parts = value.split('.');
@@ -124,33 +127,52 @@ function formatAmountInput(input) {
     parts[1] = parts.slice(1).join('');
     value = parts.join('.');
   }
-
-  // Store the raw numeric value
-  input.dataset.amount = value;
-
-  // If actively typing, just add the symbol and wait
-  if (!input.formatTimeout) {
-    input.value = symbol + value;
-    const cursorPosition = input.selectionStart;
-    input.setSelectionRange(cursorPosition, cursorPosition);
+  
+  // Limit decimal places to 2
+  if (parts.length === 2) {
+    parts[1] = parts[1].slice(0, 2);
+    value = parts.join('.');
   }
-
-  // Set a timeout to format after typing stops
-  input.formatTimeout = setTimeout(() => {
-    const numValue = parseFloat(value);
+  
+  // Format with commas for thousands
+  let [integerPart, decimalPart] = value.split('.');
+  if (!integerPart && value.startsWith('.')) {
+    integerPart = '0';
+  }
+  
+  if (integerPart) {
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  
+  // Reconstruct the value
+  value = integerPart || '0';
+  if (decimalPart !== undefined) {
+    value += '.' + decimalPart;
+  }
+  
+  // Store the raw numeric value without commas
+  input.dataset.amount = value.replace(/,/g, '');
+  
+  // Add symbol while typing
+  const newValue = symbol + value;
+  input.value = newValue;
+  
+  // Restore cursor position
+  const newPosition = newValue.length - cursorFromEnd;
+  input.setSelectionRange(newPosition, newPosition);
+  
+  // Add blur handler to format when input loses focus
+  input.onblur = () => {
+    const numValue = parseFloat(value.replace(/,/g, ''));
     if (!isNaN(numValue)) {
       // Format with commas and currency symbol
-      const formatted = symbol + new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(Math.abs(numValue));
-
+      const formatted = formatCurrency(Math.abs(numValue));
       input.value = formatted;
     } else {
       input.value = symbol;
       input.setSelectionRange(symbol.length, symbol.length);
     }
-  }, 500); // Wait 500ms after typing stops before formatting
+  };
 }
 
 // When initializing an empty input, set cursor after symbol
@@ -181,6 +203,13 @@ function getAmountValue(input) {
   return isNaN(numValue) ? null : numValue.toString();
 }
 
+function formatInitialAmount(amount) {
+    if (!amount) return getCurrencySymbol();
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) return getCurrencySymbol();
+    return formatCurrency(Math.abs(numAmount));
+}
+
 export { formatCurrency, 
     capitalizeFirstLetter, 
     hexToRgb, 
@@ -191,5 +220,6 @@ export { formatCurrency,
     formatDateForInput,
     formatAmountInput,
     getAmountValue,
-    initializeAmountInput
+    initializeAmountInput,
+    formatInitialAmount
 };

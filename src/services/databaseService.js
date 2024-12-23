@@ -356,21 +356,21 @@ class DatabaseService {
       LEFT JOIN accounts a ON r.account_id = a.id
     `;
     
+    const params = [];
     if (accountId && accountId !== 'all') {
       query += ' WHERE r.account_id = ?';
+      params.push(accountId);
       
       if (limit !== undefined) {
         query += ' LIMIT ? OFFSET ?';
-        return this.db.prepare(query).all(accountId, accountId, limit, offset || 0);
+        params.push(limit, offset || 0);
       }
-      return this.db.prepare(query).all(accountId);
+    } else if (limit !== undefined) {
+      query += ' LIMIT ? OFFSET ?';
+      params.push(limit, offset || 0);
     }
     
-    if (limit !== undefined) {
-      query += ' LIMIT ? OFFSET ?';
-      return this.db.prepare(query).all(limit, offset || 0);
-    }
-    return this.db.prepare(query).all();
+    return this.db.prepare(query).all(...params);
   }
 
   addRecurring(recurring) {
@@ -480,12 +480,13 @@ class DatabaseService {
       LEFT JOIN accounts a ON t.account_id = a.id
     `;
     
+    const params = [];
     if (accountId && accountId !== 'all') {
       query += ' WHERE t.account_id = ?';
-      return this.db.prepare(query).all(accountId);
+      params.push(accountId);
     }
     
-    return this.db.prepare(query).all();
+    return this.db.prepare(query).all(...params);
   }
 
   getIncomeExpenseData(accountId = null, period = 'month') {
@@ -521,7 +522,7 @@ class DatabaseService {
       this.db.prepare(query).all();
   }
 
-  getTopSpendingCategories(accountId = null, period = 'month') {
+  getTopSpendingCategories(accountId = 'all', period = 'month') {
     let dateFilter;
     switch(period) {
       case 'year':
@@ -543,7 +544,7 @@ class DatabaseService {
         FROM transactions t
         WHERE ${dateFilter}
           AND t.type = 'expense'
-          ${accountId && accountId !== 'all' ? 'AND t.account_id = ?' : ''}
+          ${accountId !== 'all' ? 'AND t.account_id = ?' : ''}
         
         UNION ALL
         
@@ -554,7 +555,7 @@ class DatabaseService {
         FROM recurring r
         WHERE r.type = 'expense'
           AND r.is_active = 1
-          ${accountId && accountId !== 'all' ? 'AND r.account_id = ?' : ''}
+          ${accountId !== 'all' ? 'AND r.account_id = ?' : ''}
       )
       SELECT 
         COALESCE(c.name, 'Uncategorized') as category_name,
@@ -566,15 +567,15 @@ class DatabaseService {
       ORDER BY total DESC
     `;
 
+    const params = accountId !== 'all' ? [accountId, accountId] : [];
+
     console.log('Top spending categories query:', query);
-    const result = accountId && accountId !== 'all' ? 
-      this.db.prepare(query).all(accountId, accountId) : // Pass accountId twice for both UNION parts
-      this.db.prepare(query).all();
+    const result = this.db.prepare(query).all(...params);
     console.log('Top spending categories result:', result);
     return result;
   }
 
-  getExpenseCategoriesData(accountId = null, period = 'month') {
+  getExpenseCategoriesData(accountId = 'all', period = 'month') {
     let dateFilter;
     switch(period) {
       case 'year':
@@ -596,7 +597,7 @@ class DatabaseService {
         FROM transactions t
         WHERE ${dateFilter}
           AND t.type = 'expense'
-          ${accountId && accountId !== 'all' ? 'AND t.account_id = ?' : ''}
+          ${accountId !== 'all' ? 'AND t.account_id = ?' : ''}
         
         UNION ALL
         
@@ -607,7 +608,7 @@ class DatabaseService {
         FROM recurring r
         WHERE r.type = 'expense'
           AND r.is_active = 1
-          ${accountId && accountId !== 'all' ? 'AND r.account_id = ?' : ''}
+          ${accountId !== 'all' ? 'AND r.account_id = ?' : ''}
       )
       SELECT 
         COALESCE(c.name, 'Uncategorized') as category_name,
@@ -620,10 +621,9 @@ class DatabaseService {
       ORDER BY total DESC
     `;
 
-    const result = accountId && accountId !== 'all' ? 
-      this.db.prepare(query).all(accountId, accountId) : 
-      this.db.prepare(query).all();
-    
+    const params = accountId !== 'all' ? [accountId, accountId] : [];
+
+    const result = this.db.prepare(query).all(...params);
     return result;
   }
 
@@ -1562,6 +1562,10 @@ getAllTransactions(accountId = null) {
 
 // Add this new method for fetching all recurring without pagination
 getAllRecurring(accountId = null) {
+  // Normalize accountId to handle both string and number inputs
+  const normalizedAccountId = accountId === 'all' ? null : 
+    (accountId ? parseInt(accountId, 10) : null);
+
   let query = `
     SELECT r.*, 
            c.name as category_name, 
@@ -1571,9 +1575,9 @@ getAllRecurring(accountId = null) {
     LEFT JOIN accounts a ON r.account_id = a.id
   `;
   
-  if (accountId && accountId !== 'all') {
+  if (normalizedAccountId) {
     query += ' WHERE r.account_id = ?';
-    return this.db.prepare(query).all(accountId);
+    return this.db.prepare(query).all(normalizedAccountId);
   }
   
   return this.db.prepare(query).all();
@@ -1867,6 +1871,101 @@ fetchRecurringForReports(accountIds) {
   `;
 
   return this.db.prepare(query).all(accountIds);
+}
+
+getNetWorth(accountId = 'all') {
+  let query = `
+    SELECT SUM(balance) as net_worth
+    FROM accounts
+    ${accountId !== 'all' ? 'WHERE id = ?' : ''}
+  `;
+  const params = accountId !== 'all' ? [accountId] : [];
+  const result = this.db.prepare(query).get(...params);
+  return result;
+}
+
+getMonthlyComparison(accountId = 'all') {
+  // Implement similar accountId filtering as above
+  // Example:
+  let query = `
+    SELECT 
+      ((this_month.expenses - last_month.expenses) / last_month.expenses) * 100 as percentChange,
+      CASE 
+        WHEN this_month.expenses < last_month.expenses THEN 'lower'
+        ELSE 'higher'
+      END as trend
+    FROM (
+      SELECT SUM(amount) as expenses
+      FROM transactions
+      WHERE type = 'expense'
+        AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
+        ${accountId !== 'all' ? 'AND account_id = ?' : ''}
+    ) as this_month,
+    (
+      SELECT SUM(amount) as expenses
+      FROM transactions
+      WHERE type = 'expense'
+        AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now', '-1 month')
+        ${accountId !== 'all' ? 'AND account_id = ?' : ''}
+    ) as last_month
+  `;
+
+  const params = accountId !== 'all' ? [accountId, accountId] : [];
+  const result = this.db.prepare(query).get(...params);
+  return result;
+}
+
+getUpcomingPayments(accountId = 'all') {
+  let query = `
+    SELECT COUNT(*) as upcomingCount
+    FROM recurring r
+    WHERE r.is_active = 1
+      AND r.type = 'expense'
+      AND (
+        -- Check if start_date is within the next 5 days
+        (
+          date(r.start_date) >= date('now', 'localtime')
+          AND date(r.start_date) <= date('now', 'localtime', '+4 days')
+        )
+        OR
+        -- For existing recurring items, check their next occurrence
+        (
+          date(r.start_date) <= date('now', 'localtime')
+          AND (r.end_date IS NULL OR date(r.end_date) >= date('now', 'localtime'))
+          AND (
+            CASE r.frequency
+              WHEN 'daily' THEN 1
+              WHEN 'weekly' THEN (
+                strftime('%w', r.start_date) = strftime('%w', date('now', 'localtime', '+0 days'))
+                OR strftime('%w', r.start_date) = strftime('%w', date('now', 'localtime', '+1 days'))
+                OR strftime('%w', r.start_date) = strftime('%w', date('now', 'localtime', '+2 days'))
+                OR strftime('%w', r.start_date) = strftime('%w', date('now', 'localtime', '+3 days'))
+                OR strftime('%w', r.start_date) = strftime('%w', date('now', 'localtime', '+4 days'))
+              )
+              WHEN 'monthly' THEN (
+                strftime('%d', r.start_date) = strftime('%d', date('now', 'localtime', '+0 days'))
+                OR strftime('%d', r.start_date) = strftime('%d', date('now', 'localtime', '+1 days'))
+                OR strftime('%d', r.start_date) = strftime('%d', date('now', 'localtime', '+2 days'))
+                OR strftime('%d', r.start_date) = strftime('%d', date('now', 'localtime', '+3 days'))
+                OR strftime('%d', r.start_date) = strftime('%d', date('now', 'localtime', '+4 days'))
+              )
+              WHEN 'yearly' THEN (
+                strftime('%m-%d', r.start_date) = strftime('%m-%d', date('now', 'localtime', '+0 days'))
+                OR strftime('%m-%d', r.start_date) = strftime('%m-%d', date('now', 'localtime', '+1 days'))
+                OR strftime('%m-%d', r.start_date) = strftime('%m-%d', date('now', 'localtime', '+2 days'))
+                OR strftime('%m-%d', r.start_date) = strftime('%m-%d', date('now', 'localtime', '+3 days'))
+                OR strftime('%m-%d', r.start_date) = strftime('%m-%d', date('now', 'localtime', '+4 days'))
+              )
+            END
+          )
+        )
+      )
+      ${accountId !== 'all' ? 'AND r.account_id = ?' : ''}
+  `;
+  
+  const params = accountId !== 'all' ? [accountId] : [];
+  const result = this.db.prepare(query).get(...params);
+  return { data: result.upcomingCount, error: null };
 }
 }
 

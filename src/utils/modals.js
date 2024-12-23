@@ -74,3 +74,75 @@ export function showCreateFirstModal(type) {
       document.body.removeChild(modal);
     });
   }
+
+export function showConfirmationModal({ title, message, confirmText, cancelText, onConfirm, isDelete }) {
+    // Check if modal already exists
+    const existingModal = document.querySelector('.confirmation-modal');
+    if (existingModal) {
+        return; // Don't create another modal if one already exists
+    }
+
+    const modal = document.createElement('div');
+    modal.className = `modal show confirmation-modal${isDelete ? ' compact' : ''}`;
+    modal.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    ${isDelete ? '<i class="fas fa-exclamation-triangle warning-icon"></i>' : ''}
+                    ${title}
+                </h3>
+                <div class="close">×</div>
+            </div>
+            <div class="modal-body">
+                <p>${message}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="secondary-btn" id="cancel-confirmation">
+                    ${cancelText || 'Cancel'}
+                </button>
+                <button type="button" class="${isDelete ? 'danger-btn' : 'primary-btn'}" id="confirm-action">
+                    ${confirmText || 'Confirm'}
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add click handler for the backdrop and close button
+    const closeModal = () => {
+        modal.classList.add('hiding');
+        setTimeout(() => {
+            document.body.removeChild(modal);
+        }, 200);
+    };
+
+    modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+    modal.querySelector('.close').addEventListener('click', closeModal);
+    modal.querySelector('#cancel-confirmation').addEventListener('click', closeModal);
+    
+    // Add confirm handler
+    modal.querySelector('#confirm-action').addEventListener('click', () => {
+        closeModal();
+        if (onConfirm) onConfirm();
+    });
+
+    // Add keyboard handlers
+    modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+}
+
+export function showDeleteConfirmationModal({ title, message, onConfirm }) {
+    showConfirmationModal({
+        title: title || 'Confirm Delete',
+        message: message || 'Are you sure you want to delete this item?',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        onConfirm,
+        isDelete: true
+    });
+}

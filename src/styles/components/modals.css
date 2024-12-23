@@ -232,3 +232,67 @@
       .modal .form-actions button {
         padding: 8px 16px;
       }
+
+      .confirmation-modal.compact .modal-content {
+        max-width: 400px;
+      }
+
+      .confirmation-modal.compact .modal-header {
+        padding: 16px 24px;
+      }
+
+      .confirmation-modal.compact .modal-body {
+        padding: 16px 24px;
+      }
+
+      .confirmation-modal.compact .modal-footer {
+        padding: 12px 24px;
+      }
+
+      .confirmation-modal.compact h3 {
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .confirmation-modal.compact .warning-icon {
+        color: var(--warning);
+        font-size: 1.1rem;
+      }
+
+      .confirmation-modal.compact p {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+      }
+
+      .confirmation-modal .danger-btn {
+        background-color: var(--danger);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .confirmation-modal .danger-btn:hover {
+        background-color: var(--danger-dark);
+      }
+
+      /* Add fade out animation */
+      .confirmation-modal.hiding {
+        animation: modalFadeOut 0.2s ease-out forwards;
+      }
+
+      @keyframes modalFadeOut {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+      }

@@ -1,6 +1,8 @@
 import { formatCurrency, capitalizeFirstLetter } from '../utils/formatters.js';
 import { openModal, closeModal } from '../utils/utils.js';
 import { refreshData } from '../utils/refresh.js';
+import { resetFormAndInputs } from '../utils/initInputs.js';
+import { formatAmountInput, initializeAmountInput } from '../utils/formatters.js';
 
 export async function populateBulkEntryDropdowns() {
     const { data: categories } = await window.databaseApi.fetchCategories();
@@ -31,7 +33,7 @@ function addBulkEntryRow() {
     
     row.innerHTML = `
         <td><input type="date" value="${new Date().toISOString().split('T')[0]}"></td>
-        <td><input type="number" step="0.01" placeholder="0.00"></td>
+        <td><input type="text" class="amount-input" step="0.01" placeholder="0.00"></td>
         <td>
             <select class="category-select">
                 <!-- Categories will be populated dynamically -->
@@ -46,6 +48,14 @@ function addBulkEntryRow() {
     `;
     
     tbody.appendChild(row);
+    
+    // Initialize the amount input with currency formatting
+    const amountInput = row.querySelector('.amount-input');
+    initializeAmountInput(amountInput);
+    amountInput.addEventListener('input', (e) => {
+        formatAmountInput(e.target);
+    });
+    
     populateBulkEntryDropdowns();
 }
 
@@ -80,12 +90,15 @@ export function initializeBulkEntry() {
             const categoryText = selectedOption?.textContent || '';
             const type = categoryText.split('-')[0].trim().toLowerCase();
             
+            const amountInput = inputs[1];
+            const amount = getAmountValue(amountInput);
+            
             const transaction = {
                 date: inputs[0].value,
-                amount: parseFloat(inputs[1].value),
+                amount: parseFloat(amount),
                 category_id: categorySelect.value,
                 description: inputs[3].value,
-                type: type, // Determined from category selection
+                type: type,
                 account_id: document.getElementById('bulk-entry-account').value
             };
             
@@ -104,7 +117,9 @@ export function initializeBulkEntry() {
             all: true
         });
         
-        closeModal('bulk-entry-modal');
+        // Clear the tbody instead of using form reset
         tbody.innerHTML = '';
+        
+        closeModal('bulk-entry-modal');
     });
 }

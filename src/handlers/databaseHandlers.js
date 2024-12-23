@@ -133,23 +133,17 @@ function setupDatabaseHandlers(database, backupService) {
 
   safeIpcHandle('db:addCategory', async (event, category) => {
     try {
-      // Only validate if budget_amount has an actual value
-      if (category.budget_amount !== null && 
-          category.budget_amount !== undefined && 
-          category.budget_amount !== '' && 
-          category.budget_amount !== '0.00') {
-        
-        const numAmount = parseFloat(category.budget_amount);
-        if (isNaN(numAmount) || numAmount < 0) {
-          throw new Error('Invalid budget amount');
-        }
-        
-        // Require frequency only if there's a valid budget amount
+      // Parse budget amount to number if it exists
+      const budgetAmount = category.budget_amount ? parseFloat(category.budget_amount) : null;
+      
+      // Only validate if budget_amount is non-zero
+      if (budgetAmount && budgetAmount > 0) {
+        // Validate budget frequency only for non-zero budgets
         if (!['daily', 'weekly', 'monthly', 'yearly'].includes(category.budget_frequency)) {
           throw new Error('Budget frequency is required when setting a budget amount');
         }
       } else {
-        // If no budget amount, set both to null
+        // If budget is 0 or null, set both budget fields to null
         category.budget_amount = null;
         category.budget_frequency = null;
       }
@@ -163,13 +157,14 @@ function setupDatabaseHandlers(database, backupService) {
 
   safeIpcHandle('db:updateCategory', async (event, id, data) => {
     try {
-      // Only validate budget fields if both are present
-      if (data.budget_amount && data.budget_frequency) {
-        if (isNaN(data.budget_amount) || data.budget_amount < 0) {
-          throw new Error('Invalid budget amount');
-        }
+      // Parse budget amount to number if it exists
+      const budgetAmount = data.budget_amount ? parseFloat(data.budget_amount) : null;
+      
+      // Only validate if budget_amount is non-zero
+      if (budgetAmount && budgetAmount > 0) {
+        // Validate budget frequency only for non-zero budgets
         if (!['daily', 'weekly', 'monthly', 'yearly'].includes(data.budget_frequency)) {
-          throw new Error('Invalid budget frequency');
+          throw new Error('Budget frequency is required when setting a budget amount');
         }
       }
       
@@ -192,21 +187,24 @@ function setupDatabaseHandlers(database, backupService) {
   // Recurring Operations
   safeIpcHandle('db:getRecurring', async (event, accountId) => {
     try {
-      // Handle array of account IDs
-      if (Array.isArray(accountId)) {
-        if (accountId.includes('all')) {
-          // If 'all' is included, return all recurring items
-          return { data: database.getRecurring('all'), error: null };
-        } else {
-          // Fetch and combine recurring items for multiple specific accounts
-          const allRecurring = [...new Set(
-            accountId.flatMap(id => database.getRecurring(id))
-          )];
-          return { data: allRecurring, error: null };
-        }
+      // Normalize accountId input using the existing helper
+      const normalizedAccountIds = normalizeAccountIds(accountId);
+      
+      // If 'all' is included or no accounts specified, return all recurring items
+      if (normalizedAccountIds.includes('all')) {
+        return { data: database.getRecurring(), error: null };
       }
+      
+      // For multiple specific accounts, fetch and combine recurring items
+      if (normalizedAccountIds.length > 1) {
+        const allRecurring = [...new Set(
+          normalizedAccountIds.flatMap(id => database.getRecurring(id))
+        )];
+        return { data: allRecurring, error: null };
+      }
+      
       // Single account
-      return { data: database.getRecurring(accountId), error: null };
+      return { data: database.getRecurring(normalizedAccountIds[0]), error: null };
     } catch (error) {
       return { data: null, error: error.message };
     }
@@ -383,19 +381,19 @@ function setupDatabaseHandlers(database, backupService) {
     }
   });
 
-  safeIpcHandle('db:getAllTransactions', async (event, accountId) => {
+  safeIpcHandle('db:getAllTransactions', async (event, accountId = 'all') => {
     try {
       const transactions = database.getAllTransactions(accountId);
-      return { data: transactions, error: null };
+      return { data: transactions || [], error: null };
     } catch (error) {
-      return { data: null, error: error.message };
+      return { data: [], error: error.message };
     }
   });
 
-  safeIpcHandle('db:getAllRecurring', async (event, accountId) => {
+  safeIpcHandle('db:getAllRecurring', async (event, accountId = 'all') => {
     try {
       const recurring = database.getAllRecurring(accountId);
-      return { data: recurring, error: null };
+      return { data: recurring || [], error: null };
     } catch (error) {
       return { data: null, error: error.message };
     }

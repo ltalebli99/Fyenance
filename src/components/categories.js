@@ -1,9 +1,15 @@
-import { capitalizeFirstLetter, getAmountValue } from '../utils/formatters.js';
+import { capitalizeFirstLetter, getAmountValue, formatInitialAmount, initializeAmountInput } from '../utils/formatters.js';
 import { openModal, closeModal, showError } from '../utils/utils.js';
 import { debounce, positionFilterPanel } from '../utils/filters.js';
 import { fetchCategories } from '../services/categoriesService.js';
 import { createDefaultCategories } from '../services/categoriesService.js';
 import { refreshData } from '../utils/refresh.js';
+import { resetFormAndInputs } from '../utils/initInputs.js';
+import { showDeleteConfirmationModal } from '../utils/modals.js';
+
+// Add form references
+const addCategoryForm = document.getElementById('add-category-form');
+const editCategoryForm = document.getElementById('edit-category-form');
 
 // Category event handlers
 export async function handleAddCategory(e) {
@@ -26,7 +32,7 @@ export async function handleAddCategory(e) {
       await refreshData({
         all: true
       });
-      e.target.reset();
+      resetFormAndInputs(addCategoryForm);
     }
   }
   
@@ -54,21 +60,31 @@ export async function handleAddCategory(e) {
     await refreshData({
         all: true
     });
-    e.target.reset();
+    resetFormAndInputs(editCategoryForm);
   }
   
   export async function handleDeleteCategory(categoryId) {
-    if (confirm('Are you sure you want to delete this category? Associated transactions will become uncategorized.')) {
-      const { error } = await window.databaseApi.deleteCategory(categoryId);
-      if (error) {
-        console.error('Error deleting category:', error);
-      } else {
-        await refreshData({
-            all: true
-        });
-      }
-    }
-  }
+    showDeleteConfirmationModal({
+        title: 'Delete Category',
+        message: 'Are you sure you want to delete this category? Associated transactions will become uncategorized.',
+        onConfirm: async () => {
+            try {
+                const { error } = await window.databaseApi.deleteCategory(categoryId);
+                if (error) {
+                    console.error('Error deleting category:', error);
+                    showError('Failed to delete category');
+                } else {
+                    await refreshData({
+                        all: true
+                    });
+                }
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                showError('Failed to delete category');
+            }
+        }
+    });
+}
 
 
   // Add Category button click handler
@@ -82,7 +98,8 @@ export async function showEditCategoryForm(category) {
     document.getElementById('edit-category-id').value = category.id;
     document.getElementById('edit-category-name').value = category.name;
     document.getElementById('edit-category-type').value = category.type;
-    document.getElementById('edit-category-budget').value = category.budget_amount || '0.00';
+    document.getElementById('edit-category-budget').value = formatInitialAmount(category.budget_amount) || '0.00';
+    initializeAmountInput(document.getElementById('edit-category-budget'));
     document.getElementById('edit-category-frequency').value = category.budget_frequency || 'monthly';
     
     // Also update the type dropdown to show the correct value
@@ -117,7 +134,7 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
     await refreshData({
         all: true
     });
-    e.target.reset();
+    resetFormAndInputs(editCategoryForm);
   });
   
   document.getElementById('add-category-form')?.addEventListener('submit', async (e) => {
@@ -134,12 +151,12 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
       const { error } = await window.databaseApi.addCategory(newCategory);
       if (error) throw error;
   
+      resetFormAndInputs(addCategoryForm);
       // Close modal and refresh data
       closeModal('add-category-modal');
       await refreshData({
         all: true
       });
-      e.target.reset();
     } catch (error) {
       console.error('Error adding category:', error);
     }
@@ -300,16 +317,22 @@ function initializeCategoryFilters() {
 }
   
 export async function deleteCategory(id) {
-  try {
-    const { error } = await window.databaseApi.deleteCategory(id);
-    if (error) throw error;
-    
-    await refreshData({
-      all: true
+    showDeleteConfirmationModal({
+        title: 'Delete Category',
+        message: 'Are you sure you want to delete this category? Associated transactions will become uncategorized.',
+        onConfirm: async () => {
+            try {
+                const { error } = await window.databaseApi.deleteCategory(id);
+                if (error) throw error;
+                
+                await refreshData({
+                    all: true
+                });
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                showError('Failed to delete category');
+            }
+        }
     });
-  } catch (error) {
-    console.error('Error deleting category:', error);
-    showError('Failed to delete category');
-  }
 }
   

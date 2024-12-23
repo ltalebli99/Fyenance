@@ -1,15 +1,13 @@
 import { formatCurrency } from '../utils/formatters.js';
 
-export async function updateBannerData() {
+export async function updateBannerData(accountId = 'all') {
   try {
-    // Get net worth
-    const { data: netWorth } = await window.databaseApi.getNetWorth();
-    console.log('Net Worth:', netWorth);
+    // Get net worth for specific account(s)
+    const { data: netWorth } = await window.databaseApi.getNetWorth(accountId);
     document.getElementById('total-net-worth').textContent = formatCurrency(netWorth || 0);
 
-    // Get monthly comparison
-    const { data: monthlyComparison } = await window.databaseApi.getMonthlyComparison();
-    console.log('Monthly Comparison:', monthlyComparison);
+    // Get monthly comparison for specific account(s)
+    const { data: monthlyComparison } = await window.databaseApi.getMonthlyComparison(accountId);
     
     if (monthlyComparison && typeof monthlyComparison.percentChange === 'number') {
       const trendText = monthlyComparison.trend === 'lower' ? 'lower' : 'higher';
@@ -20,11 +18,10 @@ export async function updateBannerData() {
         'No spending comparison available yet';
     }
 
-    // Get upcoming payments
-    const { data: upcomingCount } = await window.databaseApi.getUpcomingPayments();
-    console.log('Upcoming Payments:', upcomingCount);
+    // Get upcoming payments for specific account(s)
+    const { data: upcomingCount } = await window.databaseApi.getUpcomingPayments(accountId);
     
-    if (typeof upcomingCount === 'number') {
+    if (upcomingCount > 0) {
       const paymentText = upcomingCount === 1 ? 'payment' : 'payments';
       document.getElementById('upcoming-payments').textContent = 
         `${upcomingCount} recurring ${paymentText} due this week`;

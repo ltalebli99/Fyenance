@@ -5,10 +5,10 @@ import { fetchTransactions } from '../services/transactionsService.js';
 import { fetchRecurring } from '../services/recurringService.js';
 import { fetchProjects } from '../services/projectsService.js';
 import { renderDashboardCharts } from '../services/chartsService.js';
-import { updateBannerData } from '../components/dashboard.js';
 import { updateEmptyStates } from '../utils/emptyStates.js';
 import { populateAccountDropdowns, populateCategoryDropdowns, populateProjectDropdowns } from '../utils/dropdownHelpers.js';
 import { loadTransactions } from '../components/transactions.js';
+import { updateBannerData } from '../components/dashboard.js';
 
 /**
  * Global refresh utility to update all relevant data
@@ -27,6 +27,11 @@ export async function refreshData(options = { all: true }) {
     try {
         const refreshTasks = [];
 
+        if (options.all || options.projects) {
+            // Make projects refresh a priority
+            await fetchProjects();
+        }
+
         if (options.all || options.accounts) {
             refreshTasks.push(
                 fetchAccounts(),
@@ -35,8 +40,11 @@ export async function refreshData(options = { all: true }) {
         }
 
         if (options.all || options.transactions) {
-            refreshTasks.push(fetchTransactions());
-            loadTransactions();
+            refreshTasks.push(
+                fetchTransactions().then(() => {
+                    loadTransactions();
+                })
+            );
         }
 
         if (options.all || options.categories) {
@@ -52,28 +60,25 @@ export async function refreshData(options = { all: true }) {
         }
 
         if (options.all || options.reports) {
-            refreshTasks.push(
-                updateReports(),
-                updateBannerData()
-            );
+            refreshTasks.push(updateReports());
         }
         
-        if (options.all || options.projects) {
-            refreshTasks.push(fetchProjects());
-        }
-
         if (options.all || options.dropdowns) {
-            refreshTasks.push(
+            await Promise.all([
                 populateAccountDropdowns(),
                 populateCategoryDropdowns(),
                 populateProjectDropdowns()
-            );
+            ]);
         }
 
-        // Always refresh empty states
-        refreshTasks.push(updateEmptyStates());
+        // Wait for remaining tasks to complete
+        if (refreshTasks.length > 0) {
+            await Promise.all(refreshTasks);
+        }
 
-        await Promise.all(refreshTasks);
+        // Always update empty states and banner last
+        await updateEmptyStates();
+        await updateBannerData();
     } catch (error) {
         console.error('Error during global refresh:', error);
         throw error;

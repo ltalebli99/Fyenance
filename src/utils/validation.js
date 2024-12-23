@@ -2,6 +2,7 @@ import { formatAmountInput } from './formatters.js';
 import { showError } from './utils.js';
 import { getCurrencySymbol } from '../services/currencyService.js';
 import { initializeAmountInput } from './formatters.js';
+import { formatCurrency } from './formatters.js';
 
 export function validateProjectDates(startDate, endDate) {
     if (!startDate || !endDate) return true;
@@ -36,6 +37,9 @@ export function initializeAmountInputs() {
     // Convert to text type to allow formatting
     input.type = 'text';
     
+    // Initialize the input
+    initializeAmountInput(input);
+
     // Add input event listener
     input.addEventListener('input', (e) => {
       formatAmountInput(e.target);
@@ -50,23 +54,18 @@ export function initializeAmountInputs() {
     input.addEventListener('blur', (e) => {
       clearTimeout(e.target.formatTimeout);
       if (e.target.value) {
-        const value = e.target.value.replace(getCurrencySymbol(), '').trim();
+        const value = e.target.value
+          .replace(getCurrencySymbol(), '')
+          .replace(/,/g, '')  // Remove commas before parsing
+          .trim();
+          
         if (value) {
           const numValue = parseFloat(value);
           if (!isNaN(numValue)) {
-            e.target.value = getCurrencySymbol() + new Intl.NumberFormat('en-US', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2
-            }).format(Math.abs(numValue));
+            e.target.value = formatCurrency(numValue);  // Use the same formatter as everywhere else
           }
         }
       }
     });
-
-    // Initialize with currency symbol
-    if (!input.value) {
-      input.value = getCurrencySymbol();
-      input.setSelectionRange(getCurrencySymbol().length, getCurrencySymbol().length);
-    }
   });
 }

@@ -129,11 +129,11 @@
                         <div class="banner-insights">
                             <div class="insight">
                                 <i class="fas fa-chart-line"></i>
-                                <span id="monthly-trend">Your spending is 12% lower than last month</span>
+                                <span id="monthly-trend">Your spending is 0% lower than last month</span>
                             </div>
                             <div class="insight">
                                 <i class="fas fa-calendar-alt"></i>
-                                <span id="upcoming-payments">3 recurring payments due this week</span>
+                                <span id="upcoming-payments">0 recurring payments due this week</span>
                             </div>
                         </div>
                     </div>
@@ -297,6 +297,12 @@
                   <option value="date-asc">Date (Oldest)</option>
                   <option value="amount-desc">Amount (Highest)</option>
                   <option value="amount-asc">Amount (Lowest)</option>
+                  <option value="description-asc">Description (A-Z)</option>
+                  <option value="description-desc">Description (Z-A)</option>
+                  <option value="category-asc">Category (A-Z)</option>
+                  <option value="category-desc">Category (Z-A)</option>
+                  <option value="type-asc">Type (A-Z)</option>
+                  <option value="type-desc">Type (Z-A)</option>
                 </select>
               </div>
             </div>
@@ -304,7 +310,7 @@
           
           <div class="entry-tools">
             <div class="quick-entry-container">
-                <input type="text" id="quick-entry-input" placeholder="Quick entry (e.g. '25.99 groceries')" class="quick-entry-input">
+                <input type="text" id="quick-entry-input" placeholder="Quick entry (e.g. '11/02 wells fargo 25.99 + 13.49 groceries')" class="quick-entry-input">
                 <button class="secondary-btn" id="show-bulk-entry">Bulk Entry</button>
             </div>
           </div>
@@ -1286,7 +1292,6 @@
                         </button>
                         <!-- Currency Preference Card -->
                         <div class="currency-select-container">
-                            <label for="currency-preference-setting" class="currency-select-label">Currency Preference: </label>
                             <select id="currency-preference-setting" class="currency-select">
                                 <!-- Will be populated dynamically -->
                             </select>

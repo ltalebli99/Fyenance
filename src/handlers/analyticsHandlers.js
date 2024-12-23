@@ -1,12 +1,14 @@
 // src/handlers/analyticsHandlers.js
 const { safeIpcHandle } = require('../core/ipcSafety');
+const { calculateRecurringForPeriod } = require('../utils/recurringHelper.js');
 
 function setupAnalyticsHandlers(database) {
-  safeIpcHandle('db:getTransactionsForChart', async (event, filters) => {
+  safeIpcHandle('db:getTransactionsForChart', async (event, accountId) => {
     try {
-      const transactions = database.getTransactionsForChart(filters);
+      const transactions = database.getTransactionsForChart(accountId);
       return { data: transactions, error: null };
     } catch (error) {
+      console.error('Error fetching transactions for chart:', error);
       return { data: null, error: error.message };
     }
   });
@@ -38,10 +40,15 @@ function setupAnalyticsHandlers(database) {
     }
   });
 
-  safeIpcHandle('db:getMonthlyComparison', async () => {
+  safeIpcHandle('db:getMonthlyComparison', async (event, accountId = 'all') => {
     try {
-      // Get all transactions
-      const transactions = database.getTransactions();
+      // Get transactions and recurring items for specific account(s)
+      const transactions = database.getTransactions(accountId);
+      const recurring = database.getRecurring(accountId);
+      
+      if (!Array.isArray(transactions) || !Array.isArray(recurring)) {
+        return { data: null, error: null };
+      }
       
       // Get current and last month dates
       const now = new Date();
@@ -50,8 +57,8 @@ function setupAnalyticsHandlers(database) {
       const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
       const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
   
-      // Calculate expenses for current month
-      const currentMonthExpenses = transactions
+      // Calculate one-time expenses for current month
+      const currentMonthOneTime = transactions
         .filter(t => {
           const date = new Date(t.date);
           return date.getMonth() === currentMonth && 
@@ -60,8 +67,8 @@ function setupAnalyticsHandlers(database) {
         })
         .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
   
-      // Calculate expenses for last month
-      const lastMonthExpenses = transactions
+      // Calculate one-time expenses for last month
+      const lastMonthOneTime = transactions
         .filter(t => {
           const date = new Date(t.date);
           return date.getMonth() === lastMonth && 
@@ -69,18 +76,32 @@ function setupAnalyticsHandlers(database) {
                  t.type === 'expense';
         })
         .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+
+      // Calculate recurring expenses
+      const currentMonthRecurring = calculateRecurringForPeriod(
+        recurring.filter(r => r.type === 'expense'),
+        'month',
+        new Date(currentYear, currentMonth, 1)
+      );
+
+      const lastMonthRecurring = calculateRecurringForPeriod(
+        recurring.filter(r => r.type === 'expense'),
+        'month',
+        new Date(lastMonthYear, lastMonth, 1)
+      );
   
-      console.log('Current month expenses:', currentMonthExpenses);
-      console.log('Last month expenses:', lastMonthExpenses);
+      // Calculate total expenses for both months
+      const currentMonthExpenses = currentMonthOneTime + currentMonthRecurring;
+      const lastMonthExpenses = lastMonthOneTime + lastMonthRecurring;
   
       // Calculate the percentage change
       const percentChange = lastMonthExpenses ? 
-        ((lastMonthExpenses - currentMonthExpenses) / lastMonthExpenses) * 100 : 0;
+        ((currentMonthExpenses - lastMonthExpenses) / lastMonthExpenses) * 100 : 0;
   
       return { 
         data: { 
           percentChange, 
-          trend: percentChange >= 0 ? 'lower' : 'higher',
+          trend: percentChange >= 0 ? 'higher' : 'lower',
           currentMonthExpenses,
           lastMonthExpenses
         }, 
@@ -92,82 +113,128 @@ function setupAnalyticsHandlers(database) {
     }
   });
 
-  safeIpcHandle('db:getUpcomingPayments', async () => {
+  safeIpcHandle('db:getUpcomingPayments', async (event, accountId = 'all') => {
     try {
-      const recurring = database.getRecurring();
-      if (!Array.isArray(recurring)) return { data: 0, error: null };
+      return database.getUpcomingPayments(accountId);
+    } catch (error) {
+      console.error('Error getting upcoming payments:', error);
+      return { data: 0, error: error.message };
+    }
+  });
 
-      const today = new Date();
-      const currentMonth = today.getMonth();
-      const nextMonth = (currentMonth + 1) % 12;
-      const currentYear = today.getFullYear();
-      const currentDay = today.getDate();
-
-      // Get the week boundaries (5 days from today)
-      const startOfWeek = new Date(today);
-      startOfWeek.setHours(0, 0, 0, 0);
+  safeIpcHandle('db:getNetWorth', async (event, accountId = 'all') => {
+    try {
+      // Get base account balances for specific account(s)
+      const accounts = accountId === 'all' ? 
+        database.getAccounts() : 
+        database.getAccounts().filter(acc => acc.id === accountId);
       
-      const endOfWeek = new Date(today);
-      endOfWeek.setDate(today.getDate() + 4);
-      endOfWeek.setHours(23, 59, 59, 999);
+      if (!Array.isArray(accounts)) {
+        return { data: 0, error: null };
+      }
 
-      // Filter recurring expenses that are active and due within the next 5 days
-      const upcoming = recurring.filter(expense => {
-        if (!expense.is_active || expense.type !== 'expense') return false;
+      const baseNetWorth = accounts.reduce((total, account) => 
+        total + parseFloat(account.balance), 0);
 
-        const startDate = new Date(expense.start_date);
-        
-        // If it hasn't started yet or has ended, exclude it
-        if (startDate > endOfWeek) return false;
-        if (expense.end_date && new Date(expense.end_date) < today) return false;
+      // Get transactions for specific account(s)
+      const transactions = database.getTransactions(accountId);
+      const transactionTotal = Array.isArray(transactions) ? 
+        transactions.reduce((sum, tx) => sum + (tx.type === 'income' ? tx.amount : -tx.amount), 0) : 0;
 
-        // Calculate the next occurrence based on frequency
-        let nextDate = new Date(startDate);
-        while (nextDate < today) {
-          switch (expense.frequency) {
+      // Get recurring items for specific account(s)
+      const recurring = database.getRecurring(accountId);
+      const today = new Date();
+      
+      const recurringTotal = recurring
+        .filter(r => {
+          if (!r.is_active) return false;
+          if (r.end_date && new Date(r.end_date) < today) return false;
+          
+          const startDate = new Date(r.start_date);
+          if (startDate > today) return false;
+
+          return true;
+        })
+        .reduce((sum, r) => {
+          // Calculate recurring amount based on frequency
+          let multiplier = 1;
+          switch(r.frequency) {
             case 'daily':
-              nextDate.setDate(nextDate.getDate() + 1);
+              multiplier = 30; // Assume one month
               break;
             case 'weekly':
-              nextDate.setDate(nextDate.getDate() + 7);
+              multiplier = 4; // Assume one month
               break;
             case 'monthly':
-              // Handle month rollover correctly
-              let nextMonth = nextDate.getMonth() + 1;
-              let nextYear = nextDate.getFullYear();
-              if (nextMonth > 11) {
-                nextMonth = 0;
-                nextYear++;
-              }
-              nextDate.setFullYear(nextYear, nextMonth, startDate.getDate());
+              multiplier = 1;
               break;
             case 'yearly':
-              nextDate.setFullYear(nextDate.getFullYear() + 1);
+              multiplier = 1/12; // One month portion
               break;
           }
+          return sum + ((r.type === 'income' ? 1 : -1) * r.amount * multiplier);
+        }, 0);
+
+      // Calculate final net worth
+      const totalNetWorth = baseNetWorth + transactionTotal + recurringTotal;
+
+      return { data: totalNetWorth, error: null };
+    } catch (error) {
+      console.error('Error calculating net worth:', error);
+      return { data: 0, error: error.message };
+    }
+  });
+
+}
+
+// Helper function for recurring multiplier calculation
+function getRecurringMultiplier(frequency) {
+  switch(frequency) {
+    case 'daily': return 30;    // Assume one month
+    case 'weekly': return 4;    // Assume one month
+    case 'monthly': return 1;
+    case 'yearly': return 1/12; // One month portion
+    default: return 1;
+  }
+}
+
+// Helper function to calculate next occurrence (same as in chartsService)
+function getNextOccurrence(recurring, fromDate) {
+    const startDate = new Date(recurring.start_date);
+    startDate.setMinutes(startDate.getMinutes() + startDate.getTimezoneOffset());
+    startDate.setHours(0, 0, 0, 0);
+
+    if (startDate > fromDate) return startDate;
+
+    let nextDate = new Date(startDate);
+    
+    while (nextDate <= fromDate) {
+        switch (recurring.frequency) {
+            case 'daily':
+                nextDate.setDate(nextDate.getDate() + 1);
+                break;
+            case 'weekly':
+                nextDate.setDate(nextDate.getDate() + 7);
+                break;
+            case 'monthly':
+                let nextMonth = nextDate.getMonth() + 1;
+                let nextYear = nextDate.getFullYear();
+                if (nextMonth > 11) {
+                    nextMonth = 0;
+                    nextYear++;
+                }
+                nextDate = new Date(nextYear, nextMonth, startDate.getDate());
+                if (nextDate.getMonth() !== nextMonth) {
+                    nextDate = new Date(nextYear, nextMonth + 1, 0);
+                }
+                break;
+            case 'yearly':
+                nextDate.setFullYear(nextDate.getFullYear() + 1);
+                break;
         }
-
-        // Check if next occurrence falls within our 5-day window
-        return nextDate <= endOfWeek;
-      });
-
-      return { data: upcoming.length, error: null };
-    } catch (error) {
-      console.error('Error in getUpcomingPayments:', error);
-      return { data: null, error: error.message };
     }
-  });
 
-  safeIpcHandle('db:getNetWorth', async () => {
-    try {
-      const accounts = database.getAccounts();
-      const netWorth = accounts.reduce((total, account) => total + account.balance, 0);
-      return { data: netWorth, error: null };
-    } catch (error) {
-      return { data: null, error: error.message };
-    }
-  });
-
+    return nextDate;
 }
 
 module.exports = { setupAnalyticsHandlers };

@@ -1,9 +1,18 @@
 import { formatCurrency, capitalizeFirstLetter, formatDateForDisplay } from '../utils/formatters.js';
 import { showEditRecurringForm, toggleRecurringStatus } from '../components/recurring.js';
-import { confirmDelete } from '../utils/utils.js';
+import { showDeleteConfirmationModal } from '../utils/modals.js';
 import { TablePagination } from '../utils/pagination.js';
 
 let recurringPagination;
+
+function isRecurringActive(item) {
+    const startDate = item.start_date ? new Date(item.start_date) : null;
+    const endDate = item.end_date ? new Date(item.end_date) : null;
+    const today = new Date();
+    
+    return (!startDate || startDate <= today) && 
+           (!endDate || endDate >= today);
+}
 
 // Fetch and display recurring
 export async function fetchRecurring(accountId = null, filters = {}) {
@@ -88,17 +97,8 @@ export async function fetchRecurring(accountId = null, filters = {}) {
 
         if (filteredData && filteredData.length > 0) {
             filteredData.forEach(item => {
-                // Adjust dates for timezone
-                const startDate = item.start_date ? new Date(item.start_date) : null;
-                if (startDate) {
-                    startDate.setMinutes(startDate.getMinutes() + startDate.getTimezoneOffset());
-                }
+                const active = isRecurringActive(item);
                 
-                const endDate = item.end_date ? new Date(item.end_date) : null;
-                if (endDate) {
-                    endDate.setMinutes(endDate.getMinutes() + endDate.getTimezoneOffset());
-                }
-
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item.name}</td>
@@ -109,13 +109,13 @@ export async function fetchRecurring(accountId = null, filters = {}) {
                     <td>${item.category_name || 'Uncategorized'}</td>
                     <td>
                         ${capitalizeFirstLetter(item.frequency)} starting 
-                        ${startDate ? formatDateForDisplay(startDate.toISOString().split('T')[0]) : 'Invalid Date'}
-                        ${endDate ? ` until ${formatDateForDisplay(endDate.toISOString().split('T')[0])}` : ''}
+                        ${formatDateForDisplay(item.start_date)}
+                        ${item.end_date ? ` until ${formatDateForDisplay(item.end_date)}` : ''}
                     </td>
                     <td>${item.description || '-'}</td>
                     <td>
-                        <div class="status-btn ${item.is_active ? 'active' : 'inactive'}">
-                            ${item.is_active ? 'Active' : 'Inactive'}
+                        <div class="status-btn ${active ? 'active' : 'inactive'}">
+                            ${active ? 'Active' : 'Inactive'}
                         </div>
                     </td>
                     <td>
@@ -130,11 +130,11 @@ export async function fetchRecurring(accountId = null, filters = {}) {
                     </td>
                 `;
 
+                // Remove click handler from status button since it's now automatic
+                const statusBtn = row.querySelector('.status-btn');
+                statusBtn.style.cursor = 'default'; // Remove pointer cursor
+                
                 // Add event listeners
-                row.querySelector('.status-btn').addEventListener('click', () => {
-                    toggleRecurringStatus(item.id, !item.is_active, item);
-                });
-
                 row.querySelector('.edit-btn').addEventListener('click', () => {
                     showEditRecurringForm({
                         id: item.id,
@@ -152,7 +152,13 @@ export async function fetchRecurring(accountId = null, filters = {}) {
                 });
 
                 row.querySelector('.delete-btn').addEventListener('click', () => {
-                    confirmDelete('recurring', item.id);
+                    showDeleteConfirmationModal({
+                        title: 'Delete Recurring Transaction',
+                        message: 'Are you sure you want to delete this recurring transaction?',
+                        onConfirm: async () => {
+                            await deleteRecurring(item.id);
+                        }
+                    });
                 });
 
                 tableBody.appendChild(row);

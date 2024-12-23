@@ -8,6 +8,7 @@ import { showError } from '../utils/utils.js';
 import { updateLicenseInfo } from './license.js';
 import { getAllCurrencies, setCurrencyPreference, getCurrencyPreference } from '../services/currencyService.js';
 import { refreshData } from '../utils/refresh.js';
+import { showConfirmationModal } from '../utils/modals.js';
 
 
 export function initializeSettings() {
@@ -262,43 +263,49 @@ async function updateBackupsList() {
 
 // Add restore function to window scope
 window.restoreBackup = async (backupPath) => {
-    if (!confirm('Are you sure you want to restore this backup? Current data will be replaced.')) {
-        return;
-    }
-
-    try {
-        const { success, error } = await window.databaseApi.restoreBackup(backupPath);
-        if (success) {
-            alert('Backup restored successfully! The application will now restart.');
-            window.electronAPI.relaunchApp();
-        } else {
-            throw new Error(error || 'Failed to restore backup');
+    showConfirmationModal({
+        title: 'Restore Backup',
+        message: 'Are you sure you want to restore this backup? Current data will be replaced.',
+        confirmText: 'Restore',
+        cancelText: 'Cancel',
+        onConfirm: async () => {
+            try {
+                const { success, error } = await window.databaseApi.restoreBackup(backupPath);
+                if (success) {
+                    alert('Backup restored successfully! The application will now restart.');
+                    window.electronAPI.relaunchApp();
+                } else {
+                    throw new Error(error || 'Failed to restore backup');
+                }
+            } catch (error) {
+                console.error('Error restoring backup:', error);
+                alert('Failed to restore backup: ' + error.message);
+            }
         }
-    } catch (error) {
-        console.error('Error restoring backup:', error);
-        alert('Failed to restore backup: ' + error.message);
-    }
+    });
 };
 
 // Add delete function to window scope
 window.deleteBackup = async (backupPath) => {
-    if (!confirm('Are you sure you want to delete this backup?')) {
-        return;
-    }
-
-    console.log('Attempting to delete backup:', backupPath);
-
-    try {
-        const { success, error, debug } = await window.databaseApi.deleteBackup(backupPath);
-        if (success) {
-            updateBackupsList();
-        } else {
-            console.error('Delete backup failed:', { error, debug });
-            throw new Error(error || 'Failed to delete backup');
+    showConfirmationModal({
+        title: 'Delete Backup',
+        message: 'Are you sure you want to delete this backup?',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        onConfirm: async () => {
+            try {
+                const { success, error, debug } = await window.databaseApi.deleteBackup(backupPath);
+                if (success) {
+                    updateBackupsList();
+                } else {
+                    console.error('Delete backup failed:', { error, debug });
+                    throw new Error(error || 'Failed to delete backup');
+                }
+            } catch (error) {
+                console.error('Error deleting backup:', error);
+                alert('Failed to delete backup: ' + error.message);
+            }
         }
-    } catch (error) {
-        console.error('Error deleting backup:', error);
-        alert('Failed to delete backup: ' + error.message);
-    }
+    });
 };
 

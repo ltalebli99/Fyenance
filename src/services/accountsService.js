@@ -6,6 +6,34 @@ import { renderDashboardCharts } from './chartsService.js';
 import { fetchRecurring } from './recurringService.js';
 import { updateEmptyStates } from '../utils/emptyStates.js';
 import { showError } from '../utils/utils.js';
+import { showDeleteConfirmationModal } from '../utils/modals.js';
+
+// Add at the top of the file
+let currentlyEditingAccountId = null;
+
+document.addEventListener('click', (e) => {
+  if (currentlyEditingAccountId) {
+    const editRow = document.querySelector(`[data-account-id="${currentlyEditingAccountId}"]`)?.closest('tr');
+    if (editRow && !editRow.contains(e.target)) {
+      const nameDisplay = editRow.querySelector('.name-display');
+      const nameEdit = editRow.querySelector('.name-edit');
+      const balanceDisplay = editRow.querySelector('.balance-display');
+      const balanceEdit = editRow.querySelector('.balance-edit');
+      const editBtn = editRow.querySelector('.edit-btn');
+      const saveBtn = editRow.querySelector('.save-btn');
+
+      // Switch back to display mode
+      nameDisplay.style.display = 'inline';
+      nameEdit.style.display = 'none';
+      balanceDisplay.style.display = 'inline';
+      balanceEdit.style.display = 'none';
+      editBtn.style.display = 'inline';
+      saveBtn.style.display = 'none';
+
+      currentlyEditingAccountId = null;
+    }
+  }
+});
 
 // Add this new function
 async function calculateCurrentBalance(accountId) {
@@ -23,12 +51,33 @@ async function calculateCurrentBalance(accountId) {
       return sum + (tx.type === 'income' ? tx.amount : -tx.amount);
     }, 0);
 
-    // Calculate recurring totals for current month
+    // Calculate recurring totals
     const currentDate = new Date();
-    const currentDay = currentDate.getDate();
     
     const recurringTotal = recurring
-      .filter(r => r.is_active && r.billing_date <= currentDay)
+      .filter(r => {
+        if (!r.is_active) return false;
+        if (r.end_date && new Date(r.end_date) < currentDate) return false;
+        
+        const startDate = new Date(r.start_date);
+        if (startDate > currentDate) return false;
+
+        // Check if this recurring item should be counted based on frequency
+        switch(r.frequency) {
+          case 'daily':
+            return true;
+          case 'weekly':
+            const daysSinceStart = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+            return daysSinceStart % 7 === 0;
+          case 'monthly':
+            return startDate.getDate() === currentDate.getDate();
+          case 'yearly':
+            return startDate.getDate() === currentDate.getDate() && 
+                   startDate.getMonth() === currentDate.getMonth();
+          default:
+            return false;
+        }
+      })
       .reduce((sum, r) => {
         return sum + (r.type === 'income' ? r.amount : -r.amount);
       }, 0);
@@ -160,6 +209,18 @@ export async function fetchAccounts() {
         const balanceEdit = row.querySelector('.balance-edit');
         
         editBtn.addEventListener('click', () => {
+          // If another row is being edited, save it first
+          if (currentlyEditingAccountId && currentlyEditingAccountId !== account.id) {
+            const previousRow = document.querySelector(`[data-account-id="${currentlyEditingAccountId}"]`)?.closest('tr');
+            if (previousRow) {
+              const saveBtn = previousRow.querySelector('.save-btn');
+              saveBtn?.click();
+            }
+          }
+
+          // Set current editing account
+          currentlyEditingAccountId = account.id;
+
           // Hide displays, show edit inputs
           nameDisplay.style.display = 'none';
           nameEdit.style.display = 'inline';
@@ -170,75 +231,90 @@ export async function fetchAccounts() {
         });
         
         saveBtn.addEventListener('click', async () => {
-          const newName = nameEdit.value.trim();
-          const newBalance = parseFloat(balanceEdit.value);
-          
-          if (!newName) {
-            showError('Account name cannot be empty');
-            return;
-          }
-          
-          const updateData = {
-            id: account.id,
-            balance: newBalance,
-            name: newName
-          };
-          
-          console.log('Sending update data:', updateData);  // Debug log
-          
-          const { error: updateError } = await window.databaseApi.updateAccount(updateData);
-          
-          if (updateError) {
-            console.error('Error updating account:', updateError);
+          try {
+            const newName = nameEdit.value.trim();
+            const newBalance = parseFloat(balanceEdit.value);
+            
+            if (!newName) {
+              showError('Account name cannot be empty');
+              return;
+            }
+            
+            const updateData = {
+              id: account.id,
+              balance: newBalance,
+              name: newName
+            };
+            
+            const { error: updateError } = await window.databaseApi.updateAccount(updateData);
+            
+            if (updateError) {
+              console.error('Error updating account:', updateError);
+              showError('Failed to update account');
+              return;
+            }
+            
+            // Clear currently editing state
+            currentlyEditingAccountId = null;
+            
+            // Update displays
+            nameDisplay.textContent = newName;
+            balanceDisplay.textContent = formatCurrency(newBalance);
+            
+            // Switch back to display mode
+            nameDisplay.style.display = 'inline';
+            nameEdit.style.display = 'none';
+            balanceDisplay.style.display = 'inline';
+            balanceEdit.style.display = 'none';
+            editBtn.style.display = 'inline';
+            saveBtn.style.display = 'none';
+            
+            // Refresh related data
+            await Promise.all([
+              fetchTotalBalance(),
+              fetchAccounts(),
+              fetchTransactions(),
+              fetchRecurring(),
+              renderDashboardCharts(),
+              populateAccountDropdowns()
+            ]);
+          } catch (error) {
+            console.error('Error in save button handler:', error);
             showError('Failed to update account');
-            return;
           }
-          
-          // Update displays
-          nameDisplay.textContent = newName;
-          balanceDisplay.textContent = `${formatCurrency(newBalance)}`;
-          
-          // Switch back to display mode
-          nameDisplay.style.display = 'inline';
-          nameEdit.style.display = 'none';
-          balanceDisplay.style.display = 'inline';
-          balanceEdit.style.display = 'none';
-          editBtn.style.display = 'inline';
-          saveBtn.style.display = 'none';
-          
-          // Refresh related data
-          await Promise.all([
-            fetchTotalBalance(),
-            fetchAccounts(),
-            fetchTransactions(),
-            fetchRecurring(),
-            renderDashboardCharts(),
-            populateAccountDropdowns()
-          ]);
         });
         
         // Add delete button event listener
         const deleteBtn = row.querySelector('.delete-btn');
         deleteBtn.addEventListener('click', async () => {
-          if (confirm(`Are you sure you want to delete account "${account.name}"? This will also delete all associated transactions.`)) {
-            const { error: deleteError } = await window.databaseApi.deleteAccount(account.id);
-            
-            if (deleteError) {
-              console.error('Error deleting account:', deleteError);
-              showError('Failed to delete account');
-              return;
+          showDeleteConfirmationModal({
+            title: 'Delete Account', 
+            message: `Are you sure you want to delete account "${account.name}"? This will also delete all associated transactions.`,
+            onConfirm: async () => {
+              try {
+                const { error: deleteError } = await window.databaseApi.deleteAccount(account.id);
+                
+                if (deleteError) {
+                  console.error('Error deleting account:', deleteError);
+                  showError('Failed to delete account');
+                  return;
+                }
+                
+                // Refresh everything
+                await Promise.all([
+                  fetchAccounts(),
+                  fetchTotalBalance(),
+                  populateAccountDropdowns(),
+                  fetchTransactions(),
+                  renderDashboardCharts(),
+                  updateEmptyStates()
+                ]);
+              } catch (error) {
+                console.error('Error deleting account:', error);
+                showError('Failed to delete account');
+              }
             }
-            
-            // Refresh everything
-            await Promise.all([
-              fetchAccounts(),
-              fetchTotalBalance(),
-              populateAccountDropdowns(),
-              fetchTransactions(),
-              renderDashboardCharts(),
-              updateEmptyStates()
-            ]);
-          }
+          });
         });
         
         accountsTableBody.appendChild(row);
@@ -247,6 +323,6 @@ export async function fetchAccounts() {
       return data;
     } catch (err) {
       console.error('Error fetching accounts:', err);
-      throw err;
+      throw err; 
     }
   }

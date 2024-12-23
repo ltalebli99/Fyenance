@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld('databaseApi', {
     // Reports and other functions
     getTransactionsByDateRange: (startDate, endDate, accountId) => 
         ipcRenderer.invoke('db:getTransactionsByDateRange', startDate, endDate, accountId),
+    getTransactionsForChart: (accountId) => 
+        ipcRenderer.invoke('db:getTransactionsForChart', accountId),
     getMonthlyTotals: (year, month, accountId) => 
         ipcRenderer.invoke('db:getMonthlyTotals', year, month, accountId),
     fetchTransactionsForChart: (accountId) => 
