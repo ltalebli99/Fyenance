@@ -1143,6 +1143,16 @@
   color: var(--text-secondary);
 }
 
+.update-status .download-link {
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.update-status .download-link:hover {
+  text-decoration: none;
+}
+
 /* About Section */
 .about-section {
   margin-top: 1.5rem;

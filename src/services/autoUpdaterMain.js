@@ -7,6 +7,12 @@ const { dialog } = require('electron');
 const BackupService = require('./backupService');
 
 function setupAutoUpdater(mainWindow, database) {
+  // Skip auto-updater setup on macOS if not signed
+  if (process.platform === 'darwin') {
+    electronLog.info('Auto-updater disabled on macOS - waiting for code signing');
+    return;
+  }
+
   if (!mainWindow) {
     throw new Error('MainWindow is required for auto updater');
   }

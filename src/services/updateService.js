@@ -7,7 +7,6 @@ export async function checkForUpdates() {
     if (!updateStatus || !checkUpdatesBtn) return;
   
     try {
-        // Disable button and show checking status
         checkUpdatesBtn.disabled = true;
         updateStatus.textContent = 'Checking for updates...';
         startUpdateBtn.style.display = 'none';
@@ -15,11 +14,28 @@ export async function checkForUpdates() {
         // Check for updates
         const currentVersion = await window.versions.app();
         const updateCheck = await window.updateApi.checkForUpdates();
-        
-        // Re-enable button
         checkUpdatesBtn.disabled = false;
-  
+
         if (!updateCheck) {
+            if (window.electronAPI.platform === 'darwin') {
+                // For macOS, show download link
+                updateStatus.innerHTML = `New version ${updateCheck.latestVersion} available! ` +
+                    `<a href="#" class="download-link">Click here to download</a>`;
+                
+                // Add click handler for the download link
+                const downloadLink = updateStatus.querySelector('.download-link');
+                if (downloadLink) {
+                    downloadLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        window.electronAPI.openExternal('https://www.fyenanceapp.com/success');
+                    });
+                }
+            } else {
+                // For Windows/Linux, show update button
+                updateStatus.textContent = `New version ${updateCheck.latestVersion} available!`;
+                startUpdateBtn.style.display = 'block';
+            }
+        } else {
             updateStatus.textContent = 'You are using the latest version.';
         }
     } catch (error) {
