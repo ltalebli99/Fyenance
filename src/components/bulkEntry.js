@@ -1,8 +1,7 @@
-import { formatCurrency, capitalizeFirstLetter } from '../utils/formatters.js';
+import { formatCurrency, capitalizeFirstLetter, formatAmountInput, initializeAmountInput, getAmountValue } from '../utils/formatters.js';
 import { openModal, closeModal } from '../utils/utils.js';
 import { refreshData } from '../utils/refresh.js';
 import { resetFormAndInputs } from '../utils/initInputs.js';
-import { formatAmountInput, initializeAmountInput } from '../utils/formatters.js';
 
 export async function populateBulkEntryDropdowns() {
     const { data: categories } = await window.databaseApi.fetchCategories();
