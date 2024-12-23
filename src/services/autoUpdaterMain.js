@@ -7,12 +7,6 @@ const { dialog } = require('electron');
 const BackupService = require('./backupService');
 
 function setupAutoUpdater(mainWindow, database) {
-  // Skip auto-updater setup on macOS if not signed
-  if (process.platform === 'darwin') {
-    electronLog.info('Auto-updater disabled on macOS - waiting for code signing');
-    return;
-  }
-
   if (!mainWindow) {
     throw new Error('MainWindow is required for auto updater');
   }
@@ -25,6 +19,34 @@ function setupAutoUpdater(mainWindow, database) {
   // Force enable updates even in dev mode
   // autoUpdater.forceDevUpdateConfig = true;
   // autoUpdater.allowDowngrade = true;
+
+  // On macOS, only setup version checking until we have code signing
+  if (process.platform === 'darwin') {
+    electronLog.info('Auto-updater download disabled on macOS - only version checking enabled');
+    
+    safeIpcHandle('check-for-updates', async () => {
+      try {
+        electronLog.info('Checking for updates...');
+        electronLog.info('Current version:', app.getVersion());
+        
+        const result = await autoUpdater.checkForUpdates();
+        electronLog.info('Check result:', result);
+        return {
+          updateAvailable: result.updateInfo.version !== app.getVersion(),
+          currentVersion: app.getVersion(),
+          latestVersion: result.updateInfo.version,
+          ...result
+        };
+      } catch (error) {
+        electronLog.error('Update check error:', error);
+        throw error;
+      }
+    });
+
+    return;
+  }
+
+  // Continue with full auto-update setup for other platforms
   autoUpdater.allowPrerelease = process.env.NODE_ENV === 'development';
 
   autoUpdater.setFeedURL({
