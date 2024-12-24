@@ -6,6 +6,7 @@ import { showCreateFirstModal, showDeleteConfirmationModal } from '../utils/moda
 import { debounce } from '../utils/filters.js';
 import { refreshData } from '../utils/refresh.js';
 import { resetFormAndInputs } from '../utils/initInputs.js';
+import { TablePagination } from '../utils/pagination.js';
 
 const addRecurringForm = document.getElementById('add-recurring-form');
 const editRecurringForm = document.getElementById('edit-recurring-form');
@@ -461,14 +462,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Add the filter handling function
 async function handleRecurringFiltersChange() {
-  const type = document.getElementById('recurring-type-filter').value;
-  const category = document.getElementById('recurring-category-filter').value;
-  const status = document.getElementById('recurring-status-filter').value;
+  // Initialize pagination if not already done
+  if (!recurringPagination) {
+    recurringPagination = new TablePagination('recurring-table-body', {
+      itemsPerPage: 10
+    });
+  }
+
+  const type = document.getElementById('recurring-type-filter')?.value || 'all';
+  const category = document.getElementById('recurring-category-filter')?.value || 'all';
+  const status = document.getElementById('recurring-status-filter')?.value || 'all';
+  const searchTerm = document.querySelector('#Recurring .search-input')?.value || '';
   
   const filters = {
     type: type !== 'all' ? type : null,
     category: category !== 'all' ? category : null,
     status: status !== 'all' ? status : null,
+    search: searchTerm,
     limit: recurringPagination.getLimit(),
     offset: recurringPagination.getOffset()
   };
@@ -505,6 +515,13 @@ window.addEventListener('recurring-updated', () => {
 // Add this after your existing DOMContentLoaded event listener
 document.querySelector('#Recurring .search-input')?.addEventListener('input', 
     debounce(async (e) => {
+        // Initialize pagination if not already done
+        if (!recurringPagination) {
+            recurringPagination = new TablePagination('recurring-table-body', {
+                itemsPerPage: 10
+            });
+        }
+
         const filters = {
             type: document.getElementById('recurring-type-filter')?.value || 'all',
             category: document.getElementById('recurring-category-filter')?.value || 'all',

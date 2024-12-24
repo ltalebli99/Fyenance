@@ -466,18 +466,33 @@ export async function loadTransactions(filters = {}) {
 
 // Replace your existing handleTransactionFiltersChange function
 export async function handleTransactionFiltersChange() {
-  if (transactionsPagination) {
-    transactionsPagination.currentPage = 1;
+  // Initialize pagination if not already done
+  if (!transactionsPagination) {
+    transactionsPagination = new TablePagination('transactions-table-body', {
+      itemsPerPage: 10
+    });
   }
+
+  // Get all selected account IDs
+  const accountCheckboxes = document.querySelectorAll('#transactions-account-selector .options-container input:checked');
+  const selectedAccountIds = Array.from(accountCheckboxes)
+    .map(cb => cb.value)
+    .filter(id => id !== 'all');
 
   const filters = {
     type: document.getElementById('transaction-type-filter')?.value || 'all',
     category: document.getElementById('transaction-category-filter')?.value || 'all',
     sort: document.getElementById('transaction-sort')?.value || 'date-desc',
     search: document.querySelector('#Transactions .search-input')?.value || '',
-    limit: transactionsPagination?.getLimit(),
-    offset: 0  // Reset offset when filters change
+    accounts: selectedAccountIds.length > 0 ? selectedAccountIds : ['all'],
+    limit: transactionsPagination.getLimit(),
+    offset: transactionsPagination.getOffset()
   };
+
+  // Reset to first page when filters change
+  if (transactionsPagination) {
+    transactionsPagination.currentPage = 1;
+  }
 
   await loadTransactions(filters);
 }

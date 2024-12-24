@@ -3,109 +3,121 @@ import { showEditTransactionForm } from '../components/transactions.js';
 import { showDeleteConfirmationModal } from '../utils/modals.js';
 import { showError } from '../utils/utils.js';
 import { refreshData } from '../utils/refresh.js';
+import { parseSearchDate, isSameDay } from '../utils/dateSearch.js';
 
 // Fetch and display transactions
-export async function fetchTransactions(accountId = null, filters = {}) {
+export async function fetchTransactions(filters = {}) {
   try {
-    // Ensure filters object has all required properties with default values
     const safeFilters = {
-      search: filters.search || '',
       type: filters.type || 'all',
       category: filters.category || 'all',
       sort: filters.sort || 'date-desc',
-      limit: filters.limit,
-      offset: filters.offset,
-      ...filters
+      search: filters.search || '',
+      accounts: filters.accounts || ['all'],
+      limit: filters.limit || 10,
+      offset: filters.offset || 0
     };
 
-    // Pass accountId to the database API call
-    const { data: transactions, error } = await window.databaseApi.fetchTransactions(accountId);
+    // Fetch transactions from database
+    const { data: transactions, error } = await window.databaseApi.fetchTransactions(safeFilters.accounts);
     if (error) throw error;
-    
-    let filteredData = transactions ? [...transactions] : [];
-    
-    if (filteredData.length > 0) {
-      // Apply filters first
-      if (safeFilters.type && safeFilters.type !== 'all') {
-        filteredData = filteredData.filter(t => t.type === safeFilters.type);
-      }
-      
-      if (safeFilters.category && safeFilters.category !== 'all') {
-        filteredData = filteredData.filter(t => t.category_id === parseInt(safeFilters.category));
-      }
-      
-      if (safeFilters.search) {
-        const searchTerm = safeFilters.search.toLowerCase();
-        filteredData = filteredData.filter(t => {
-          const formattedDate = new Date(t.date).toLocaleDateString();
-          const formattedAmount = t.amount.toString();
-          
-          return [
-            t.description?.toLowerCase(),
-            t.category_name?.toLowerCase(),
-            formattedDate.toLowerCase(),
-            formattedAmount,
-            t.type?.toLowerCase()
-          ].some(field => field && field.includes(searchTerm));
-        });
-      }
 
-      // Apply sorting
-      const [field, direction] = safeFilters.sort.split('-');
-      filteredData.sort((a, b) => {
-        let comparison = 0;
-        switch (field) {
-          case 'date':
-            comparison = new Date(a.date) - new Date(b.date);
-            break;
-          case 'amount':
-            comparison = parseFloat(a.amount) - parseFloat(b.amount);
-            break;
-          case 'description':
-            comparison = (a.description || '').localeCompare(b.description || '');
-            break;
-          case 'category':
-            comparison = (a.category_name || '').localeCompare(b.category_name || '');
-            break;
-          case 'type':
-            comparison = a.type.localeCompare(b.type);
-            break;
-          default:
-            comparison = 0;
-        }
-        return direction === 'asc' ? comparison : -comparison;
-      });
+    let filteredData = [...transactions];
 
-      // Store total count before pagination
-      const totalCount = filteredData.length;
-      
-      // Apply pagination if limit is provided
-      if (safeFilters.limit) {
-        const offset = safeFilters.offset || 0;
-        filteredData = filteredData.slice(offset, offset + safeFilters.limit);
-      }
-
-      // Update the transactions table
-      const tableBody = document.getElementById('transactions-table-body');
-      if (tableBody) {
-        tableBody.innerHTML = filteredData.length ? 
-          filteredData.map(transaction => createTransactionRow(transaction)).join('') :
-          '<tr><td colspan="6" class="empty-table">No transactions found</td></tr>';
-      }
-
-      return {
-        data: filteredData,
-        totalCount
-      };
+    // Apply type filter
+    if (safeFilters.type !== 'all') {
+      filteredData = filteredData.filter(t => t.type === safeFilters.type);
     }
 
-    return {
-      data: [],
-      totalCount: 0
-    };
+    // Apply category filter
+    if (safeFilters.category !== 'all') {
+      filteredData = filteredData.filter(t => t.category_id === parseInt(safeFilters.category));
+    }
+
+    // Apply search filter
+    if (safeFilters.search) {
+      const searchTerm = safeFilters.search.toLowerCase();
+      const searchResult = parseSearchDate(searchTerm);
+      
+      filteredData = filteredData.filter(t => {
+        // Check for date match first
+        if (searchResult) {
+          if (searchResult.type === 'year') {
+            return new Date(t.date).getUTCFullYear() === searchResult.value;
+          }
+          
+          if (searchResult.type === 'full-date') {
+            const transactionDate = new Date(t.date);
+            
+            // If no year was specified in search, match any year
+            if (!searchResult.yearSpecified) {
+              return transactionDate.getUTCMonth() === searchResult.month &&
+                     transactionDate.getUTCDate() === searchResult.day;
+            }
+            
+            // If year was specified, use exact match
+            const searchDate = new Date(Date.UTC(
+              searchResult.year,
+              searchResult.month,
+              searchResult.day
+            ));
+            return isSameDay(transactionDate, searchDate);
+          }
+        }
+
+        // Check other fields
+        const searchableFields = [
+          t.description,
+          t.amount.toString(),
+          t.type,
+          t.category_name,
+          new Date(t.date).toLocaleDateString(),
+        ].filter(Boolean);
+        
+        return searchableFields.some(field => 
+          field.toLowerCase().includes(searchTerm)
+        );
+      });
+    }
+
+    // Apply sorting
+    const [field, direction] = safeFilters.sort.split('-');
+    filteredData.sort((a, b) => {
+      let comparison = 0;
+      switch (field) {
+        case 'date':
+          comparison = new Date(a.date) - new Date(b.date);
+          break;
+        case 'amount':
+          comparison = parseFloat(a.amount) - parseFloat(b.amount);
+          break;
+        case 'description':
+          comparison = (a.description || '').localeCompare(b.description || '');
+          break;
+        case 'category':
+          comparison = (a.category_name || '').localeCompare(b.category_name || '');
+          break;
+        default:
+          comparison = 0;
+      }
+      return direction === 'asc' ? comparison : -comparison;
+    });
+
+    // Get total count before pagination
+    const totalCount = filteredData.length;
+
+    // Apply pagination
+    filteredData = filteredData.slice(safeFilters.offset, safeFilters.offset + safeFilters.limit);
+
+    // Add total_count to first item for pagination
+    if (filteredData.length > 0) {
+      filteredData[0].total_count = totalCount;
+    }
+
+    return { data: filteredData, error: null };
   } catch (error) {
     console.error('Error fetching transactions:', error);
-    throw error;
+    return { data: null, error: error.message };
   }
 }
 

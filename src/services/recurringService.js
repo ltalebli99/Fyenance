@@ -2,6 +2,7 @@ import { formatCurrency, capitalizeFirstLetter, formatDateForDisplay } from '../
 import { showEditRecurringForm, toggleRecurringStatus } from '../components/recurring.js';
 import { showDeleteConfirmationModal } from '../utils/modals.js';
 import { TablePagination } from '../utils/pagination.js';
+import { parseSearchDate, isSameDay, monthMappings } from '../utils/dateSearch.js';
 
 let recurringPagination;
 
@@ -12,6 +13,88 @@ function isRecurringActive(item) {
     
     return (!startDate || startDate <= today) && 
            (!endDate || endDate >= today);
+}
+
+function matchesDateSearch(recurring, searchResult) {
+    if (!searchResult) return false;
+
+    const startDate = recurring.start_date ? new Date(recurring.start_date) : null;
+    const endDate = recurring.end_date ? new Date(recurring.end_date) : null;
+
+    // For year-only searches
+    if (searchResult.type === 'year') {
+        const year = searchResult.value;
+        return (startDate && startDate.getFullYear() === year) || 
+               (endDate && endDate.getFullYear() === year);
+    }
+
+    // For full date searches
+    if (searchResult.type === 'full-date') {
+        // If we only have a month, check if any dates in that month
+        if (searchResult.day === null) {
+            const startOfMonth = new Date(Date.UTC(searchResult.year, searchResult.month, 1));
+            const endOfMonth = new Date(Date.UTC(searchResult.year, searchResult.month + 1, 0));
+            
+            const startDate = r.start_date ? new Date(Date.UTC(
+                new Date(r.start_date).getUTCFullYear(),
+                new Date(r.start_date).getUTCMonth(),
+                new Date(r.start_date).getUTCDate()
+            )) : null;
+            
+            const endDate = r.end_date ? new Date(Date.UTC(
+                new Date(r.end_date).getUTCFullYear(),
+                new Date(r.end_date).getUTCMonth(),
+                new Date(r.end_date).getUTCDate()
+            )) : null;
+
+            return (!startDate || startDate <= endOfMonth) && 
+                   (!endDate || endDate >= startOfMonth);
+        }
+        
+        // If we only have a day, check if any dates match that day
+        if (searchResult.month === null) {
+            const startDate = r.start_date ? new Date(r.start_date) : null;
+            const endDate = r.end_date ? new Date(r.end_date) : null;
+            
+            return (startDate && startDate.getUTCDate() === searchResult.day) || 
+                   (endDate && endDate.getUTCDate() === searchResult.day);
+        }
+
+        // If we have both month and day, use the existing logic
+        const searchDate = new Date(Date.UTC(
+            searchResult.year,
+            searchResult.month,
+            searchResult.day
+        ));
+        
+        // Create dates from ISO strings and normalize to UTC midnight
+        const startDate = r.start_date ? new Date(Date.UTC(
+            new Date(r.start_date).getUTCFullYear(),
+            new Date(r.start_date).getUTCMonth(),
+            new Date(r.start_date).getUTCDate()
+        )) : null;
+        
+        const endDate = r.end_date ? new Date(Date.UTC(
+            new Date(r.end_date).getUTCFullYear(),
+            new Date(r.end_date).getUTCMonth(),
+            new Date(r.end_date).getUTCDate()
+        )) : null;
+
+        console.log('Comparing dates for:', r.name);
+        console.log('Search Date:', searchDate.toISOString());
+        console.log('Start Date:', startDate?.toISOString());
+        console.log('End Date:', endDate?.toISOString());
+        
+        // Check if search date falls within the recurring period
+        const isWithinPeriod = (!startDate || searchDate >= startDate) && 
+                              (!endDate || searchDate <= endDate);
+        
+        console.log('Is Within Period:', isWithinPeriod);
+        
+        return isWithinPeriod;
+    }
+
+    return false;
 }
 
 // Fetch and display recurring
@@ -27,11 +110,12 @@ export async function fetchRecurring(accountId = null, filters = {}) {
             };
         }
 
-        // Get filter values from DOM
-        const typeFilter = document.getElementById('recurring-type-filter')?.value || 'all';
-        const categoryFilter = document.getElementById('recurring-category-filter')?.value || 'all';
-        const sortBy = document.getElementById('recurring-sort')?.value || 'name-asc';
-        const searchTerm = document.querySelector('#Recurring .search-input')?.value || '';
+        // Get filter values
+        const typeFilter = filters.type || 'all';
+        const categoryFilter = filters.category || 'all';
+        const statusFilter = filters.status || 'all';
+        const sortBy = filters.sort || 'name-asc';
+        const searchTerm = typeof filters.search === 'string' ? filters.search : '';
 
         // Get all data first for total count
         const { data: allData } = await window.databaseApi.getAllRecurring(accountId);
@@ -39,32 +123,127 @@ export async function fetchRecurring(accountId = null, filters = {}) {
         // Apply filters to get total filtered count
         let filteredData = [...allData];
         
+        // Apply search filter
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
+            const searchResult = parseSearchDate(term);
+            
+            console.log('Search Term:', term);
+            console.log('Parsed Search Result:', searchResult);
+            
             filteredData = filteredData.filter(r => {
-                // Format dates for searching
-                const startDate = r.start_date ? new Date(r.start_date).toLocaleDateString() : '';
-                const endDate = r.end_date ? new Date(r.end_date).toLocaleDateString() : '';
-                // Format amount for searching
-                const formattedAmount = r.amount.toString();
-                
-                return [
+                // Check for date matches first
+                if (searchResult) {
+                    // For year-only searches
+                    if (searchResult.type === 'year') {
+                        const startDate = r.start_date ? new Date(r.start_date) : null;
+                        const endDate = r.end_date ? new Date(r.end_date) : null;
+                        return (startDate && startDate.getUTCFullYear() === searchResult.value) || 
+                               (endDate && endDate.getUTCFullYear() === searchResult.value);
+                    }
+
+                    // For full date searches
+                    if (searchResult.type === 'full-date') {
+                        // If we only have a month, check if any dates in that month
+                        if (searchResult.day === null) {
+                            const startOfMonth = new Date(Date.UTC(searchResult.year, searchResult.month, 1));
+                            const endOfMonth = new Date(Date.UTC(searchResult.year, searchResult.month + 1, 0));
+                            
+                            const startDate = r.start_date ? new Date(Date.UTC(
+                                new Date(r.start_date).getUTCFullYear(),
+                                new Date(r.start_date).getUTCMonth(),
+                                new Date(r.start_date).getUTCDate()
+                            )) : null;
+                            
+                            const endDate = r.end_date ? new Date(Date.UTC(
+                                new Date(r.end_date).getUTCFullYear(),
+                                new Date(r.end_date).getUTCMonth(),
+                                new Date(r.end_date).getUTCDate()
+                            )) : null;
+
+                            return (!startDate || startDate <= endOfMonth) && 
+                                   (!endDate || endDate >= startOfMonth);
+                        }
+                        
+                        // If we only have a day, check if any dates match that day
+                        if (searchResult.month === null) {
+                            const startDate = r.start_date ? new Date(r.start_date) : null;
+                            const endDate = r.end_date ? new Date(r.end_date) : null;
+                            
+                            return (startDate && startDate.getUTCDate() === searchResult.day) || 
+                                   (endDate && endDate.getUTCDate() === searchResult.day);
+                        }
+
+                        // If we have both month and day, use the existing logic
+                        const searchDate = new Date(Date.UTC(
+                            searchResult.year,
+                            searchResult.month,
+                            searchResult.day
+                        ));
+                        
+                        // Create dates from ISO strings and normalize to UTC midnight
+                        const startDate = r.start_date ? new Date(Date.UTC(
+                            new Date(r.start_date).getUTCFullYear(),
+                            new Date(r.start_date).getUTCMonth(),
+                            new Date(r.start_date).getUTCDate()
+                        )) : null;
+                        
+                        const endDate = r.end_date ? new Date(Date.UTC(
+                            new Date(r.end_date).getUTCFullYear(),
+                            new Date(r.end_date).getUTCMonth(),
+                            new Date(r.end_date).getUTCDate()
+                        )) : null;
+
+                        console.log('Comparing dates for:', r.name);
+                        console.log('Search Date:', searchDate.toISOString());
+                        console.log('Start Date:', startDate?.toISOString());
+                        console.log('End Date:', endDate?.toISOString());
+                        
+                        // Check if search date falls within the recurring period
+                        const isWithinPeriod = (!startDate || searchDate >= startDate) && 
+                                              (!endDate || searchDate <= endDate);
+                        
+                        console.log('Is Within Period:', isWithinPeriod);
+                        
+                        return isWithinPeriod;
+                    }
+                }
+
+                // Rest of the existing search logic for non-date terms
+                const searchableFields = [
                     r.name?.toLowerCase(),
                     r.description?.toLowerCase(),
                     r.category_name?.toLowerCase(),
-                    startDate.toLowerCase(),
-                    endDate.toLowerCase(),
-                    formattedAmount,
+                    r.amount.toString(),
                     r.type?.toLowerCase(),
                     r.frequency?.toLowerCase()
-                ].some(field => field && field.includes(term));
+                ].filter(Boolean);
+
+                return searchableFields.some(field => field.includes(term));
             });
         }
+
+        // Apply type filter
         if (typeFilter !== 'all') {
             filteredData = filteredData.filter(r => r.type === typeFilter);
         }
+
+        // Apply category filter
         if (categoryFilter !== 'all') {
             filteredData = filteredData.filter(r => r.category_id === parseInt(categoryFilter));
+        }
+
+        // Apply status filter
+        if (statusFilter !== 'all') {
+            filteredData = filteredData.filter(r => {
+                const today = new Date();
+                const startDate = new Date(r.start_date);
+                const endDate = r.end_date ? new Date(r.end_date) : null;
+                const isActive = (!startDate || startDate <= today) && 
+                               (!endDate || endDate >= today);
+                
+                return statusFilter === 'active' ? isActive : !isActive;
+            });
         }
 
         // Apply sorting
@@ -86,8 +265,12 @@ export async function fetchRecurring(accountId = null, filters = {}) {
         });
 
         // Get total count for pagination
-        const { data: totalData } = await window.databaseApi.getAllRecurring(accountId);
-        const totalCount = totalData.length;
+        const totalCount = filteredData.length;
+
+        // Apply pagination
+        const offset = recurringPagination.getOffset();
+        const limit = recurringPagination.getLimit();
+        filteredData = filteredData.slice(offset, offset + limit);
 
         // Update pagination with total count
         recurringPagination.updatePagination(totalCount);
@@ -170,8 +353,10 @@ export async function fetchRecurring(accountId = null, filters = {}) {
                 </tr>
             `;
         }
+
+        return { data: filteredData, error: null };
     } catch (error) {
         console.error('Error fetching recurring:', error);
-        showError('Failed to load recurring transactions');
+        return { data: null, error: error.message };
     }
-  }
+}

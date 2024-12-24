@@ -242,8 +242,21 @@ window.addEventListener('scroll', () => {
   
   export function handleRecurringFiltersChange() {
     const accountId = document.getElementById('recurring-account-selector')?.value || 'all';
+    const type = document.getElementById('recurring-type-filter')?.value || 'all';
+    const category = document.getElementById('recurring-category-filter')?.value || 'all';
+    const status = document.getElementById('recurring-status-filter')?.value || 'all';
+    const sort = document.getElementById('recurring-sort')?.value || 'name-asc';
     const searchTerm = document.querySelector('#Recurring .search-input')?.value || '';
-    fetchRecurring(accountId === 'all' ? null : accountId, searchTerm);
+
+    const filters = {
+      type,
+      category,
+      status,
+      sort,
+      search: searchTerm
+    };
+
+    fetchRecurring(accountId === 'all' ? null : accountId, filters);
   }
   
   // Update the event listeners in DOMContentLoaded
