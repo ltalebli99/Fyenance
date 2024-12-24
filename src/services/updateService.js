@@ -16,10 +16,10 @@ export async function checkForUpdates() {
         const updateCheck = await window.updateApi.checkForUpdates();
         checkUpdatesBtn.disabled = false;
 
-        if (!updateCheck) {
+        if (updateCheck && updateCheck.updateAvailable) {
             if (window.electronAPI.platform === 'darwin') {
                 // For macOS, show download link
-                updateStatus.innerHTML = `New version ${updateCheck.latestVersion} available! ` +
+                updateStatus.innerHTML = `Version ${updateCheck.latestVersion} is now available! ` +
                     `<a href="#" class="download-link">Click here to download</a>`;
                 
                 // Add click handler for the download link
@@ -32,11 +32,12 @@ export async function checkForUpdates() {
                 }
             } else {
                 // For Windows/Linux, show update button
-                updateStatus.textContent = `New version ${updateCheck.latestVersion} available!`;
+                updateStatus.textContent = `Version ${updateCheck.latestVersion} is now available!`;
                 startUpdateBtn.style.display = 'block';
             }
         } else {
             updateStatus.textContent = 'You are using the latest version.';
+            startUpdateBtn.style.display = 'none';
         }
     } catch (error) {
         console.error('Error checking for updates:', error);
