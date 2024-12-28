@@ -61,8 +61,9 @@
       "gatekeeperAssess": false,
       "entitlements": "./build/entitlements.mac.plist",
       "entitlementsInherit": "./build/entitlements.mac.plist",
-      "notarize": false,
-      "teamId": "$APPLE_TEAM_ID"
+      "notarize": {
+        "teamId": "$APPLE_TEAM_ID"
+      }
     },
     "win": {
       "icon": "assets/images/favicon.ico",
