@@ -1,18 +1,28 @@
-const { notarize } = require("electron-notarize");
+const { notarize } = require('@electron/notarize');
+const path = require('path');
 
 exports.default = async function notarizing(context) {
-  const { electronPlatformName, appOutDir } = context;
-  if (electronPlatformName !== "darwin") {
+  const { electronPlatformName, appOutDir } = context;  
+  if (electronPlatformName !== 'darwin') {
     return;
   }
 
+  console.log('Notarizing macOS application...');
+  
   const appName = context.packager.appInfo.productFilename;
-
-  return await notarize({
-    appBundleId: "com.fyenance.app",
-    appPath: `${appOutDir}/${appName}.app`,
-    appleId: process.env.APPLEID,
-    appleIdPassword: process.env.APPLEIDPASS,
-    teamId: process.env.APPLE_TEAM_ID
-  });
+  const appPath = path.join(appOutDir, `${appName}.app`);
+  
+  try {
+    await notarize({
+      tool: 'notarytool',
+      appPath,
+      teamId: process.env.APPLE_TEAM_ID,
+      appleId: process.env.APPLEID,
+      appleIdPassword: process.env.APPLEIDPASS
+    });
+    console.log('Notarization complete!');
+  } catch (error) {
+    console.error('Notarization failed:', error);
+    throw error;
+  }
 };
