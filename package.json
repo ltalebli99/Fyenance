@@ -61,11 +61,7 @@
       "gatekeeperAssess": false,
       "entitlements": "./build/entitlements.mac.plist",
       "entitlementsInherit": "./build/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "${{ secrets.APPLE_TEAM_ID }}",
-        "appBundleId": "com.fyenance.app",
-        "ascProvider": "${{ secrets.APPLE_TEAM_ID }}"
-      }
+      "notarize": true
     },
     "win": {
       "icon": "assets/images/favicon.ico",
