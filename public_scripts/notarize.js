@@ -7,12 +7,21 @@ exports.default = async function notarizing(context) {
     return;
   }
 
-  console.log('Notarizing macOS application...');
+  const startTime = new Date();
+  console.log(`[${startTime.toISOString()}] Starting macOS notarization...`);
   
   const appName = context.packager.appInfo.productFilename;
   const appPath = path.join(appOutDir, `${appName}.app`);
   
+  console.log(`[${new Date().toISOString()}] Application path: ${appPath}`);
+  console.log('Environment check:', {
+    hasTeamId: !!process.env.APPLE_TEAM_ID,
+    hasAppleId: !!process.env.APPLEID,
+    hasPassword: !!process.env.APPLEIDPASS
+  });
+
   try {
+    console.log(`[${new Date().toISOString()}] Submitting to Apple notary service...`);
     await notarize({
       tool: 'notarytool',
       appPath,
@@ -20,9 +29,12 @@ exports.default = async function notarizing(context) {
       appleId: process.env.APPLEID,
       appleIdPassword: process.env.APPLEIDPASS
     });
-    console.log('Notarization complete!');
+    
+    const endTime = new Date();
+    const duration = (endTime - startTime) / 1000; // Convert to seconds
+    console.log(`[${endTime.toISOString()}] Notarization complete! Duration: ${duration} seconds`);
   } catch (error) {
-    console.error('Notarization failed:', error);
+    console.error(`[${new Date().toISOString()}] Notarization failed:`, error);
     throw error;
   }
 };
