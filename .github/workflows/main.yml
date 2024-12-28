@@ -92,9 +92,12 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          NOTARIZE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: true
+          mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
+          mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
             --publish always
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
