@@ -45,6 +45,27 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
 
+      - name: Install the Apple certificate
+        if: matrix.os == 'macos-latest'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
+        run: |
+          # Create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+
+          # Import certificate to keychain
+          echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+          # Clean up
+          rm certificate.p12
+
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
@@ -58,7 +79,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
-
       - name: Install macOS Dependencies
         if: matrix.os == 'macos-latest'
         run: npm install --save-dev dmg-license
@@ -67,6 +87,8 @@ jobs:
         uses: samuelmeuli/action-electron-builder@v1
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: true
