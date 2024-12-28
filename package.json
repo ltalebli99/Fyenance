@@ -62,9 +62,8 @@
       "entitlements": "./build/entitlements.mac.plist",
       "entitlementsInherit": "./build/entitlements.mac.plist",
       "notarize": {
-        "teamId": "$APPLE_TEAM_ID",
-        "appleId": "$APPLE_ID",
-        "appleIdPassword": "$APPLE_APP_SPECIFIC_PASSWORD"
+        "appBundleId": "com.fyenance.app",
+        "ascProvider": "$APPLE_TEAM_ID"
       }
     },
     "win": {
