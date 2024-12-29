@@ -124,13 +124,9 @@ jobs:
           args: >
             --config.appId=com.fyenance.app
             --config.productName=Fyenance
-            --config.mac.hardenedRuntime=true
-            --config.mac.gatekeeperAssess=false
-            --config.mac.entitlements=build/entitlements.mac.plist
-            --config.mac.entitlementsInherit=build/entitlements.mac.plist
-            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
-                matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
-                matrix.os == 'ubuntu-latest' && '--linux --config.productName="Fyenance"' }}
+            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12 --config.mac.hardenedRuntime=true --config.mac.gatekeeperAssess=false --config.mac.entitlements=build/entitlements.mac.plist --config.mac.entitlementsInherit=build/entitlements.mac.plist' ||
+                matrix.os == 'windows-latest' && '--win' ||
+                matrix.os == 'ubuntu-latest' && '--linux' }}
       - name: Sign Windows Build
         if: matrix.os == 'windows-latest'
         uses: azure/trusted-signing-action@v0.5.0
