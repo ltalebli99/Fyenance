@@ -106,7 +106,7 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           
           # Debug logging
-          DEBUG: electron-builder,electron-notarize
+          DEBUG: electron-builder,electron-notarize*
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
@@ -119,6 +119,7 @@ jobs:
             --config.mac.gatekeeperAssess=false
             --config.mac.entitlements=build/entitlements.mac.plist
             --config.mac.entitlementsInherit=build/entitlements.mac.plist
+            --config.mac.notarize.teamId=${{ secrets.APPLE_TEAM_ID }}
             --config.compression=store
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
