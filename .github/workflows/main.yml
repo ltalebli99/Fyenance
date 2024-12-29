@@ -96,6 +96,7 @@ jobs:
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
             --config.afterSign=./public_scripts/notarize.js
+            --config.appId=com.fyenance.app
             --config.compression=store
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||

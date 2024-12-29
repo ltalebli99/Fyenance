@@ -6,7 +6,7 @@ function logWithTimestamp(message) {
 }
 
 exports.default = async function notarizing(context) {
-  const { electronPlatformName, appOutDir } = context;
+  const { electronPlatformName, appOutDir, packager } = context;
   if (electronPlatformName !== 'darwin') {
     return;
   }
@@ -14,8 +14,8 @@ exports.default = async function notarizing(context) {
   // Check environment variables first
   const requiredVars = {
     APPLE_TEAM_ID: process.env.APPLE_TEAM_ID,
-    APPLEID: process.env.APPLEID,
-    APPLEIDPASS: process.env.APPLEIDPASS
+    APPLE_ID: process.env.APPLE_ID,
+    APPLE_APP_SPECIFIC_PASSWORD: process.env.APPLE_APP_SPECIFIC_PASSWORD
   };
 
   const missingVars = Object.entries(requiredVars)
@@ -29,10 +29,12 @@ exports.default = async function notarizing(context) {
   logWithTimestamp('Starting macOS notarization...');
   const appName = context.packager.appInfo.productFilename;
   const appPath = path.join(appOutDir, `${appName}.app`);
+  const appBundleId = packager.appInfo.id;
   
   logWithTimestamp(`Application path: ${appPath}`);
+  logWithTimestamp(`Bundle ID: ${appBundleId}`);
   logWithTimestamp(`Team ID: ${process.env.APPLE_TEAM_ID}`);
-  logWithTimestamp(`Apple ID: ${process.env.APPLEID}`);
+  logWithTimestamp(`Apple ID: ${process.env.APPLE_ID}`);
 
   try {
     logWithTimestamp('Submitting to Apple notary service...');
@@ -41,9 +43,10 @@ exports.default = async function notarizing(context) {
     const result = await notarize({
       tool: 'notarytool',
       appPath,
+      appBundleId,
       teamId: process.env.APPLE_TEAM_ID,
-      appleId: process.env.APPLEID,
-      appleIdPassword: process.env.APPLEIDPASS,
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
       debug: true,
     });
 
