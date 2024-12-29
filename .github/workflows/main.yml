@@ -109,12 +109,15 @@ jobs:
             --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
           
           # Test with a simple submission list command
-          xcrun notarytool submission list --keychain-profile "notary-credentials"
+          xcrun notarytool history --keychain "notary-credentials"
           
           if [ $? -eq 0 ]; then
             echo "✅ Authentication and access verified!"
+            # Print the version of notarytool for debugging
+            xcrun notarytool --version
           else
             echo "❌ Access verification failed!"
+            xcrun notarytool --help
             exit 1
           fi
 
