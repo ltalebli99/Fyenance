@@ -113,20 +113,15 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           echo "=== Testing Apple Developer Authentication ==="
-          # Test basic authentication
-          xcrun notarytool environment \
-            --apple-id "${{ secrets.APPLE_ID }}" \
-            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
-            --team-id "${{ secrets.APPLE_TEAM_ID }}" || echo "Basic auth failed"
-
+          # Test with notarytool
+          xcrun notarytool submit --help || echo "Notarytool not available"
+          
           echo "=== Testing with altool ==="
-          # Test with legacy tool as fallback
           xcrun altool --list-providers \
             --username "${{ secrets.APPLE_ID }}" \
             --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" || echo "Altool auth failed"
 
           echo "=== Checking Team ID Access ==="
-          # Get list of accessible teams
           xcrun altool --list-providers \
             --username "${{ secrets.APPLE_ID }}" \
             --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
@@ -138,9 +133,12 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          DEBUG: "electron-builder,electron-notarize*"
+          DEBUG: electron-notarize*
           CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          NOTARIZE_APPLE_ID: ${{ secrets.APPLE_ID }}
+          NOTARIZE_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          NOTARIZE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
@@ -156,7 +154,10 @@ jobs:
             --config.mac.hardenedRuntime=true 
             --config.mac.gatekeeperAssess=false 
             --config.mac.entitlements=build/entitlements.mac.plist 
-            --config.mac.entitlementsInherit=build/entitlements.mac.plist' ||
+            --config.mac.entitlementsInherit=build/entitlements.mac.plist
+            --config.mac.notarize.teamId=${{ secrets.APPLE_TEAM_ID }}
+            --config.mac.notarize.appleId=${{ secrets.APPLE_ID }}
+            --config.mac.notarize.appleIdPassword=${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}' ||
                 matrix.os == 'windows-latest' && '--win' ||
                 matrix.os == 'ubuntu-latest' && '--linux' }}
 
