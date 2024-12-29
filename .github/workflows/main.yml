@@ -60,13 +60,13 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
           
           echo "Verifying import..."
-          security find-identity -v -p codesigning build.keychain
+          security find-identity -v -p codesigning build.keychain || { echo "No valid signing identity found"; exit 1; }
           
           echo "Setting key partition list..."
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
-          echo "Verifying certificate..."
-          security verify-cert -c certificate.p12 -p "$P12_PASSWORD" || { echo "Certificate verification failed"; exit 1; }
+          echo "Testing codesign access..."
+          security find-certificate -a -c "Developer ID Application" build.keychain || { echo "Developer ID certificate not found"; exit 1; }
 
           echo "Cleaning up..."
           rm certificate.p12
@@ -81,8 +81,10 @@ jobs:
           security list-keychains
           security default-keychain
           
-          echo "=== Certificate Details ==="
-          security find-certificate -a -c "Developer ID Application" -p | openssl x509 -text -noout || echo "No Developer ID Application certificate found"
+          echo "=== Testing Codesign ==="
+          echo "test" > dummy.txt
+          codesign -s "Developer ID Application" --timestamp dummy.txt || echo "Codesign test failed"
+          rm dummy.txt
 
       - name: Install Node.js
         uses: actions/setup-node@v3
