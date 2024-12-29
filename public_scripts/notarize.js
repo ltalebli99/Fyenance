@@ -18,6 +18,9 @@ exports.default = async function notarizing(context) {
   });
 
   try {
+    console.log('Starting notarization...');
+    console.log(`Uploading ${appPath} to Apple's notary service...`);
+    
     await notarize({
       tool: "notarytool",
       appBundleId: 'com.fyenance.app',
@@ -27,7 +30,8 @@ exports.default = async function notarizing(context) {
       appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
       verbose: true
     });
-    console.log('✅ Notarization complete!');
+    
+    console.log('✅ Notarization complete and successful!');
   } catch (error) {
     console.error('❌ Notarization failed:', error);
     throw error;
