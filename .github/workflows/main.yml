@@ -93,6 +93,18 @@ jobs:
           fi
           echo "✅ All required Apple credentials are available"
         
+      - name: Debug Notarization Setup
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Checking notarization setup..."
+          echo "Notarize script exists: $(ls -l public_scripts/notarize.js || echo 'NOT FOUND')"
+          echo "Script contents:"
+          cat public_scripts/notarize.js
+          echo "Environment variables set:"
+          echo "APPLE_ID: ${{ secrets.APPLE_ID != '' }}"
+          echo "APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}"
+          echo "APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD != '' }}"
+
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         env:
