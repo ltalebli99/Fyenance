@@ -110,6 +110,18 @@ jobs:
           echo "APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}"
           echo "APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD != '' }}"
 
+      - name: Debug Apple Credentials
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Team ID length: ${#APPLE_TEAM_ID}"
+          # Print first and last character of Team ID for verification without exposing it
+          echo "Team ID starts with: ${APPLE_TEAM_ID:0:1}... ends with: ${APPLE_TEAM_ID: -1}"
+          # Verify Apple ID domain
+          echo "Apple ID domain: $(echo $APPLE_ID | cut -d'@' -f2)"
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         env:
@@ -117,13 +129,16 @@ jobs:
           CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           
-          # Notarization
+          # Notarization - try both variable names
           APPLE_ID: ${{ secrets.APPLE_ID }}
+          ASC_APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          ASC_PROVIDER: ${{ secrets.APPLE_TEAM_ID }}
           
           # Add debug logging
-          DEBUG: electron-builder,electron-notarize*
+          DEBUG: electron-builder,electron-notarize*,notarization
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
@@ -132,6 +147,7 @@ jobs:
           args: >
             --config.appId=com.fyenance.app
             --config.productName=Fyenance
+            --config.mac.notarize.teamId=${{ secrets.APPLE_TEAM_ID }}
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12 --config.mac.hardenedRuntime=true --config.mac.gatekeeperAssess=false --config.mac.entitlements=build/entitlements.mac.plist --config.mac.entitlementsInherit=build/entitlements.mac.plist' ||
                 matrix.os == 'windows-latest' && '--win' ||
                 matrix.os == 'ubuntu-latest' && '--linux' }}
