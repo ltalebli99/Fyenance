@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  prepare-release:
+  get-version:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get-version.outputs.version }}
@@ -20,17 +20,9 @@ jobs:
         id: get-version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Create or Update Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.get-version.outputs.version }}
-          name: Release ${{ steps.get-version.outputs.version }}
-          draft: false
-          prerelease: false
-          token: ${{ secrets.GH_TOKEN }}
-
   build:
-    needs: prepare-release
+    needs: get-version
+    timeout-minutes: 180
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
@@ -93,13 +85,14 @@ jobs:
           APPLEID: ${{ secrets.APPLE_ID }}
           APPLEIDPASS: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ELECTRON_BUILDER_TIMEOUT: 3600000
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          release: true
+          release: false
           mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
-            --publish always
+            --config.compression=store
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
                 matrix.os == 'ubuntu-latest' && '--linux --config.productName="Fyenance"' }}
@@ -134,3 +127,86 @@ jobs:
           file-digest: "SHA256"
           timestamp-rfc3161: "http://timestamp.acs.microsoft.com"
           timestamp-digest: "SHA256"
+      - name: Notarize macOS Build
+        if: matrix.os == 'macos-latest'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Store notarization credentials
+          xcrun notarytool store-credentials "notarytool-profile" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+          
+          # Function to notarize with retries
+          notarize_with_retry() {
+            local file_pattern=$1
+            local max_attempts=3
+            local attempt=1
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts to notarize $(basename $file_pattern)..."
+              
+              # Find the actual file
+              local file_to_notarize=$(ls $file_pattern)
+              if [ -z "$file_to_notarize" ]; then
+                echo "Error: No file found matching pattern: $file_pattern"
+                return 1
+              fi
+              
+              # Submit for notarization with a 30-minute timeout
+              timeout 1800 xcrun notarytool submit "$file_to_notarize" \
+                --keychain-profile "notarytool-profile" \
+                --wait
+              
+              if [ $? -eq 0 ]; then
+                echo "Notarization successful for $(basename $file_to_notarize)"
+                return 0
+              fi
+              
+              echo "Notarization attempt $attempt failed, waiting 60 seconds before retry..."
+              sleep 60
+              ((attempt++))
+            done
+            
+            echo "All notarization attempts failed for $(basename $file_pattern)"
+            return 1
+          }
+          
+          # Notarize DMG
+          notarize_with_retry "./dist/Fyenance-*.dmg" || exit 1
+          
+          # Notarize ZIP
+          notarize_with_retry "./dist/Fyenance-*.zip" || exit 1
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: dist/
+          retention-days: 1  # We only need these temporarily until the release is created
+
+  create-release:
+    needs: [get-version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Download artifacts from build jobs (you'll need to upload them in the build job)
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: dist
+
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.get-version.outputs.version }}
+          name: Release ${{ needs.get-version.outputs.version }}
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GH_TOKEN }}
+          files: dist/**/*  # Upload all files from the dist directory
+
