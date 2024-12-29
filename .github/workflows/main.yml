@@ -151,20 +151,18 @@ jobs:
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         env:
-          # Signing
-          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          
-          # Notarization - try both variable names
+          # Standard notarization vars
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          ASC_APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          
+          # Alternate variable names that some tools expect
+          ASC_APPLE_ID: ${{ secrets.APPLE_ID }}
+          ASC_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           ASC_PROVIDER: ${{ secrets.APPLE_TEAM_ID }}
           
-          # Add debug logging
-          DEBUG: electron-builder,electron-notarize*,notarization
+          # Enable debug logging
+          DEBUG: electron-builder,@electron/notarize*
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
