@@ -113,7 +113,6 @@ jobs:
           mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
-            --config.afterSign=./public_scripts/notarize.js
             --config.appId=com.fyenance.app
             --config.productName=Fyenance
             --config.mac.hardenedRuntime=true
