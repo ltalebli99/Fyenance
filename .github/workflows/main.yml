@@ -118,6 +118,9 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          
+          # Add debug logging
+          DEBUG: electron-builder,electron-notarize*
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false

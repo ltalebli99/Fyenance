@@ -61,10 +61,7 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "${process.env.APPLE_TEAM_ID}"
-      }
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
       "icon": "assets/images/favicon.ico",
