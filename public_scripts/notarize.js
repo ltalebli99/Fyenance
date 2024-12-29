@@ -19,11 +19,13 @@ exports.default = async function notarizing(context) {
 
   try {
     await notarize({
+      tool: "notarytool",
       appBundleId: 'com.fyenance.app',
       appPath,
+      teamId: process.env.APPLE_TEAM_ID,
       appleId: process.env.APPLE_ID,
       appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-      teamId: process.env.APPLE_TEAM_ID,
+      verbose: true
     });
     console.log('✅ Notarization complete!');
   } catch (error) {
