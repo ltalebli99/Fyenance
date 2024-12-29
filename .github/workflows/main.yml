@@ -75,6 +75,24 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: npm install --save-dev dmg-license
 
+      - name: Check Apple credentials
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Checking required Apple notarization credentials..."
+          if [ -z "${{ secrets.APPLE_ID }}" ]; then
+            echo "❌ APPLE_ID is not set!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.APPLE_TEAM_ID }}" ]; then
+            echo "❌ APPLE_TEAM_ID is not set!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" ]; then
+            echo "❌ APPLE_APP_SPECIFIC_PASSWORD is not set!"
+            exit 1
+          fi
+          echo "✅ All required Apple credentials are available"
+        
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         env:
@@ -84,10 +102,10 @@ jobs:
           
           # Notarization
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           
-          # Debug flags
+          # Debug logging
           DEBUG: electron-builder,electron-notarize
         with:
           github_token: ${{ secrets.GH_TOKEN }}
