@@ -104,8 +104,6 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          # Add debug logging
-          DEBUG: electron-builder
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
@@ -118,11 +116,6 @@ jobs:
             --config.mac.gatekeeperAssess=false
             --config.mac.entitlements=build/entitlements.mac.plist
             --config.mac.entitlementsInherit=build/entitlements.mac.plist
-            --config.mac.notarize.tool=notarytool
-            --config.mac.notarize.appBundleId=com.fyenance.app
-            --config.mac.notarize.appleId=${{ secrets.APPLE_ID }}
-            --config.mac.notarize.appleIdPassword=${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-            --config.mac.notarize.teamId=${{ secrets.APPLE_TEAM_ID }}
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
                 matrix.os == 'ubuntu-latest' && '--linux --config.productName="Fyenance"' }}

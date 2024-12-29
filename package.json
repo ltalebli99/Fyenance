@@ -33,7 +33,7 @@
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^33.2.1",
-    "electron-builder": "^24.9.1",
+    "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
     "@electron/notarize": "^2.2.0"
   },
@@ -62,9 +62,7 @@
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "${env.APPLE_TEAM_ID}"
-      }
+      "notarize": true
     },
     "win": {
       "icon": "assets/images/favicon.ico",
@@ -117,7 +115,8 @@
       "private": true,
       "releaseType": "release",
       "publishAutoUpdate": true
-    }
+    },
+    "afterSign": "public_scripts/notarize.js"
   },
   "homepage": "https://www.metromagic.io",
   "icon": "assets/images/fyenance.png",
