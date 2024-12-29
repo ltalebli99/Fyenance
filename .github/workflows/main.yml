@@ -108,15 +108,17 @@ jobs:
             --team-id "${{ secrets.APPLE_TEAM_ID }}" \
             --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
           
-          # Test with a simple submission list command
-          xcrun notarytool history --keychain "notary-credentials"
+          echo "Testing stored credentials..."
+          # Test with history command using keychain-profile
+          xcrun notarytool history --keychain-profile "notary-credentials"
           
           if [ $? -eq 0 ]; then
             echo "✅ Authentication and access verified!"
-            # Print the version of notarytool for debugging
+            echo "Notarytool version:"
             xcrun notarytool --version
           else
             echo "❌ Access verification failed!"
+            echo "Available commands:"
             xcrun notarytool --help
             exit 1
           fi
