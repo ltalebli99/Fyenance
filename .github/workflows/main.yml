@@ -190,6 +190,15 @@ jobs:
           path: dist/
           retention-days: 1  # We only need these temporarily until the release is created
 
+      - name: Test Notarization Access
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Testing notarization access..."
+          xcrun notarytool info \
+            --apple-id "${{ secrets.APPLE_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}"
+
   create-release:
     needs: [get-version, build]
     runs-on: ubuntu-latest
