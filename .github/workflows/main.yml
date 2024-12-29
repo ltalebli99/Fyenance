@@ -102,10 +102,17 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           echo "Testing notarization access..."
-          xcrun notarytool info \
+          xcrun notarytool authenticate \
             --apple-id "${{ secrets.APPLE_ID }}" \
             --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
             --team-id "${{ secrets.APPLE_TEAM_ID }}"
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Authentication successful!"
+          else
+            echo "❌ Authentication failed!"
+            exit 1
+          fi
 
       # Add debug info about the notarization setup
       - name: Debug Notarization Setup
