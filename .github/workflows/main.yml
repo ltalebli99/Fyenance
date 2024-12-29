@@ -15,7 +15,6 @@ jobs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
       - uses: actions/checkout@v3
-      
       - name: Get version from package.json
         id: get-version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
@@ -44,13 +43,11 @@ jobs:
           P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
         run: |
-          echo "Creating temporary keychain..."
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
 
-          echo "Decoding and saving certificate..."
           echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
           
           echo "Verifying certificate..."
@@ -70,21 +67,6 @@ jobs:
 
           echo "Cleaning up..."
           rm certificate.p12
-
-      - name: Verify Certificate Setup
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "=== Signing Identities ==="
-          security find-identity -v -p codesigning
-          
-          echo "=== Keychain Status ==="
-          security list-keychains
-          security default-keychain
-          
-          echo "=== Testing Codesign ==="
-          echo "test" > dummy.txt
-          codesign -s "Developer ID Application" --timestamp dummy.txt || echo "Codesign test failed"
-          rm dummy.txt
 
       - name: Install Node.js
         uses: actions/setup-node@v3
@@ -113,48 +95,20 @@ jobs:
         uses: samuelmeuli/action-electron-builder@v1
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          DEBUG: electron-notarize*
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          NOTARIZE_APPLE_ID: ${{ secrets.APPLE_ID }}
-          NOTARIZE_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          NOTARIZE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          DEBUG: electron-builder,electron-notarize*
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
           mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
-            --config.appId=com.fyenance.app
-            --config.productName=Fyenance
-            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 
-            --config.mac.target=dmg 
-            --config.mac.target=zip 
-            --config.mac.minimumSystemVersion=10.12 
-            --config.mac.hardenedRuntime=true 
-            --config.mac.gatekeeperAssess=false 
-            --config.mac.entitlements=build/entitlements.mac.plist 
-            --config.mac.entitlementsInherit=build/entitlements.mac.plist
-            --config.mac.notarize.teamId=${{ secrets.APPLE_TEAM_ID }}
-            --config.mac.notarize.appleId=${{ secrets.APPLE_ID }}
-            --config.mac.notarize.appleIdPassword=${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}' ||
+            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --debug' ||
                 matrix.os == 'windows-latest' && '--win' ||
                 matrix.os == 'ubuntu-latest' && '--linux' }}
-
-      # Add a verification step before notarization
-      - name: Verify Apple Developer Credentials
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "Testing Apple ID authentication..."
-          xcrun altool --list-providers -u "${{ secrets.APPLE_ID }}" -p "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" || echo "Failed to authenticate with Apple ID"
-          
-          echo "Verifying Team ID..."
-          xcrun altool --list-providers -u "${{ secrets.APPLE_ID }}" -p "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" | grep "${{ secrets.APPLE_TEAM_ID }}" || echo "Team ID not found"
-          
-          echo "Testing notarytool access..."
-          xcrun notarytool info --apple-id "${{ secrets.APPLE_ID }}" --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" --team-id "${{ secrets.APPLE_TEAM_ID }}" || echo "Notarytool access failed"
 
       - name: Sign Windows Build
         if: matrix.os == 'windows-latest'
@@ -167,7 +121,7 @@ jobs:
           trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
           certificate-profile-name: ${{ secrets.AZURE_CERTIFICATE_PROFILE }}
           files-folder: ${{ github.workspace }}/dist/win-unpacked
-          files-folder-filter: "exe,dll"  # Only sign executables and DLLs
+          files-folder-filter: "exe,dll"
           file-digest: "SHA256"
           timestamp-rfc3161: "http://timestamp.acs.microsoft.com"
           timestamp-digest: "SHA256"
@@ -193,7 +147,7 @@ jobs:
         with:
           name: ${{ matrix.os }}-artifacts
           path: dist/
-          retention-days: 1  # We only need these temporarily until the release is created
+          retention-days: 1
 
   create-release:
     needs: [get-version, build]
@@ -206,7 +160,6 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           path: dist
-
       - name: Create or Update Release
         uses: softprops/action-gh-release@v1
         with:
@@ -215,5 +168,5 @@ jobs:
           draft: false
           prerelease: false
           token: ${{ secrets.GH_TOKEN }}
-          files: dist/**/*  # Upload all files from the dist directory
+          files: dist/**/*
 
