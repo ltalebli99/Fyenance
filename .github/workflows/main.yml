@@ -83,19 +83,19 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           
           # Notarization
-          APPLEID: ${{ secrets.APPLE_ID }}
-          APPLEIDPASS: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           
           # Debug flags
-          DEBUG: 'electron-builder'
-          ELECTRON_BUILDER_EXTRA_ARGS: '--debug'
+          DEBUG: electron-builder,electron-notarize
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
           mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
+            --config.afterSign=./public_scripts/notarize.js
             --config.compression=store
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
