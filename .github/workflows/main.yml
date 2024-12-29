@@ -78,14 +78,18 @@ jobs:
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         env:
-          # Required for signing
+          # Signing
           CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          # Required for notarization
+          
+          # Notarization
           APPLEID: ${{ secrets.APPLE_ID }}
           APPLEIDPASS: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ELECTRON_BUILDER_TIMEOUT: 3600000
+          
+          # Debug flags
+          DEBUG: 'electron-builder'
+          ELECTRON_BUILDER_EXTRA_ARGS: '--debug'
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
