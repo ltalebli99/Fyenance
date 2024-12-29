@@ -102,17 +102,19 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           echo "Testing notarization access..."
+          # Store credentials
           xcrun notarytool store-credentials "notary-credentials" \
             --apple-id "${{ secrets.APPLE_ID }}" \
             --team-id "${{ secrets.APPLE_TEAM_ID }}" \
             --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
           
+          # Test with a simple submission list command
+          xcrun notarytool submission list --keychain-profile "notary-credentials"
+          
           if [ $? -eq 0 ]; then
-            echo "✅ Authentication successful!"
-            # Test the stored credentials
-            xcrun notarytool environment
+            echo "✅ Authentication and access verified!"
           else
-            echo "❌ Authentication failed!"
+            echo "❌ Access verification failed!"
             exit 1
           fi
 
