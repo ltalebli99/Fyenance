@@ -115,8 +115,7 @@
       "private": true,
       "releaseType": "release",
       "publishAutoUpdate": true
-    },
-    "afterSign": "public_scripts/notarize.js"
+    }
   },
   "homepage": "https://www.metromagic.io",
   "icon": "assets/images/fyenance.png"
