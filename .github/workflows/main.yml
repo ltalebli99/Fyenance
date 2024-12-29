@@ -104,13 +104,6 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          
-          # Additional notarization settings
-          NOTARIZE_TOOL_PATH: "/usr/bin/xcrun"
-          NOTARIZE_TOOL_ARGS: "--verbose"
-          
-          # Debug logging
-          DEBUG: "electron-builder,electron-notarize*,notarize"
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           release: false
