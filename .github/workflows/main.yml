@@ -75,7 +75,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           npm install --save-dev dmg-license
-          npm install --save-dev @electron/notarize@2.5.0
+          npm install --save-dev @electron/notarize@2.3.2
+          npm ls @electron/notarize  # Debug: verify installed version
 
       - name: Check Apple credentials
         if: matrix.os == 'macos-latest'
