@@ -35,7 +35,7 @@
     "electron": "^33.2.1",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
-    "@electron/notarize": "^2.5.0"
+    "@electron/notarize": "^2.2.0"
   },
   "build": {
     "appId": "com.fyenance.app",
@@ -122,6 +122,6 @@
   "homepage": "https://www.metromagic.io",
   "icon": "assets/images/fyenance.png",
   "resolutions": {
-    "@electron/notarize": "2.5.0"
+    "@electron/notarize": "2.2.0"
   }
 }
