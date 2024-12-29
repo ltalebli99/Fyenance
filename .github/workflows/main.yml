@@ -97,10 +97,11 @@ jobs:
           args: >
             --config.afterSign=./public_scripts/notarize.js
             --config.appId=com.fyenance.app
-            --config.mac.notarize.appBundleId=com.fyenance.app
-            --config.mac.notarize.appleId=${{ secrets.APPLE_ID }}
-            --config.mac.notarize.appleIdPassword=${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-            --config.mac.notarize.teamId=${{ secrets.APPLE_TEAM_ID }}
+            --config.productName=Fyenance
+            --config.mac.hardenedRuntime=true
+            --config.mac.gatekeeperAssess=false
+            --config.mac.entitlements=build/entitlements.mac.plist
+            --config.mac.entitlementsInherit=build/entitlements.mac.plist
             --config.compression=store
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
