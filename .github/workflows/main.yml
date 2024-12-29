@@ -52,11 +52,38 @@ jobs:
 
           # Import certificate to keychain
           echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
-          security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          
+          # Verify certificate before importing
+          openssl pkcs12 -in certificate.p12 -noout -info -passin pass:"$P12_PASSWORD" || { echo "Certificate validation failed"; exit 1; }
+          
+          # Import with verbose logging
+          security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign -v
+          
+          # List certificates to verify import
+          security find-identity -v -p codesigning build.keychain
+          
+          # Set key partition list with verbose output
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain -v
+
+          # Verify codesign is working
+          security verify-cert -c certificate.p12 -p "$P12_PASSWORD" || { echo "Certificate verification failed"; exit 1; }
 
           # Clean up
           rm certificate.p12
+
+      # Add a verification step after certificate installation
+      - name: Verify Certificate Setup
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Listing available signing identities:"
+          security find-identity -v -p codesigning
+          
+          echo "Checking keychain status:"
+          security list-keychains
+          security default-keychain
+          
+          echo "Verifying codesign configuration:"
+          codesign --display --verbose=4 /usr/bin/codesign
 
       - name: Install Node.js
         uses: actions/setup-node@v3
