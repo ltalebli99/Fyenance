@@ -33,7 +33,7 @@
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^33.2.1",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^24.9.1",
     "electron-rebuild": "^3.2.9",
     "@electron/notarize": "^2.2.0"
   },
