@@ -109,6 +109,29 @@ jobs:
           npm ls electron-builder  # Debug: verify installed version
           npm ls @electron/notarize  # Debug: verify installed version
 
+      - name: Test Notarization Setup
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "=== Testing Apple Developer Authentication ==="
+          # Test basic authentication
+          xcrun notarytool environment \
+            --apple-id "${{ secrets.APPLE_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}" || echo "Basic auth failed"
+
+          echo "=== Testing with altool ==="
+          # Test with legacy tool as fallback
+          xcrun altool --list-providers \
+            --username "${{ secrets.APPLE_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" || echo "Altool auth failed"
+
+          echo "=== Checking Team ID Access ==="
+          # Get list of accessible teams
+          xcrun altool --list-providers \
+            --username "${{ secrets.APPLE_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --output-format json || echo "Failed to list teams"
+
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         env:
