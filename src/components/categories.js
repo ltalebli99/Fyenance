@@ -1,8 +1,7 @@
 import { capitalizeFirstLetter, getAmountValue, formatInitialAmount, initializeAmountInput } from '../utils/formatters.js';
 import { openModal, closeModal, showError } from '../utils/utils.js';
 import { debounce, positionFilterPanel } from '../utils/filters.js';
-import { fetchCategories } from '../services/categoriesService.js';
-import { createDefaultCategories } from '../services/categoriesService.js';
+import { fetchCategories, createDefaultCategories, categoriesPagination } from '../services/categoriesService.js';
 import { refreshData } from '../utils/refresh.js';
 import { resetFormAndInputs } from '../utils/initInputs.js';
 import { showDeleteConfirmationModal } from '../utils/modals.js';
@@ -149,16 +148,19 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
   
     try {
       const { error } = await window.databaseApi.addCategory(newCategory);
-      if (error) throw error;
+      if (error) {
+        showError(error.message || 'Failed to add category');
+        return;
+      }
   
       resetFormAndInputs(addCategoryForm);
-      // Close modal and refresh data
       closeModal('add-category-modal');
       await refreshData({
         all: true
       });
     } catch (error) {
       console.error('Error adding category:', error);
+      showError('Failed to add category');
     }
   });
   
@@ -292,26 +294,14 @@ function initializeCategoryFilters() {
   });
 
   // Search input handler with debounce
-  searchInput?.addEventListener('input', debounce(async (e) => {
-    const filters = {
-      type: document.getElementById('category-type-filter')?.value || 'all',
-      usage: document.getElementById('category-usage-filter')?.value || 'all',
-      sort: document.getElementById('category-sort')?.value || 'name-asc',
-      search: e.target.value
-    };
-    await fetchCategories(filters);
+  searchInput?.addEventListener('input', debounce(async () => {
+    await handleCategoriesFilterChange();
   }, 300));
 
   // Individual filter change handlers
   ['category-type-filter', 'category-usage-filter', 'category-sort'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', async () => {
-      const filters = {
-        type: document.getElementById('category-type-filter')?.value || 'all',
-        usage: document.getElementById('category-usage-filter')?.value || 'all',
-        sort: document.getElementById('category-sort')?.value || 'name-asc',
-        search: searchInput?.value || ''
-      };
-      await fetchCategories(filters);
+      await handleCategoriesFilterChange();
     });
   });
 }
@@ -334,5 +324,36 @@ export async function deleteCategory(id) {
             }
         }
     });
+}
+  
+export async function handleCategoriesFilterChange() {
+  // Initialize pagination if not already done
+  if (!categoriesPagination) {
+    categoriesPagination = new TablePagination('categories-table-body', {
+      itemsPerPage: 10,
+      onPageChange: async (page) => {
+        const filters = getCurrentFilters();
+        await fetchCategories(filters);
+      }
+    });
+  }
+
+  const filters = getCurrentFilters();
+  
+  // Reset to first page when filters change
+  categoriesPagination.currentPage = 1;
+  await fetchCategories(filters);
+}
+
+// Add helper function to get current filters
+function getCurrentFilters() {
+  return {
+    type: document.getElementById('category-type-filter')?.value || 'all',
+    usage: document.getElementById('category-usage-filter')?.value || 'all',
+    sort: document.getElementById('category-sort')?.value || 'name-asc',
+    search: document.querySelector('#Categories .search-input')?.value || '',
+    limit: categoriesPagination?.getLimit() || 10,
+    offset: categoriesPagination?.getOffset() || 0
+  };
 }
   

@@ -80,6 +80,9 @@ export async function fetchTransactions(filters = {}) {
       });
     }
 
+    // Get total count before pagination
+    const totalCount = filteredData.length;
+
     // Apply sorting
     const [field, direction] = safeFilters.sort.split('-');
     filteredData.sort((a, b) => {
@@ -102,9 +105,6 @@ export async function fetchTransactions(filters = {}) {
       }
       return direction === 'asc' ? comparison : -comparison;
     });
-
-    // Get total count before pagination
-    const totalCount = filteredData.length;
 
     // Apply pagination
     filteredData = filteredData.slice(safeFilters.offset, safeFilters.offset + safeFilters.limit);

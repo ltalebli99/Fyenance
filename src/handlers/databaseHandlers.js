@@ -462,8 +462,11 @@ function setupDatabaseHandlers(database, backupService) {
     }
   });
 
-  safeIpcHandle('db:addTransactionProjects', async (event, { transactionId, projectIds }) => {
+  safeIpcHandle('db:addTransactionProjects', async (event, transactionId, projectIds) => {
     try {
+      if (!transactionId || !Array.isArray(projectIds)) {
+          throw new Error('Missing required parameters');
+      }
       database.addTransactionProjects(transactionId, projectIds);
       return { data: true, error: null };
     } catch (error) {
@@ -471,12 +474,15 @@ function setupDatabaseHandlers(database, backupService) {
     }
   });
 
-  safeIpcHandle('db:updateTransactionProjects', async (event, { transactionId, projectIds }) => {
+  safeIpcHandle('db:updateTransactionProjects', async (event, transactionId, projectIds) => {
     try {
-      database.updateTransactionProjects(transactionId, projectIds);
-      return { data: true, error: null };
+        if (!transactionId || !Array.isArray(projectIds)) {
+            throw new Error('Missing required parameters');
+        }
+        database.updateTransactionProjects(transactionId, projectIds);
+        return { data: true, error: null };
     } catch (error) {
-      return { data: null, error: error.message };
+        return { data: null, error: error.message };
     }
   });
 
@@ -542,6 +548,24 @@ function setupDatabaseHandlers(database, backupService) {
         return result;
     } catch (error) {
         return { success: false, error: error.message };
+    }
+  });
+
+  safeIpcHandle('db:removeTransactionFromProject', async (event, transactionId, projectId) => {
+    try {
+      const result = database.removeTransactionFromProject(transactionId, projectId);
+      return { data: result, error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
+    }
+  });
+
+  safeIpcHandle('db:removeRecurringFromProject', async (event, recurringId, projectId) => {
+    try {
+      const result = database.removeRecurringFromProject(recurringId, projectId);
+      return { data: result, error: null };
+    } catch (error) {
+      return { data: null, error: error.message };
     }
   });
 }

@@ -74,26 +74,6 @@ export async function toggleRecurringStatus(id, newStatus, item) {
         showError('Failed to update recurring status');
     }
 }
-  
-export async function deleteRecurring(id) {
-    showDeleteConfirmationModal({
-        title: 'Delete Recurring Transaction',
-        message: 'Are you sure you want to delete this recurring transaction?',
-        onConfirm: async () => {
-            try {
-                const { error } = await window.databaseApi.deleteRecurring(id);
-                if (error) throw error;
-                
-                await refreshData({
-                    all: true
-                });
-            } catch (error) {
-                console.error('Error deleting recurring transaction:', error);
-                showError('Failed to delete recurring transaction');
-            }
-        }
-    });
-}
 
 
 // Add recurring form handler
@@ -461,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Add the filter handling function
-async function handleRecurringFiltersChange() {
+export async function handleRecurringFiltersChange() {
   // Initialize pagination if not already done
   if (!recurringPagination) {
     recurringPagination = new TablePagination('recurring-table-body', {
@@ -543,4 +523,21 @@ function formatDateForDatabase(dateString) {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return null;
     return date.toISOString().split('T')[0];
+}
+
+export async function deleteRecurring(id) {
+    try {
+        const { error } = await window.databaseApi.deleteRecurring(id);
+        if (error) throw error;
+        
+        await refreshData({
+            all: true
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting recurring transaction:', error);
+        showError('Failed to delete recurring transaction');
+        return { success: false, error: error.message };
+    }
 }

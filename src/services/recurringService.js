@@ -1,5 +1,5 @@
 import { formatCurrency, capitalizeFirstLetter, formatDateForDisplay } from '../utils/formatters.js';
-import { showEditRecurringForm, toggleRecurringStatus } from '../components/recurring.js';
+import { showEditRecurringForm, deleteRecurring } from '../components/recurring.js';
 import { showDeleteConfirmationModal } from '../utils/modals.js';
 import { TablePagination } from '../utils/pagination.js';
 import { parseSearchDate, isSameDay, monthMappings } from '../utils/dateSearch.js';
@@ -286,7 +286,7 @@ export async function fetchRecurring(accountId = null, filters = {}) {
                 row.innerHTML = `
                     <td>${item.name}</td>
                     <td class="${item.type === 'income' ? 'positive' : 'negative'}">
-                        ${formatCurrency(item.amount)}
+                        ${item.type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(item.amount))}
                     </td>
                     <td>${capitalizeFirstLetter(item.type)}</td>
                     <td>${item.category_name || 'Uncategorized'}</td>
@@ -339,7 +339,13 @@ export async function fetchRecurring(accountId = null, filters = {}) {
                         title: 'Delete Recurring Transaction',
                         message: 'Are you sure you want to delete this recurring transaction?',
                         onConfirm: async () => {
-                            await deleteRecurring(item.id);
+                            try {
+                                const result = await deleteRecurring(item.id);
+                                if (!result.success) throw new Error(result.error);
+                            } catch (error) {
+                                console.error('Error deleting recurring:', error);
+                                showError('Failed to delete recurring transaction');
+                            }
                         }
                     });
                 });

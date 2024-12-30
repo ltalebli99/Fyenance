@@ -110,6 +110,7 @@ export function initializeProjects() {
     document.getElementById('close-project-details-btn')?.addEventListener('click', () => {
         closeModal('project-details-modal');
     });
+    
 
     // Add event listener for edit project button
     document.getElementById('edit-project-btn')?.addEventListener('click', async (e) => {

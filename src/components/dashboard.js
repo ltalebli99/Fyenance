@@ -4,10 +4,11 @@ export async function updateBannerData(accountId = 'all') {
   try {
     // Get net worth for specific account(s)
     const { data: netWorth } = await window.databaseApi.getNetWorth(accountId);
-    document.getElementById('total-net-worth').textContent = formatCurrency(netWorth || 0);
+    document.getElementById('total-net-worth').textContent = `${netWorth >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netWorth || 0))}`;
 
     // Get monthly comparison for specific account(s)
     const { data: monthlyComparison } = await window.databaseApi.getMonthlyComparison(accountId);
+    console.log("Monthly Comparison: ", monthlyComparison);
     
     if (monthlyComparison && typeof monthlyComparison.percentChange === 'number') {
       const trendText = monthlyComparison.trend === 'lower' ? 'lower' : 'higher';

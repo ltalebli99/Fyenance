@@ -29,7 +29,9 @@ class LicenseService {
 
       const response = await axios.post('https://api.fyenanceapp.com/v1/validate-license', {
         licenseKey,
-        machineId: this.generateMachineId()
+        machineId: this.generateMachineId(),
+        version: app.getVersion(),
+        lastSignin: new Date().toISOString()
       });
 
       console.log('Validation response:', response.data);
@@ -99,7 +101,9 @@ class LicenseService {
         try {
           const response = await axios.post('https://api.fyenanceapp.com/v1/validate-license', {
             licenseKey: licenseData.key,
-            machineId: currentMachineId
+            machineId: currentMachineId,
+            version: app.getVersion(),
+            lastSignin: new Date().toISOString()
           });
           
           console.log('Server validation response:', response.data);

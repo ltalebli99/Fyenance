@@ -2456,3 +2456,33 @@
   flex: 1;
   overflow: auto;
 }
+
+.last-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tx-date {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.tx-amount {
+  font-weight: 500;
+}
+
+.tx-name {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.recurring-text {
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.recurring-text i {
+  font-size: 0.8em;
+  margin-right: 2px;
+}

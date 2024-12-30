@@ -130,20 +130,60 @@ export async function showProjectDetails(projectId) {
             recurringList.innerHTML = project.recurring.map(rec => `
                 <div class="transaction-item">
                     <div class="transaction-info">
-                        <div class="transaction-name">${rec.name || rec.description}</div>
+                        <div class="transaction-name">${rec.description}</div>
                         <div class="transaction-details">
-                            <span class="category">${rec.category_name || 'Uncategorized'}</span> | 
-                            <span class="frequency">${capitalizeFirstLetter(rec.frequency)}</span>
+                            <div class="transaction-meta-row">
+                                <span class="category">${rec.category_name || 'Uncategorized'}</span>
+                                ${rec.frequency ? `<span class="frequency">${capitalizeFirstLetter(rec.frequency)}</span>` : ''}
+                            </div>
+                            <div class="recurring-stats">
+                                ${rec.occurrence_count ? `
+                                    <span class="occurrence-count">${rec.occurrence_count} ${rec.occurrence_count === 1 ? 'time' : 'times'}</span>
+                                ` : ''}
+                                ${rec.last_occurrence ? `
+                                    <span class="last-occurrence">${formatDate(rec.last_occurrence)}</span>
+                                ` : ''}
+                                ${rec.next_occurrence ? `
+                                    <span class="next-occurrence">${formatDate(rec.next_occurrence)}</span>
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
-                    <div class="amount ${rec.type}">
-                        ${rec.type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(rec.amount))}
+                    <div class="transaction-actions">
+                        <div class="amount ${rec.type}">
+                            ${rec.type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(rec.amount))}
+                        </div>
+                        <button class="action-btn delete-btn" data-id="${rec.id}" title="Remove from project">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
             `).join('');
         } else {
             recurringList.innerHTML = '<div class="empty-message">No recurring transactions</div>';
         }
+
+        // Add event listeners for recurring delete buttons
+        recurringList.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const recId = btn.dataset.id;
+                
+                try {
+                    const { error } = await window.databaseApi.removeRecurringFromProject(recId, project.id);
+                    if (error) throw error;
+                    
+                    // Remove the recurring item from DOM
+                    btn.closest('.transaction-item').remove();
+                    
+                    // Refresh project data
+                    await refreshData({ projects: true });
+                } catch (err) {
+                    console.error('Error removing recurring from project:', err);
+                    showError('Failed to remove recurring from project');
+                }
+            });
+        });
 
         // Update transactions list
         const transactionsList = document.getElementById('project-transactions-list');
@@ -152,19 +192,46 @@ export async function showProjectDetails(projectId) {
                 <div class="transaction-item">
                     <div class="transaction-info">
                         <div class="transaction-name">${tx.description}</div>
-                        <div class="transaction-details">
-                            <span class="category">${tx.category_name || 'Uncategorized'}</span> | 
+                        <div class="transaction-meta">
+                            <span class="category">${tx.category_name || 'Uncategorized'}</span>
                             <span class="date">${formatDate(tx.date)}</span>
                         </div>
                     </div>
-                    <div class="amount ${tx.type}">
-                        ${tx.type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(tx.amount))}
+                    <div class="transaction-actions">
+                        <div class="transaction-amount ${tx.type}">
+                            ${tx.type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(tx.amount))}
+                        </div>
+                        <button class="action-btn delete-btn" data-id="${tx.id}" title="Remove from project">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
             `).join('');
         } else {
             transactionsList.innerHTML = '<div class="empty-message">No transactions yet</div>';
         }
+
+        // Add event listeners for delete buttons
+        transactionsList.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const txId = btn.dataset.id;
+                
+                try {
+                    const { error } = await window.databaseApi.removeTransactionFromProject(txId, project.id);
+                    if (error) throw error;
+                    
+                    // Remove the transaction item from DOM
+                    btn.closest('.transaction-item').remove();
+                    
+                    // Refresh project data
+                    await refreshData({ projects: true });
+                } catch (err) {
+                    console.error('Error removing transaction from project:', err);
+                    showError('Failed to remove transaction from project');
+                }
+            });
+        });
 
         // Set project ID on the edit and delete buttons
         const editBtn = document.getElementById('edit-project-btn');

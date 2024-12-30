@@ -235,19 +235,21 @@ class DatabaseService {
 
   addTransaction(transaction) {
     const stmt = this.db.prepare(`
-      INSERT INTO transactions (
-        account_id, category_id, type, amount, date, description
-      ) VALUES (?, ?, ?, ?, datetime(? || 'T00:00:00Z'), ?)
+        INSERT INTO transactions (
+            account_id, category_id, type, amount, date, description
+        ) VALUES (?, ?, ?, ?, datetime(? || 'T00:00:00Z'), ?)
     `);
     
-    return stmt.run(
-      transaction.account_id,
-      transaction.category_id,
-      transaction.type,
-      transaction.amount,
-      transaction.date,
-      transaction.description
+    const result = stmt.run(
+        transaction.account_id,
+        transaction.category_id,
+        transaction.type,
+        transaction.amount,
+        transaction.date,
+        transaction.description
     );
+
+    return result.lastInsertRowid;  // Return just the ID
   }
 
   updateTransaction(id, transaction) {
@@ -1417,6 +1419,43 @@ getCashFlowData(accountIds, period = 'month') {
 }
 
 getAllBudgetProgress(period = 'month') {
+    // Handle 'all' period
+    if (period === 'all') {
+        const query = `
+            WITH combined_expenses AS (
+                SELECT 
+                    t.category_id,
+                    SUM(t.amount) as amount,
+                    COUNT(*) as count,
+                    MIN(date) as first_transaction,
+                    MAX(date) as last_transaction
+                FROM transactions t
+                WHERE t.type = 'expense'
+                GROUP BY t.category_id
+            )
+            SELECT 
+                c.name as category_name,
+                c.budget_amount,
+                c.budget_frequency,
+                CASE c.budget_frequency
+                    WHEN 'yearly' THEN c.budget_amount
+                    WHEN 'monthly' THEN c.budget_amount * 12
+                    WHEN 'weekly' THEN c.budget_amount * 52
+                    WHEN 'daily' THEN c.budget_amount * 365
+                END as adjusted_budget,
+                COALESCE(ce.amount, 0) as spent,
+                COALESCE(ce.count, 0) as transaction_count
+            FROM categories c
+            LEFT JOIN combined_expenses ce ON c.id = ce.category_id
+            WHERE c.budget_amount IS NOT NULL
+                AND c.budget_frequency IS NOT NULL
+                AND c.budget_amount > 0
+            ORDER BY spent DESC`;
+
+        return this.db.prepare(query).all();
+    }
+
+    // Regular period handling
     let dateFilter;
     switch(period) {
         case 'year':
@@ -1434,6 +1473,8 @@ getAllBudgetProgress(period = 'month') {
         case 'day':
             dateFilter = "date = date('now')";
             break;
+        default:
+            dateFilter = "strftime('%Y-%m', date) = strftime('%Y-%m', 'now')";
     }
 
     const query = `
@@ -1502,41 +1543,7 @@ getAllBudgetProgress(period = 'month') {
             AND c.budget_frequency IS NOT NULL
             AND c.budget_amount > 0
         GROUP BY c.id, c.name
-        ORDER BY (COALESCE(SUM(ce.amount), 0) / 
-            CASE c.budget_frequency
-                WHEN 'yearly' THEN c.budget_amount / 365.0 * 
-                    CASE '${period}'
-                        WHEN 'year' THEN 365
-                        WHEN 'quarter' THEN 90
-                        WHEN 'month' THEN 30
-                        WHEN 'week' THEN 7
-                        WHEN 'day' THEN 1
-                    END
-                WHEN 'monthly' THEN c.budget_amount / 30.0 * 
-                    CASE '${period}'
-                        WHEN 'year' THEN 365
-                        WHEN 'quarter' THEN 90
-                        WHEN 'month' THEN 30
-                        WHEN 'week' THEN 7
-                        WHEN 'day' THEN 1
-                    END
-                WHEN 'weekly' THEN c.budget_amount / 7.0 * 
-                    CASE '${period}'
-                        WHEN 'year' THEN 365
-                        WHEN 'quarter' THEN 90
-                        WHEN 'month' THEN 30
-                        WHEN 'week' THEN 7
-                        WHEN 'day' THEN 1
-                    END
-                WHEN 'daily' THEN c.budget_amount * 
-                    CASE '${period}'
-                        WHEN 'year' THEN 365
-                        WHEN 'quarter' THEN 90
-                        WHEN 'month' THEN 30
-                        WHEN 'week' THEN 7
-                        WHEN 'day' THEN 1
-                    END
-            END) DESC`;
+        ORDER BY spent DESC`;
 
     return this.db.prepare(query).all();
 }
@@ -1625,7 +1632,45 @@ deleteProject(id) {
 
 getProjects() {
     const query = `
-        WITH project_totals AS (
+        WITH RECURSIVE 
+        date_range AS (
+            -- Generate date series from earliest start date to latest end date
+            SELECT MIN(COALESCE(t.date, r.start_date)) as date
+            FROM transactions t
+            LEFT JOIN project_transactions pt ON t.id = pt.transaction_id
+            LEFT JOIN recurring r ON r.is_active = 1
+            LEFT JOIN project_recurring pr ON r.id = pr.recurring_id
+            
+            UNION ALL
+            
+            SELECT date(date, '+1 day')
+            FROM date_range
+            WHERE date < (
+                SELECT MAX(COALESCE(t.date, COALESCE(r.end_date, date('now'))))
+                FROM transactions t
+                LEFT JOIN project_transactions pt ON t.id = pt.transaction_id
+                LEFT JOIN recurring r ON r.is_active = 1
+                LEFT JOIN project_recurring pr ON r.id = pr.recurring_id
+            )
+        ),
+        recurring_daily AS (
+            -- Calculate daily amounts for recurring transactions
+            SELECT 
+                pr.project_id,
+                r.type,
+                CASE r.frequency
+                    WHEN 'daily' THEN r.amount
+                    WHEN 'weekly' THEN r.amount / 7.0
+                    WHEN 'monthly' THEN r.amount / 30.0
+                    WHEN 'yearly' THEN r.amount / 365.0
+                END as daily_amount,
+                r.start_date,
+                COALESCE(r.end_date, date('now')) as end_date
+            FROM recurring r
+            JOIN project_recurring pr ON r.id = pr.recurring_id
+            WHERE r.is_active = 1
+        ),
+        project_totals AS (
             -- Regular transactions
             SELECT 
                 pt.project_id,
@@ -1637,21 +1682,22 @@ getProjects() {
             
             UNION ALL
             
-            -- Recurring transactions
+            -- Recurring transactions calculated daily
             SELECT 
-                pr.project_id,
-                r.type,
-                r.amount,
+                rd.project_id,
+                rd.type,
+                SUM(rd.daily_amount) as amount,
                 'recurring' as source
-            FROM project_recurring pr
-            JOIN recurring r ON pr.recurring_id = r.id
-            WHERE r.is_active = 1
+            FROM recurring_daily rd
+            JOIN date_range d ON d.date BETWEEN rd.start_date AND rd.end_date
+            GROUP BY rd.project_id, rd.type
         )
         SELECT 
             p.*,
             (SELECT COUNT(*) FROM project_transactions WHERE project_id = p.id) as transaction_count,
-            (SELECT COUNT(*) FROM project_recurring WHERE project_id = p.id AND 
-             EXISTS (SELECT 1 FROM recurring r WHERE r.id = recurring_id AND r.is_active = 1)
+            (SELECT COUNT(*) FROM project_recurring pr 
+             JOIN recurring r ON pr.recurring_id = r.id 
+             WHERE pr.project_id = p.id AND r.is_active = 1
             ) as recurring_count,
             COALESCE(SUM(CASE 
                 WHEN totals.type = 'expense' THEN totals.amount
@@ -1672,7 +1718,87 @@ getProjects() {
 
 getProjectDetails(id) {
     const query = `
-        WITH combined_transactions AS (
+        WITH RECURSIVE 
+        date_range AS (
+            -- Generate date series from earliest start date to latest end date
+            SELECT MIN(COALESCE(t.date, r.start_date)) as date
+            FROM transactions t
+            LEFT JOIN project_transactions pt ON t.id = pt.transaction_id AND pt.project_id = ?
+            LEFT JOIN recurring r ON r.is_active = 1
+            LEFT JOIN project_recurring pr ON r.id = pr.recurring_id AND pr.project_id = ?
+            
+            UNION ALL
+            
+            SELECT date(date, '+1 day')
+            FROM date_range
+            WHERE date < (
+                SELECT MAX(COALESCE(t.date, COALESCE(r.end_date, date('now'))))
+                FROM transactions t
+                LEFT JOIN project_transactions pt ON t.id = pt.transaction_id AND pt.project_id = ?
+                LEFT JOIN recurring r ON r.is_active = 1
+                LEFT JOIN project_recurring pr ON r.id = pr.recurring_id AND pr.project_id = ?
+            )
+        ),
+        recurring_daily AS (
+            -- Calculate daily amounts for recurring transactions
+            SELECT 
+                r.id,
+                r.type,
+                r.name,
+                r.description,
+                r.category_id,
+                c.name as category_name,
+                r.frequency,
+                r.start_date,
+                COALESCE(r.end_date, date('now')) as end_date,
+                CASE r.frequency
+                    WHEN 'daily' THEN r.amount
+                    WHEN 'weekly' THEN r.amount / 7.0
+                    WHEN 'monthly' THEN r.amount / 30.0
+                    WHEN 'yearly' THEN r.amount / 365.0
+                END as daily_amount,
+                (
+                    SELECT COUNT(*)
+                    FROM date_range d
+                    WHERE d.date <= date('now')
+                    AND d.date BETWEEN r.start_date AND COALESCE(r.end_date, date('now'))
+                    AND CASE r.frequency
+                        WHEN 'daily' THEN 1
+                        WHEN 'weekly' THEN strftime('%w', d.date) = strftime('%w', r.start_date)
+                        WHEN 'monthly' THEN strftime('%d', d.date) = strftime('%d', r.start_date)
+                        WHEN 'yearly' THEN strftime('%m-%d', d.date) = strftime('%m-%d', r.start_date)
+                    END
+                ) as occurrence_count,
+                (
+                    SELECT MAX(d.date)
+                    FROM date_range d
+                    WHERE d.date <= date('now')
+                    AND d.date BETWEEN r.start_date AND COALESCE(r.end_date, date('now'))
+                    AND CASE r.frequency
+                        WHEN 'daily' THEN 1
+                        WHEN 'weekly' THEN strftime('%w', d.date) = strftime('%w', r.start_date)
+                        WHEN 'monthly' THEN strftime('%d', d.date) = strftime('%d', r.start_date)
+                        WHEN 'yearly' THEN strftime('%m-%d', d.date) = strftime('%m-%d', r.start_date)
+                    END
+                ) as last_occurrence,
+                (
+                    SELECT MIN(d.date)
+                    FROM date_range d
+                    WHERE d.date > date('now')
+                    AND d.date BETWEEN r.start_date AND COALESCE(r.end_date, date('now'))
+                    AND CASE r.frequency
+                        WHEN 'daily' THEN 1
+                        WHEN 'weekly' THEN strftime('%w', d.date) = strftime('%w', r.start_date)
+                        WHEN 'monthly' THEN strftime('%d', d.date) = strftime('%d', r.start_date)
+                        WHEN 'yearly' THEN strftime('%m-%d', d.date) = strftime('%m-%d', r.start_date)
+                    END
+                ) as next_occurrence
+            FROM recurring r
+            JOIN project_recurring pr ON r.id = pr.recurring_id
+            LEFT JOIN categories c ON r.category_id = c.id
+            WHERE r.is_active = 1 AND pr.project_id = ?
+        ),
+        project_totals AS (
             -- Regular transactions
             SELECT 
                 t.id,
@@ -1682,92 +1808,154 @@ getProjectDetails(id) {
                 t.description,
                 t.category_id,
                 c.name as category_name,
+                NULL as frequency,
+                NULL as occurrence_count,
+                NULL as last_occurrence,
+                NULL as next_occurrence,
                 'transaction' as source
             FROM transactions t
             JOIN project_transactions pt ON t.id = pt.transaction_id
             LEFT JOIN categories c ON t.category_id = c.id
             WHERE pt.project_id = ?
-
+            
             UNION ALL
-
-            -- Recurring transactions
+            
+            -- Recurring transactions part
             SELECT 
-                r.id,
-                r.type,
-                r.amount,
-                r.start_date as date,
-                r.name as description,
-                r.category_id,
-                c.name as category_name,
+                rd.id,
+                rd.type,
+                SUM(rd.daily_amount) as amount,
+                rd.start_date as date,
+                rd.name as description,
+                rd.category_id,
+                rd.category_name,
+                rd.frequency,
+                rd.occurrence_count,
+                rd.last_occurrence,
+                rd.next_occurrence,
                 'recurring' as source
-            FROM recurring r
-            JOIN project_recurring pr ON r.id = pr.recurring_id
-            LEFT JOIN categories c ON r.category_id = c.id
-            WHERE pr.project_id = ? AND r.is_active = 1
+            FROM recurring_daily rd
+            JOIN date_range d ON d.date BETWEEN rd.start_date AND rd.end_date
+            GROUP BY rd.id
         )
         SELECT 
             p.*,
+            json_group_array(
+                CASE WHEN t.id IS NOT NULL AND t.source = 'transaction' THEN
+                    json_object(
+                        'id', t.id,
+                        'type', t.type,
+                        'amount', t.amount,
+                        'date', t.date,
+                        'description', t.description,
+                        'category_id', t.category_id,
+                        'category_name', t.category_name,
+                        'source', t.source
+                    )
+                ELSE NULL END
+            ) FILTER (WHERE t.id IS NOT NULL AND t.source = 'transaction') as transactions,
+            json_group_array(
+                CASE WHEN t.id IS NOT NULL AND t.source = 'recurring' THEN
+                    json_object(
+                        'id', t.id,
+                        'type', t.type,
+                        'amount', t.amount,
+                        'date', t.date,
+                        'description', t.description,
+                        'category_id', t.category_id,
+                        'category_name', t.category_name,
+                        'frequency', t.frequency,
+                        'occurrence_count', t.occurrence_count,
+                        'last_occurrence', t.last_occurrence,
+                        'next_occurrence', t.next_occurrence,
+                        'source', t.source
+                    )
+                ELSE NULL END
+            ) FILTER (WHERE t.id IS NOT NULL AND t.source = 'recurring') as recurring,
             (SELECT COUNT(*) FROM project_transactions WHERE project_id = p.id) as transaction_count,
-            (SELECT COUNT(*) FROM project_recurring WHERE project_id = p.id) as recurring_count,
+            (SELECT COUNT(*) FROM project_recurring pr 
+             JOIN recurring r ON pr.recurring_id = r.id 
+             WHERE pr.project_id = p.id AND r.is_active = 1
+            ) as recurring_count,
             COALESCE(SUM(CASE 
-                WHEN type = 'expense' THEN amount
+                WHEN t.type = 'expense' THEN t.amount
                 ELSE 0 
             END), 0) as total_spent,
             COALESCE(SUM(CASE 
-                WHEN type = 'income' THEN amount
+                WHEN t.type = 'income' THEN t.amount
                 ELSE 0 
             END), 0) as total_income
         FROM projects p
-        LEFT JOIN combined_transactions ct ON 1=1
+        LEFT JOIN project_totals t ON 1=1
         WHERE p.id = ?
-        GROUP BY p.id;
-    `;
-    
-    const project = this.db.prepare(query).get(id, id, id);
-    
-    if (!project) return null;
-
-    // Get associated transactions
-    const transactionsQuery = `
-        SELECT t.*, c.name as category_name
-        FROM transactions t
-        JOIN project_transactions pt ON t.id = pt.transaction_id
-        LEFT JOIN categories c ON t.category_id = c.id
-        WHERE pt.project_id = ?
-        ORDER BY t.date DESC
+        GROUP BY p.id
     `;
 
-    // Get associated recurring transactions
-    const recurringQuery = `
-        SELECT r.*, c.name as category_name
-        FROM recurring r
-        JOIN project_recurring pr ON r.id = pr.recurring_id
-        LEFT JOIN categories c ON r.category_id = c.id
-        WHERE pr.project_id = ? AND r.is_active = 1
-        ORDER BY r.start_date DESC
-    `;
+    const result = this.db.prepare(query).get(id, id, id, id, id, id, id);
     
-    project.transactions = this.db.prepare(transactionsQuery).all(id);
-    project.recurring = this.db.prepare(recurringQuery).all(id);
+    // Parse both JSON strings into arrays
+    if (result) {
+        try {
+            result.transactions = JSON.parse(result.transactions || '[]')
+                .filter(t => t !== null);
+            result.recurring = JSON.parse(result.recurring || '[]')
+                .filter(r => r !== null);
+        } catch (e) {
+            console.error('Error parsing JSON:', e);
+            result.transactions = [];
+            result.recurring = [];
+        }
+    }
     
-    return project;
+    return result;
+}
+
+removeTransactionFromProject(transactionId, projectId) {
+  try {
+      this.db.prepare(`
+          DELETE FROM project_transactions 
+          WHERE transaction_id = ? AND project_id = ?
+      `).run(transactionId, projectId);
+      
+      return { success: true };
+  } catch (error) {
+      console.error('Database error:', error);
+      return { error };
+  }
+}
+
+removeRecurringFromProject(recurringId, projectId) {
+  try {
+      this.db.prepare(`
+          DELETE FROM project_recurring 
+          WHERE recurring_id = ? AND project_id = ?
+      `).run(recurringId, projectId);
+      
+      return { success: true };
+  } catch (error) {
+      console.error('Database error:', error);
+      return { error };
+  }
 }
 
 addTransactionProjects(transactionId, projectIds) {
-  const stmt = this.db.prepare(`
-    INSERT INTO project_transactions (project_id, transaction_id)
-    VALUES (?, ?)
-  `);
+    if (!transactionId || !Array.isArray(projectIds)) {
+        throw new Error('Invalid parameters for addTransactionProjects');
+    }
 
-  projectIds.forEach(projectId => {
-    stmt.run(projectId, transactionId);
-  });
+    const stmt = this.db.prepare(`
+        INSERT INTO project_transactions (project_id, transaction_id)
+        VALUES (?, ?)
+    `);
+
+    projectIds.forEach(projectId => {
+        stmt.run(projectId, transactionId);
+    });
 }
 
 updateTransactionProjects(transactionId, projectIds) {
   // First delete existing associations
-  this.db.prepare('DELETE FROM project_transactions WHERE transaction_id = ?')
-    .run(transactionId);
+  this.db.prepare('DELETE FROM project_transactions WHERE transaction_id = ?').run(transactionId);
 
   // Then add new ones
   if (projectIds.length > 0) {
@@ -1885,34 +2073,193 @@ getNetWorth(accountId = 'all') {
 }
 
 getMonthlyComparison(accountId = 'all') {
-  // Implement similar accountId filtering as above
-  // Example:
-  let query = `
-    SELECT 
-      ((this_month.expenses - last_month.expenses) / last_month.expenses) * 100 as percentChange,
-      CASE 
-        WHEN this_month.expenses < last_month.expenses THEN 'lower'
-        ELSE 'higher'
-      END as trend
-    FROM (
-      SELECT SUM(amount) as expenses
-      FROM transactions
-      WHERE type = 'expense'
-        AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')
-        ${accountId !== 'all' ? 'AND account_id = ?' : ''}
-    ) as this_month,
-    (
-      SELECT SUM(amount) as expenses
-      FROM transactions
-      WHERE type = 'expense'
-        AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now', '-1 month')
-        ${accountId !== 'all' ? 'AND account_id = ?' : ''}
-    ) as last_month
-  `;
+    console.log('DATABASE SERVICE: Monthly comparison called');
+    
+    // First get transactions for current and previous month
+    const query = `
+        WITH monthly_transactions AS (
+            SELECT 
+                strftime('%Y-%m', date) as month,
+                SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense_amount
+            FROM transactions
+            WHERE strftime('%Y-%m', date) IN (
+                strftime('%Y-%m', 'now'),
+                strftime('%Y-%m', 'now', '-1 month')
+            )
+            ${accountId !== 'all' ? 'AND account_id = ?' : ''}
+            GROUP BY strftime('%Y-%m', date)
+        )
+        SELECT 
+            month,
+            COALESCE(expense_amount, 0) as expense_amount
+        FROM monthly_transactions
+        ORDER BY month DESC
+    `;
 
-  const params = accountId !== 'all' ? [accountId, accountId] : [];
-  const result = this.db.prepare(query).get(...params);
-  return result;
+    const params = accountId !== 'all' ? [accountId] : [];
+    const transactionResults = this.db.prepare(query).all(...params);
+    
+    // After getting transaction results
+    console.log('Transaction Results:', transactionResults);
+    
+    // Get recurring items
+    const recurringQuery = `
+        SELECT *
+        FROM recurring
+        WHERE type = 'expense'
+        ${accountId !== 'all' ? 'AND account_id = ?' : ''}
+    `;
+    const recurring = this.db.prepare(recurringQuery).all(...params);
+    
+    // After getting recurring items
+    console.log('Recurring Items:', recurring);
+    
+    // Calculate dates for current and previous month
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    const lastMonth = new Date(now);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const lastMonthYear = lastMonth.getFullYear();
+    const lastMonthNum = lastMonth.getMonth();
+    
+    // After calculating dates
+    console.log('Current Month/Year:', currentMonth, currentYear);
+    console.log('Last Month/Year:', lastMonthNum, lastMonthYear);
+    
+    // Calculate recurring amounts for both months
+    const currentMonthRecurring = recurring
+        .filter(r => r.is_active)
+        .reduce((sum, r) => {
+            const startDate = new Date(r.start_date);
+            startDate.setUTCHours(0, 0, 0, 0);
+            
+            const currentMonthStart = new Date(currentYear, currentMonth, 1);
+            currentMonthStart.setUTCHours(0, 0, 0, 0);
+            
+            if (startDate > now || (r.end_date && new Date(r.end_date) < currentMonthStart)) {
+                return sum;
+            }
+
+            let occurrences = 0;
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const currentDate = now.getDate();
+
+            switch(r.frequency) {
+                case 'daily':
+                    occurrences = Math.min(currentDate, daysInMonth);
+                    if (startDate > currentMonthStart) {
+                        const daysFromStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                        occurrences = Math.min(occurrences, daysFromStart);
+                    }
+                    break;
+                case 'weekly':
+                    const firstOccurrence = startDate > currentMonthStart ? startDate : currentMonthStart;
+                    const weeksFromStart = Math.floor((now - firstOccurrence) / (1000 * 60 * 60 * 24 * 7));
+                    occurrences = weeksFromStart + (now.getDay() >= startDate.getDay() ? 1 : 0);
+                    break;
+                case 'monthly':
+                    if (currentDate >= startDate.getDate() || 
+                        (startDate.getDate() > daysInMonth && currentDate === daysInMonth)) {
+                        occurrences = 1;
+                    }
+                    break;
+                case 'yearly':
+                    if (currentMonth === startDate.getMonth() && 
+                        (currentDate >= startDate.getDate() || 
+                         (startDate.getDate() > daysInMonth && currentDate === daysInMonth))) {
+                        occurrences = 1;
+                    }
+                    break;
+            }
+
+            return sum + (parseFloat(r.amount) * Math.max(0, occurrences));
+        }, 0);
+    
+    // After calculating current month recurring
+    console.log('Current Month Recurring:', currentMonthRecurring);
+    
+    const lastMonthRecurring = recurring
+        .filter(r => r.is_active)
+        .reduce((sum, r) => {
+            const startDate = new Date(r.start_date);
+            startDate.setUTCHours(0, 0, 0, 0);
+            
+            const lastMonthStart = new Date(lastMonthYear, lastMonthNum, 1);
+            lastMonthStart.setUTCHours(0, 0, 0, 0);
+            
+            const lastMonthEnd = new Date(lastMonthYear, lastMonthNum + 1, 0);
+            lastMonthEnd.setUTCHours(23, 59, 59, 999);
+            
+            if (startDate > lastMonthEnd || (r.end_date && new Date(r.end_date) < lastMonthStart)) {
+                return sum;
+            }
+
+            let occurrences = 0;
+            const daysInLastMonth = new Date(lastMonthYear, lastMonthNum + 1, 0).getDate();
+
+            switch(r.frequency) {
+                case 'daily':
+                    if (startDate <= lastMonthStart) {
+                        occurrences = daysInLastMonth;
+                    } else {
+                        occurrences = Math.floor((lastMonthEnd - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                    }
+                    break;
+                case 'weekly':
+                    const firstOccurrence = startDate > lastMonthStart ? startDate : lastMonthStart;
+                    const weeksInMonth = Math.ceil((lastMonthEnd - firstOccurrence) / (1000 * 60 * 60 * 24 * 7));
+                    occurrences = weeksInMonth;
+                    break;
+                case 'monthly':
+                    if (startDate <= lastMonthEnd) {
+                        occurrences = 1;
+                    }
+                    break;
+                case 'yearly':
+                    if (lastMonthNum === startDate.getMonth() && startDate <= lastMonthEnd) {
+                        occurrences = 1;
+                    }
+                    break;
+            }
+
+            return sum + (parseFloat(r.amount) * Math.max(0, occurrences));
+        }, 0);
+    
+    // After calculating last month recurring
+    console.log('Last Month Recurring:', lastMonthRecurring);
+    
+    // Get transaction amounts
+    const currentMonthTx = transactionResults.find(r => 
+        r.month === now.toISOString().substring(0, 7))?.expense_amount || 0;
+    const lastMonthTx = transactionResults.find(r => 
+        r.month === lastMonth.toISOString().substring(0, 7))?.expense_amount || 0;
+    
+    // After getting transaction amounts
+    console.log('Current Month Tx:', currentMonthTx);
+    console.log('Last Month Tx:', lastMonthTx);
+    
+    // Calculate totals
+    const thisMonthTotal = currentMonthTx + currentMonthRecurring;
+    const lastMonthTotal = lastMonthTx + lastMonthRecurring;
+    
+    // Final totals
+    console.log('This Month Total:', thisMonthTotal);
+    console.log('Last Month Total:', lastMonthTotal);
+    
+    // Calculate percentage change
+    const percentChange = lastMonthTotal ? 
+        ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
+    
+    console.log('Percent Change:', percentChange);
+
+    return {
+        percentChange,
+        trend: percentChange >= 0 ? 'higher' : 'lower',
+        this_month_amount: thisMonthTotal,
+        last_month_amount: lastMonthTotal
+    };
 }
 
 getUpcomingPayments(accountId = 'all') {

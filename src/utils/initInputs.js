@@ -1,3 +1,6 @@
+import { handleTransactionFiltersChange } from '../components/transactions.js';
+import { handleRecurringFiltersChange } from '../components/recurring.js';
+import { handleCategoriesFilterChange } from '../components/categories.js';
 import { debounce } from './debounce.js';
 
 export function reinitializeInputs(container = document) {
@@ -20,20 +23,33 @@ export function reinitializeInputs(container = document) {
         const newInput = input.cloneNode(true);
         newInput.value = value; // Restore value
         input.parentNode.replaceChild(newInput, input);
+        
         newInput.addEventListener('input', debounce(async (e) => {
+            // Look for closest div with an ID instead of section
+            const container = newInput.closest('div[id]');
+            if (!container) return;
+            
+            const containerId = container.id;
+            if (!containerId) return;
+
             const filters = {
-                type: document.getElementById(`${newInput.closest('section').id.toLowerCase()}-type-filter`)?.value || 'all',
-                category: document.getElementById(`${newInput.closest('section').id.toLowerCase()}-category-filter`)?.value || 'all',
-                sort: document.getElementById(`${newInput.closest('section').id.toLowerCase()}-sort`)?.value || 'date-desc',
+                type: document.getElementById(`${containerId.toLowerCase()}-type-filter`)?.value || 'all',
+                category: document.getElementById(`${containerId.toLowerCase()}-category-filter`)?.value || 'all',
+                sort: document.getElementById(`${containerId.toLowerCase()}-sort`)?.value || 'date-desc',
                 search: e.target.value
             };
             
-            if (newInput.closest('#Transactions')) {
-                await handleTransactionFiltersChange();
-            } else if (newInput.closest('#Recurring')) {
-                await handleRecurringFiltersChange();
-            } else if (newInput.closest('#Categories')) {
-                await fetchCategories(filters);
+            // Handle different sections
+            switch(containerId) {
+                case 'Transactions':
+                    await handleTransactionFiltersChange();
+                    break;
+                case 'Recurring':
+                    await handleRecurringFiltersChange();
+                    break;
+                case 'Categories':
+                    await handleCategoriesFilterChange();
+                    break;
             }
         }, 300));
     });

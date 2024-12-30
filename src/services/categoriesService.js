@@ -5,7 +5,7 @@ import { populateCategoryDropdowns } from '../utils/dropdownHelpers.js';
 import { formatCurrency } from '../utils/formatters.js';
 import { TablePagination } from '../utils/pagination.js';
 
-let categoriesPagination;
+export let categoriesPagination;
 
 // Fetch and populate categories in Transaction and Recurring Forms
 export async function fetchCategories(filters = {}) {
@@ -13,82 +13,97 @@ export async function fetchCategories(filters = {}) {
     // Initialize pagination if not already done
     if (!categoriesPagination) {
       categoriesPagination = new TablePagination('categories-table-body', {
-        itemsPerPage: 10
+        itemsPerPage: 10,
+        onPageChange: async (page) => {
+          // Get current filters and update offset based on new page
+          const currentFilters = {
+            type: document.getElementById('category-type-filter')?.value || 'all',
+            usage: document.getElementById('category-usage-filter')?.value || 'all',
+            sort: document.getElementById('category-sort')?.value || 'name-asc',
+            search: document.querySelector('#Categories .search-input')?.value || '',
+            limit: 10,
+            offset: (page - 1) * 10
+          };
+          await fetchCategories(currentFilters);
+        }
       });
-      categoriesPagination.onPageChange = (page) => {
-        fetchCategories(filters);
-      };
     }
 
-    const { data: categories } = await window.databaseApi.fetchCategories({
-      ...filters,
-      limit: categoriesPagination.itemsPerPage,
-      offset: (categoriesPagination.currentPage - 1) * categoriesPagination.itemsPerPage
-    });
+    // If there's a search term or filter change, reset to page 1
+    if (filters.search || filters.type !== 'all' || filters.usage !== 'all') {
+      categoriesPagination.currentPage = 1;
+      filters.offset = 0;
+    }
 
+    const { data: categories } = await window.databaseApi.fetchCategories();
     let filteredData = categories ? [...categories] : [];
 
-    // Apply filters
-    if (filteredData.length > 0) {
-      // Type filter
-      if (filters.type && filters.type !== 'all') {
-        filteredData = filteredData.filter(c => c.type === filters.type);
-      }
+    // Apply type filter
+    if (filters.type && filters.type !== 'all') {
+      filteredData = filteredData.filter(c => c.type === filters.type);
+    }
 
-      // Usage filter
-      if (filters.usage && filters.usage !== 'all') {
-        switch (filters.usage) {
-          case 'active':
-            filteredData = filteredData.filter(c => c.usage_count > 0);
-            break;
-          case 'unused':
-            filteredData = filteredData.filter(c => c.usage_count === 0);
-            break;
-        }
-      }
-
-      // Search filter
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
-        filteredData = filteredData.filter(c => {
-          // Format budget amount for searching
-          const budgetAmount = c.budget_amount ? c.budget_amount.toString() : '';
-          // Format last used date for searching
-          const lastUsed = c.last_used ? new Date(c.last_used).toLocaleDateString() : '';
-          
-          return [
-            c.name?.toLowerCase(),
-            c.type?.toLowerCase(),
-            budgetAmount,
-            c.budget_frequency?.toLowerCase(),
-            lastUsed,
-            c.description?.toLowerCase()
-          ].some(field => field && field.includes(searchTerm));
-        });
-      }
-
-      // Apply sorting
-      if (filters.sort) {
-        const [field, direction] = filters.sort.split('-');
-        filteredData.sort((a, b) => {
-          let comparison = 0;
-          switch (field) {
-            case 'name':
-              comparison = a.name.localeCompare(b.name);
-              break;
-            case 'usage':
-              comparison = (a.usage_count || 0) - (b.usage_count || 0);
-              break;
-            case 'last_used':
-              const dateA = a.last_used ? new Date(a.last_used) : new Date(0);
-              const dateB = b.last_used ? new Date(b.last_used) : new Date(0);
-              comparison = dateA - dateB;
-              break;
-          }
-          return direction === 'asc' ? comparison : -comparison;
-        });
+    // Apply usage filter
+    if (filters.usage && filters.usage !== 'all') {
+      switch (filters.usage) {
+        case 'active':
+          filteredData = filteredData.filter(c => c.usage_count > 0);
+          break;
+        case 'unused':
+          filteredData = filteredData.filter(c => c.usage_count === 0);
+          break;
       }
     }
+
+    // Apply search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      filteredData = filteredData.filter(c => {
+        // Format budget amount for searching
+        const budgetAmount = c.budget_amount ? c.budget_amount.toString() : '';
+        // Format last used date for searching
+        const lastUsed = c.last_used ? new Date(c.last_used).toLocaleDateString() : '';
+        
+        return [
+          c.name?.toLowerCase(),
+          c.type?.toLowerCase(),
+          budgetAmount,
+          c.budget_frequency?.toLowerCase(),
+          lastUsed,
+          c.description?.toLowerCase()
+        ].some(field => field && field.includes(searchTerm));
+      });
+    }
+
+    // Get total count before sorting and pagination
+    const totalCount = filteredData.length;
+
+    // Apply sorting
+    if (filters.sort) {
+      const [field, direction] = filters.sort.split('-');
+      filteredData.sort((a, b) => {
+        let comparison = 0;
+        switch (field) {
+          case 'name':
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case 'usage':
+            comparison = (a.usage_count || 0) - (b.usage_count || 0);
+            break;
+          case 'last_used':
+            const dateA = a.last_used ? new Date(a.last_used) : new Date(0);
+            const dateB = b.last_used ? new Date(b.last_used) : new Date(0);
+            comparison = dateA - dateB;
+            break;
+        }
+        return direction === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    // Apply pagination
+    const start = filters.offset || 0;
+    const end = start + (filters.limit || 10);
+    filteredData = filteredData.slice(start, end);
 
     const tableBody = document.getElementById('categories-table-body');
     if (!tableBody) return;
@@ -96,7 +111,6 @@ export async function fetchCategories(filters = {}) {
     tableBody.innerHTML = '';
 
     // Update pagination with total count
-    const totalCount = categories[0]?.total_count || 0;
     categoriesPagination.updatePagination(totalCount);
 
     if (filteredData.length > 0) {

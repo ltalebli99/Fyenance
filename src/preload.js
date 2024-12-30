@@ -83,19 +83,23 @@ contextBridge.exposeInMainWorld('databaseApi', {
     getRecurringProjects: (recurringId) => 
         ipcRenderer.invoke('db:getRecurringProjects', recurringId),
     addTransactionProjects: (transactionId, projectIds) => 
-        ipcRenderer.invoke('db:addTransactionProjects', { transactionId, projectIds }),
+        ipcRenderer.invoke('db:addTransactionProjects', transactionId, projectIds),
     updateTransactionProjects: (transactionId, projectIds) => 
-        ipcRenderer.invoke('db:updateTransactionProjects', { transactionId, projectIds }),
+        ipcRenderer.invoke('db:updateTransactionProjects', transactionId, projectIds),
     updateRecurringProjects: (recurringId, projectIds) => 
         ipcRenderer.invoke('db:updateRecurringProjects', { recurringId, projectIds }),
     fetchTransactionsForReports: (accountIds) => 
         ipcRenderer.invoke('db:getTransactionsForReports', accountIds),
     fetchRecurringForReports: (accountIds) => 
         ipcRenderer.invoke('db:getRecurringForReports', accountIds),
+    removeTransactionFromProject: (transactionId, projectId) => 
+        ipcRenderer.invoke('db:removeTransactionFromProject', transactionId, projectId),
+    removeRecurringFromProject: (recurringId, projectId) => 
+        ipcRenderer.invoke('db:removeRecurringFromProject', recurringId, projectId),
     getBackups: () => ipcRenderer.invoke('db:getBackups'),
     restoreBackup: (backupPath) => ipcRenderer.invoke('db:restoreBackup', backupPath),
     createBackup: (reason) => ipcRenderer.invoke('db:createBackup', reason),
-    deleteBackup: (backupPath) => ipcRenderer.invoke('db:deleteBackup', backupPath),
+    deleteBackup: (backupPath) => ipcRenderer.invoke('db:deleteBackup', backupPath)
 });
 
 // Expose update API

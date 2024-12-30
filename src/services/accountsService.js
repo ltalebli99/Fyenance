@@ -38,11 +38,11 @@ document.addEventListener('click', (e) => {
 // Add this new function
 async function calculateCurrentBalance(accountId) {
   try {
-    // Get all transactions for this account using new method
+    // Get all transactions for this account
     const { data: transactions, error: txError } = await window.databaseApi.getAllTransactions(accountId);
     if (txError) throw txError;
 
-    // Get recurring transactions using new method
+    // Get recurring transactions
     const { data: recurring, error: recError } = await window.databaseApi.getAllRecurring(accountId);
     if (recError) throw recError;
 
@@ -51,35 +51,75 @@ async function calculateCurrentBalance(accountId) {
       return sum + (tx.type === 'income' ? tx.amount : -tx.amount);
     }, 0);
 
-    // Calculate recurring totals
+    // Calculate recurring totals up to current date
     const currentDate = new Date();
-    
+    currentDate.setHours(0, 0, 0, 0);
+
     const recurringTotal = recurring
       .filter(r => {
         if (!r.is_active) return false;
-        if (r.end_date && new Date(r.end_date) < currentDate) return false;
         
+        // Normalize start date to UTC midnight
         const startDate = new Date(r.start_date);
-        if (startDate > currentDate) return false;
-
-        // Check if this recurring item should be counted based on frequency
-        switch(r.frequency) {
-          case 'daily':
-            return true;
-          case 'weekly':
-            const daysSinceStart = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
-            return daysSinceStart % 7 === 0;
-          case 'monthly':
-            return startDate.getDate() === currentDate.getDate();
-          case 'yearly':
-            return startDate.getDate() === currentDate.getDate() && 
-                   startDate.getMonth() === currentDate.getMonth();
-          default:
-            return false;
+        startDate.setUTCHours(0, 0, 0, 0);
+        
+        // Normalize current date to UTC midnight
+        const utcCurrentDate = new Date();
+        utcCurrentDate.setUTCHours(0, 0, 0, 0);
+        
+        // Don't include if it hasn't started yet
+        if (startDate > utcCurrentDate) return false;
+        
+        // Don't include if it has ended (normalize end date too)
+        if (r.end_date) {
+          const endDate = new Date(r.end_date);
+          endDate.setUTCHours(0, 0, 0, 0);
+          if (endDate < utcCurrentDate) return false;
         }
+        
+        return true;
       })
       .reduce((sum, r) => {
-        return sum + (r.type === 'income' ? r.amount : -r.amount);
+        // Normalize start date to UTC midnight
+        const startDate = new Date(r.start_date);
+        startDate.setUTCHours(0, 0, 0, 0);
+        
+        // Calculate up to yesterday in UTC
+        const utcYesterday = new Date();
+        utcYesterday.setUTCHours(0, 0, 0, 0);
+        utcYesterday.setUTCDate(utcYesterday.getUTCDate() - 1);
+        
+        let occurrences = 0;
+        const daysDiff = Math.floor((utcYesterday - startDate) / (1000 * 60 * 60 * 24));
+        
+        switch(r.frequency) {
+          case 'daily':
+            occurrences = daysDiff + 1;
+            break;
+          case 'weekly':
+            occurrences = Math.floor(daysDiff / 7);
+            // Add one more if we've passed the day of week
+            if (utcYesterday.getUTCDay() >= startDate.getUTCDay()) occurrences++;
+            break;
+          case 'monthly':
+            occurrences = (utcYesterday.getUTCFullYear() - startDate.getUTCFullYear()) * 12 
+              + (utcYesterday.getUTCMonth() - startDate.getUTCMonth());
+            // Add one more if we've passed the day of month
+            if (utcYesterday.getUTCDate() >= startDate.getUTCDate()) occurrences++;
+            break;
+          case 'yearly':
+            occurrences = utcYesterday.getUTCFullYear() - startDate.getUTCFullYear();
+            // Add one more if we've passed the month and day
+            if (utcYesterday.getUTCMonth() > startDate.getUTCMonth() || 
+               (utcYesterday.getUTCMonth() === startDate.getUTCMonth() && 
+                utcYesterday.getUTCDate() >= startDate.getUTCDate())) {
+              occurrences++;
+            }
+            break;
+        }
+
+        const amount = parseFloat(r.amount);
+        return sum + (r.type === 'income' ? amount : -amount) * Math.max(0, occurrences);
       }, 0);
 
     return transactionTotal + recurringTotal;
@@ -90,24 +130,55 @@ async function calculateCurrentBalance(accountId) {
 }
 
 // Add these helper functions
-function getMonthlyChange(transactions) {
-  if (!transactions || !Array.isArray(transactions)) return 0;
-  
+function getMonthlyChange(transactions, recurring = []) {
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
-  return transactions
+  // Calculate transaction changes
+  const transactionChange = transactions
     .filter(tx => new Date(tx.date) >= firstDayOfMonth)
     .reduce((sum, tx) => sum + (tx.type === 'income' ? tx.amount : -tx.amount), 0);
-}
 
-function getLastTransaction(transactions) {
-  if (!transactions || !Array.isArray(transactions) || !transactions.length) return null;
-  
-  const sorted = [...transactions].sort((a, b) => 
-    new Date(b.date) - new Date(a.date)
-  );
-  return sorted[0];
+  // Calculate recurring changes for this month
+  const recurringChange = recurring
+    .filter(r => r.is_active)
+    .reduce((sum, r) => {
+      const startDate = new Date(r.start_date);
+      startDate.setUTCHours(0, 0, 0, 0);
+      
+      // Skip if recurring hasn't started yet
+      if (startDate > now) return sum;
+      
+      // Skip if recurring has ended
+      if (r.end_date && new Date(r.end_date) < firstDayOfMonth) return sum;
+
+      let occurrences = 0;
+      const currentDate = new Date();
+      currentDate.setUTCHours(0, 0, 0, 0);
+
+      switch(r.frequency) {
+        case 'daily':
+          const daysSinceStart = Math.floor((currentDate - firstDayOfMonth) / (1000 * 60 * 60 * 24)) + 1;
+          occurrences = Math.min(daysSinceStart, currentDate.getDate());
+          break;
+        case 'weekly':
+          const weeksSinceStart = Math.floor((currentDate - firstDayOfMonth) / (1000 * 60 * 60 * 24 * 7));
+          occurrences = weeksSinceStart + (currentDate.getDay() >= startDate.getDay() ? 1 : 0);
+          break;
+        case 'monthly':
+          occurrences = currentDate.getDate() >= startDate.getDate() ? 1 : 0;
+          break;
+        case 'yearly':
+          occurrences = (currentDate.getMonth() === startDate.getMonth() && 
+                        currentDate.getDate() >= startDate.getDate()) ? 1 : 0;
+          break;
+      }
+
+      const amount = parseFloat(r.amount);
+      return sum + (r.type === 'income' ? amount : -amount) * Math.max(0, occurrences);
+    }, 0);
+
+  return transactionChange + recurringChange;
 }
 
 function getActivityStatus(transactions) {
@@ -126,6 +197,91 @@ function getActivityStatus(transactions) {
   return 'inactive';
 }
 
+// Add this new function
+async function getLastActivity(accountId) {
+  try {
+    // Get all transactions for this account
+    const { data: transactions, error: txError } = await window.databaseApi.getAllTransactions(accountId);
+    if (txError) throw txError;
+
+    // Get recurring transactions
+    const { data: recurring, error: recError } = await window.databaseApi.getAllRecurring(accountId);
+    if (recError) throw recError;
+
+    const currentDate = new Date();
+    currentDate.setUTCHours(0, 0, 0, 0);
+
+    // Get last transaction
+    const lastTransaction = transactions
+      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+    // Get last recurring activity
+    const lastRecurring = recurring
+      .filter(r => {
+        if (!r.is_active) return false;
+        const startDate = new Date(r.start_date);
+        startDate.setUTCHours(0, 0, 0, 0);
+        if (startDate > currentDate) return false;
+        if (r.end_date && new Date(r.end_date) < currentDate) return false;
+        return true;
+      })
+      .map(r => {
+        const startDate = new Date(r.start_date);
+        startDate.setUTCHours(0, 0, 0, 0);
+        let lastOccurrence = null;
+
+        switch(r.frequency) {
+          case 'daily':
+            lastOccurrence = new Date(currentDate);
+            break;
+          case 'weekly':
+            lastOccurrence = new Date(currentDate);
+            while (lastOccurrence.getUTCDay() !== startDate.getUTCDay()) {
+              lastOccurrence.setUTCDate(lastOccurrence.getUTCDate() - 1);
+            }
+            break;
+          case 'monthly':
+            lastOccurrence = new Date(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), startDate.getUTCDate());
+            if (lastOccurrence.getMonth() !== currentDate.getMonth()) {
+              lastOccurrence = new Date(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), 0);
+            }
+            break;
+          case 'yearly':
+            lastOccurrence = new Date(currentDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
+            if (lastOccurrence > currentDate) {
+              lastOccurrence.setUTCFullYear(lastOccurrence.getUTCFullYear() - 1);
+            }
+            break;
+        }
+
+        return {
+          date: lastOccurrence,
+          name: r.name,
+          description: r.description,
+          amount: r.amount,
+          type: r.type,
+          isRecurring: true,
+          frequency: r.frequency
+        };
+      })
+      .sort((a, b) => b.date - a.date)[0];
+
+    // Compare and return the most recent activity
+    if (!lastTransaction && !lastRecurring) return null;
+    if (!lastTransaction) return lastRecurring;
+    if (!lastRecurring) return lastTransaction;
+
+    const txDate = new Date(lastTransaction.date);
+    return txDate > lastRecurring.date ? 
+      { ...lastTransaction, isRecurring: false } : 
+      lastRecurring;
+
+  } catch (error) {
+    console.error('Error getting last activity:', error);
+    return null;
+  }
+}
+
 // Fetch and display accounts
 export async function fetchAccounts() {
     try {
@@ -139,19 +295,19 @@ export async function fetchAccounts() {
       for (const account of data) {
         // Get transactions for this account
         const { data: transactions = [] } = await window.databaseApi.getAllTransactions(account.id);
+        const { data: recurring = [] } = await window.databaseApi.getAllRecurring(account.id);
         
         // Calculate current balance
         const currentBalanceChange = await calculateCurrentBalance(account.id);
         const currentBalance = parseFloat(account.balance) + currentBalanceChange;
         
-        // Calculate monthly change
-        const monthlyChange = getMonthlyChange(transactions);
-        
-        // Get last transaction
-        const lastTx = getLastTransaction(transactions);
+        // Calculate monthly change including recurring
+        const monthlyChange = getMonthlyChange(transactions, recurring);
         
         // Get activity status
         const activityStatus = getActivityStatus(transactions);
+        
+        const lastActivity = await getLastActivity(account.id);
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -163,19 +319,32 @@ export async function fetchAccounts() {
             <span class="balance-display">${formatCurrency(account.balance)}</span>
             <input type="number" class="balance-edit" style="display: none" value="${account.balance}" step="0.01">
           </td>
-          <td>
-            <span class="current-balance">${formatCurrency(currentBalance)}</span>
+          <td class="${currentBalance > 0 ? 'positive' : currentBalance < 0 ? 'negative' : ''}">
+            ${currentBalance > 0 ? '+' : '-'}${formatCurrency(Math.abs(currentBalance))}
           </td>
           <td class="${monthlyChange > 0 ? 'positive' : monthlyChange < 0 ? 'negative' : ''}">
-            ${monthlyChange > 0 ? '+' : ''}${formatCurrency(Math.abs(monthlyChange))}
+            ${monthlyChange > 0 ? '+' : '-'}${formatCurrency(Math.abs(monthlyChange))}
           </td>
           <td>
-            ${lastTx ? `
-              <div class="last-tx-info">
-                <span class="last-tx-date">${new Date(lastTx.date).toLocaleDateString()}</span>
-                <span class="last-tx-amount ${lastTx.type === 'income' ? 'positive' : 'negative'}">
-                  ${lastTx.type === 'income' ? '+' : '-'}${formatCurrency(lastTx.amount)}
-                </span>
+            ${lastActivity ? `
+              <div class="last-activity">
+                <div class="tx-date">${new Date(lastActivity.date).toLocaleDateString()}</div>
+                <div class="tx-amount ${lastActivity.type === 'income' ? 'positive' : 'negative'}">
+                  ${lastActivity.type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(lastActivity.amount))}
+                </div>
+                <div class="tx-name">
+                  ${lastActivity.isRecurring ? 
+                    (lastActivity.name || 'Unnamed').charAt(0).toUpperCase() + (lastActivity.name || 'Unnamed').slice(1) :
+                    (lastActivity.description ? 
+                      lastActivity.description.charAt(0).toUpperCase() + lastActivity.description.slice(1, 15) + (lastActivity.description.length > 15 ? '...' : '') : 
+                      'Unnamed'
+                    )}
+                  ${lastActivity.isRecurring ? `
+                    <span class="recurring-text">
+                      <i class="fas fa-sync-alt"></i> ${lastActivity.frequency.charAt(0).toUpperCase() + lastActivity.frequency.slice(1)}
+                    </span>
+                  ` : ''}
+                </div>
               </div>
             ` : '-'}
           </td>

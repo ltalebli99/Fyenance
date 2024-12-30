@@ -116,9 +116,9 @@ export async function fetchTotalBalance(accountId = 'all') {
       const thisMonthsBalance = accountBalance + totalMonthlyIncome - totalMonthlyExpenses;
   
       // Update dashboard displays
-      document.getElementById('this-month-balance').innerText = formatCurrency(thisMonthsBalance);
-      document.getElementById('this-month-income').innerText = formatCurrency(totalMonthlyIncome);
-      document.getElementById('this-month-expenses').innerText = formatCurrency(totalMonthlyExpenses);
+      document.getElementById('this-month-balance').innerText = `${thisMonthsBalance >= 0 ? '+' : '-'}${formatCurrency(Math.abs(thisMonthsBalance))}`;
+      document.getElementById('this-month-income').innerText = `+${formatCurrency(totalMonthlyIncome)}`;
+      document.getElementById('this-month-expenses').innerText = `-${formatCurrency(totalMonthlyExpenses)}`;
   
     } catch (error) {
       console.error('Failed to fetch total balance:', error);
@@ -252,9 +252,9 @@ export async function updateReports(period = getPeriod(), accountIds = ['all']) 
       const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
 
       // Update UI elements
-      document.getElementById('reports-total-income').textContent = formatCurrency(totalIncome);
-      document.getElementById('reports-total-expenses').textContent = formatCurrency(totalExpenses);
-      document.getElementById('reports-net-savings').textContent = formatCurrency(netSavings);
+      document.getElementById('reports-total-income').textContent = `+${formatCurrency(totalIncome)}`;
+      document.getElementById('reports-total-expenses').textContent = `-${formatCurrency(totalExpenses)}`;
+      document.getElementById('reports-net-savings').textContent = `${netSavings >= 0 ? '+' : '-'}${formatCurrency(Math.abs(netSavings))}`;
       document.getElementById('reports-savings-rate').textContent = Math.round(savingsRate);
 
       const savingsValueElement = document.getElementById('reports-savings-value');
@@ -1478,7 +1478,7 @@ export async function updateBudgetTracking(accountIds = ['all'], period = 'month
                 <td>${item.category_name} (${capitalizeFirstLetter(item.budget_frequency)})</td>
                 <td>${formatCurrency(item.adjusted_budget)}</td>
                 <td>${formatCurrency(item.spent)}</td>
-                <td>${formatCurrency(Math.abs(remaining))}</td>
+                <td class="${remaining >= 0 ? 'positive' : 'negative'}">${remaining >= 0 ? '+' : '-'}${formatCurrency(Math.abs(remaining))}</td>
                 <td>
                     <span class="budget-status ${statusClass}">
                         ${Math.round(percentUsed)}% ${statusClass === 'over' ? 'Over' : 'Used'}

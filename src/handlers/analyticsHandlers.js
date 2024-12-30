@@ -42,74 +42,142 @@ function setupAnalyticsHandlers(database) {
 
   safeIpcHandle('db:getMonthlyComparison', async (event, accountId = 'all') => {
     try {
-      // Get transactions and recurring items for specific account(s)
-      const transactions = database.getTransactions(accountId);
-      const recurring = database.getRecurring(accountId);
-      
-      if (!Array.isArray(transactions) || !Array.isArray(recurring)) {
-        return { data: null, error: null };
-      }
-      
-      // Get current and last month dates
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
-      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-  
-      // Calculate one-time expenses for current month
-      const currentMonthOneTime = transactions
-        .filter(t => {
-          const date = new Date(t.date);
-          return date.getMonth() === currentMonth && 
-                 date.getFullYear() === currentYear && 
-                 t.type === 'expense';
-        })
-        .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
-  
-      // Calculate one-time expenses for last month
-      const lastMonthOneTime = transactions
-        .filter(t => {
-          const date = new Date(t.date);
-          return date.getMonth() === lastMonth && 
-                 date.getFullYear() === lastMonthYear && 
-                 t.type === 'expense';
-        })
-        .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+        console.log('Starting monthly comparison calculation...');
+        
+        // Get transactions and recurring items for specific account(s)
+        const transactions = database.getTransactions(accountId);
+        const recurring = database.getRecurring(accountId);
+        
+        console.log('Transactions:', transactions);
+        console.log('Recurring:', recurring);
+        
+        // Get current and last month dates
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-      // Calculate recurring expenses
-      const currentMonthRecurring = calculateRecurringForPeriod(
-        recurring.filter(r => r.type === 'expense'),
-        'month',
-        new Date(currentYear, currentMonth, 1)
-      );
+        console.log('Current Month/Year:', currentMonth, currentYear);
+        console.log('Last Month/Year:', lastMonth, lastMonthYear);
 
-      const lastMonthRecurring = calculateRecurringForPeriod(
-        recurring.filter(r => r.type === 'expense'),
-        'month',
-        new Date(lastMonthYear, lastMonth, 1)
-      );
-  
-      // Calculate total expenses for both months
-      const currentMonthExpenses = currentMonthOneTime + currentMonthRecurring;
-      const lastMonthExpenses = lastMonthOneTime + lastMonthRecurring;
-  
-      // Calculate the percentage change
-      const percentChange = lastMonthExpenses ? 
-        ((currentMonthExpenses - lastMonthExpenses) / lastMonthExpenses) * 100 : 0;
-  
-      return { 
-        data: { 
-          percentChange, 
-          trend: percentChange >= 0 ? 'higher' : 'lower',
-          currentMonthExpenses,
-          lastMonthExpenses
-        }, 
-        error: null 
-      };
+        // Calculate one-time transactions
+        const currentMonthOneTime = transactions
+            .filter(t => {
+                const date = new Date(t.date);
+                return date.getMonth() === currentMonth && 
+                       date.getFullYear() === currentYear && 
+                       t.type === 'expense';
+            })
+            .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+
+        const lastMonthOneTime = transactions
+            .filter(t => {
+                const date = new Date(t.date);
+                return date.getMonth() === lastMonth && 
+                       date.getFullYear() === lastMonthYear && 
+                       t.type === 'expense';
+            })
+            .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0);
+
+        // Calculate recurring for current month
+        const currentMonthRecurring = recurring
+            .filter(r => r.type === 'expense' && r.is_active)
+            .reduce((sum, r) => {
+                const startDate = new Date(r.start_date);
+                const endDate = r.end_date ? new Date(r.end_date) : null;
+                const monthStart = new Date(currentYear, currentMonth, 1);
+                const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+
+                // Skip if recurring hasn't started or has ended
+                if (startDate > monthEnd || (endDate && endDate < monthStart)) {
+                    return sum;
+                }
+
+                let occurrences = 0;
+                switch(r.frequency) {
+                    case 'weekly':
+                        const firstDay = Math.max(startDate.getTime(), monthStart.getTime());
+                        const lastDay = Math.min(endDate?.getTime() || monthEnd.getTime(), monthEnd.getTime());
+                        occurrences = Math.ceil((lastDay - firstDay) / (7 * 24 * 60 * 60 * 1000));
+                        break;
+                    case 'monthly':
+                        occurrences = 1;
+                        break;
+                    case 'daily':
+                        const days = Math.floor((monthEnd - monthStart) / (24 * 60 * 60 * 1000)) + 1;
+                        occurrences = days;
+                        break;
+                    case 'yearly':
+                        occurrences = startDate.getMonth() === currentMonth ? 1 : 0;
+                        break;
+                }
+
+                return sum + (parseFloat(r.amount) * occurrences);
+            }, 0);
+
+        // Calculate recurring for last month (similar logic)
+        const lastMonthRecurring = recurring
+            .filter(r => r.type === 'expense' && r.is_active)
+            .reduce((sum, r) => {
+                const startDate = new Date(r.start_date);
+                const endDate = r.end_date ? new Date(r.end_date) : null;
+                const monthStart = new Date(lastMonthYear, lastMonth, 1);
+                const monthEnd = new Date(lastMonthYear, lastMonth + 1, 0);
+
+                if (startDate > monthEnd || (endDate && endDate < monthStart)) {
+                    return sum;
+                }
+
+                let occurrences = 0;
+                switch(r.frequency) {
+                    case 'weekly':
+                        const firstDay = Math.max(startDate.getTime(), monthStart.getTime());
+                        const lastDay = Math.min(endDate?.getTime() || monthEnd.getTime(), monthEnd.getTime());
+                        occurrences = Math.ceil((lastDay - firstDay) / (7 * 24 * 60 * 60 * 1000));
+                        break;
+                    case 'monthly':
+                        occurrences = 1;
+                        break;
+                    case 'daily':
+                        const days = Math.floor((monthEnd - monthStart) / (24 * 60 * 60 * 1000)) + 1;
+                        occurrences = days;
+                        break;
+                    case 'yearly':
+                        occurrences = startDate.getMonth() === lastMonth ? 1 : 0;
+                        break;
+                }
+
+                return sum + (parseFloat(r.amount) * occurrences);
+            }, 0);
+
+        console.log('Current Month One-Time:', currentMonthOneTime);
+        console.log('Current Month Recurring:', currentMonthRecurring);
+        console.log('Last Month One-Time:', lastMonthOneTime);
+        console.log('Last Month Recurring:', lastMonthRecurring);
+
+        const currentMonthExpenses = currentMonthOneTime + currentMonthRecurring;
+        const lastMonthExpenses = lastMonthOneTime + lastMonthRecurring;
+
+        const percentChange = lastMonthExpenses ? 
+            ((currentMonthExpenses - lastMonthExpenses) / lastMonthExpenses) * 100 : 0;
+
+        console.log('Current Month Total:', currentMonthExpenses);
+        console.log('Last Month Total:', lastMonthExpenses);
+        console.log('Percent Change:', percentChange);
+
+        return { 
+            data: { 
+                percentChange, 
+                trend: percentChange >= 0 ? 'higher' : 'lower',
+                currentMonthExpenses,
+                lastMonthExpenses
+            }, 
+            error: null 
+        };
     } catch (error) {
-      console.error('Monthly comparison error:', error);
-      return { data: null, error: error.message };
+        console.error('Monthly comparison error:', error);
+        return { data: null, error: error.message };
     }
   });
 

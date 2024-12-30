@@ -66,33 +66,42 @@ if (addTransactionForm) {
   addTransactionForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    // Get form elements using the correct IDs
-    const accountId = document.getElementById('add-transaction-account')?.value;
-    const categoryId = document.getElementById('add-transaction-category')?.value;
-    const amountInput = document.getElementById('add-transaction-amount');
-    const amount = getAmountValue(amountInput);
-    const date = document.getElementById('add-transaction-date')?.value;
-    const description = document.getElementById('add-transaction-description')?.value;
-
-    // Get category type from selected option
-    const categorySelect = document.getElementById('add-transaction-category');
-    const selectedOption = categorySelect?.options[categorySelect.selectedIndex];
-    const categoryText = selectedOption?.textContent || '';
-    
-    // The category format is "Type - Name", so we split and get the type
-    const type = categoryText.split('-')[0].trim().toLowerCase();
-
-    // Validate required fields
-    if (!accountId || !categoryId || !amount || !date) {
-      console.error('Missing required fields');
-      return;
-    }
-
-    const projectIds = Array.from(document.getElementById('transaction-projects').selectedOptions)
-        .map(option => parseInt(option.value))
-        .filter(id => !isNaN(id));
-
     try {
+        // Get form elements using the correct IDs
+        const accountId = document.getElementById('add-transaction-account')?.value;
+        const categoryId = document.getElementById('add-transaction-category')?.value;
+        const amountInput = document.getElementById('add-transaction-amount');
+        const amount = getAmountValue(amountInput);
+        const date = document.getElementById('add-transaction-date')?.value;
+        const description = document.getElementById('add-transaction-description')?.value;
+
+        // Get category type from selected option
+        const categorySelect = document.getElementById('add-transaction-category');
+        const selectedOption = categorySelect?.options[categorySelect.selectedIndex];
+        const categoryText = selectedOption?.textContent || '';
+        
+        // The category format is "Type - Name", so we split and get the type
+        const type = categoryText.split('-')[0].trim().toLowerCase();
+
+        // Validate required fields with specific error messages
+        const missingFields = [];
+        if (!accountId) missingFields.push('Account');
+        if (!categoryId) missingFields.push('Category');
+        if (!amount) missingFields.push('Amount');
+        if (!date) missingFields.push('Date');
+
+        if (missingFields.length > 0) {
+            showError(`Missing required fields: ${missingFields.join(', ')}`);
+            return;
+        }
+
+        // Get selected project IDs, with null check for the select element
+        const projectSelect = document.getElementById('transaction-projects');
+        const projectIds = projectSelect ? Array.from(projectSelect.selectedOptions)
+            .map(option => option.value)  // Don't parse as int yet
+            .filter(id => id !== '') : [];  // Filter empty strings instead of NaN
+
+        // Add the transaction
         const { data: transactionId, error } = await window.databaseApi.addTransaction({
             account_id: accountId,
             category_id: categoryId,
@@ -104,8 +113,13 @@ if (addTransactionForm) {
 
         if (error) throw error;
 
-        if (projectIds.length > 0) {
-            const { error: projectError } = await window.databaseApi.addTransactionProjects(transactionId, projectIds);
+        // Add project associations if any projects were selected
+        if (projectIds && projectIds.length > 0) {
+            console.log('Adding projects:', { transactionId, projectIds }); // Debug log
+            const { error: projectError } = await window.databaseApi.addTransactionProjects(
+                transactionId,  // Already the ID number, no need for parseInt
+                projectIds.map(id => parseInt(id, 10))  // Ensure base-10 parsing
+            );
             if (projectError) throw projectError;
         }
 
@@ -252,7 +266,10 @@ export async function showEditTransactionForm(transaction) {
             if (error) throw error;
 
             // Then update the project associations (even if empty)
-            const { error: projectError } = await window.databaseApi.updateTransactionProjects(transactionId, projectIds);
+            const { error: projectError } = await window.databaseApi.updateTransactionProjects(
+                transactionId,
+                projectIds
+            );
             if (projectError) throw projectError;
 
             // Only refresh after both operations are complete
@@ -500,7 +517,7 @@ export async function handleTransactionFiltersChange() {
 // Update the search input handler
 document.querySelector('#Transactions .search-input')?.addEventListener('input', debounce(async (e) => {
   if (transactionsPagination) {
-    // Set the page to 1 directly
+    // Reset to page 1 when searching
     transactionsPagination.currentPage = 1;
   }
   
@@ -510,7 +527,7 @@ document.querySelector('#Transactions .search-input')?.addEventListener('input',
     sort: document.getElementById('transaction-sort')?.value || 'date-desc',
     search: e.target.value,
     limit: transactionsPagination?.getLimit(),
-    offset: 0
+    offset: 0  // Reset offset to 0 when searching
   };
   
   await loadTransactions(filters);
