@@ -3,7 +3,13 @@ import { getCurrencySymbol } from '../services/currencyService.js';
 // Utility function to format numbers as currency
 function formatCurrency(amount) {
     const symbol = getCurrencySymbol();
-    return `${symbol}${parseFloat(amount).toLocaleString(undefined, {
+    
+    // Convert to number and handle invalid inputs
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) return `${symbol}0.00`;
+
+    // Format with fixed decimal places and explicit US formatting
+    return `${symbol}${numAmount.toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     })}`;

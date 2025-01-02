@@ -179,5 +179,7 @@ jobs:
             dist/**/*-arm64.zip.blockmap
             dist/**/*-x64.zip.blockmap
             dist/**/*-Setup-*.exe.blockmap
-            dist/**/latest*.yml
+            dist/**/latest.yml
+            dist/**/latest-mac.yml
+            dist/**/latest-linux.yml
 
