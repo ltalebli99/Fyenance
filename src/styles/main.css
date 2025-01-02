@@ -2492,7 +2492,7 @@
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: var(--background);
+  background: var(--modal-background);
   border-radius: var(--radius);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   padding: 20px;

@@ -11,12 +11,16 @@ export async function checkForUpdates() {
         updateStatus.textContent = 'Checking for updates...';
         startUpdateBtn.style.display = 'none';
         
-        // Check for updates
-        const currentVersion = await window.versions.app();
+        // Remove the separate version check since it's included in updateCheck
         const updateCheck = await window.updateApi.checkForUpdates();
         checkUpdatesBtn.disabled = false;
 
-        if (updateCheck && updateCheck.updateAvailable) {
+        // Add error checking for the response
+        if (!updateCheck) {
+            throw new Error('Invalid update check response');
+        }
+
+        if (updateCheck.updateAvailable) {
             if (window.electronAPI.platform === 'darwin') {
                 // For macOS, show download link
                 updateStatus.innerHTML = `Version ${updateCheck.latestVersion} is now available! ` +

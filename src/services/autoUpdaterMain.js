@@ -80,7 +80,10 @@ function setupAutoUpdater(mainWindow, database) {
     sendStatusToWindow(`Update error: ${error.message || 'Unknown error'}`);
   });
 
+  let updatePopupShown = false;
+
   autoUpdater.on('checking-for-update', () => {
+    updatePopupShown = false;
     electronLog.info('Checking for updates...');
     sendStatusToWindow('Checking for updates...');
   });
@@ -89,10 +92,13 @@ function setupAutoUpdater(mainWindow, database) {
     electronLog.info('Update available:', info);
     sendStatusToWindow('Update available.');
     mainWindow.webContents.send('update-available', info);
-    // Wait 30 seconds before showing the popup
-    setTimeout(() => {
-      mainWindow.webContents.send('show-update-popup', info);
-    }, 30000);
+    
+    if (!updatePopupShown) {
+      updatePopupShown = true;
+      setTimeout(() => {
+        mainWindow.webContents.send('show-update-popup', info);
+      }, 30000);
+    }
   });
 
   autoUpdater.on('update-not-available', (info) => {
@@ -135,16 +141,51 @@ function setupAutoUpdater(mainWindow, database) {
       electronLog.info('Current version:', app.getVersion());
       
       const result = await autoUpdater.checkForUpdates();
-      electronLog.info('Check result:', result);
-      return {
-        updateAvailable: result.updateInfo.version !== app.getVersion(),
+      
+      // Log the raw result to see its structure
+      electronLog.info('Raw update check result:', JSON.stringify(result, null, 2));
+
+      // Safely access properties with null checks
+      const updateInfo = result?.updateInfo || {};
+      
+      // Create a serializable response object with safe fallbacks
+      const response = {
+        updateAvailable: false, // default value
         currentVersion: app.getVersion(),
-        latestVersion: result.updateInfo.version,
-        ...result
+        latestVersion: null,
+        releaseNotes: null,
+        releaseDate: null,
+        files: []
       };
+
+      // Only set properties if they exist
+      if (updateInfo.version) {
+        response.updateAvailable = updateInfo.version !== app.getVersion();
+        response.latestVersion = updateInfo.version;
+      }
+
+      if (updateInfo.releaseNotes) {
+        response.releaseNotes = updateInfo.releaseNotes;
+      }
+
+      if (updateInfo.releaseDate) {
+        response.releaseDate = updateInfo.releaseDate;
+      }
+
+      if (Array.isArray(updateInfo.files)) {
+        response.files = updateInfo.files.map(f => ({
+          url: f.url || null,
+          size: f.size || 0,
+          sha512: f.sha512 || null
+        }));
+      }
+
+      electronLog.info('Serialized response:', response);
+      return response;
+      
     } catch (error) {
       electronLog.error('Update check error:', error);
-      throw error;
+      throw new Error(`Update check failed: ${error.message}`);
     }
   });
 
