@@ -99,16 +99,16 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          DEBUG: electron-builder,electron-notarize*
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          release: false
+          release: true
           mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
-            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64' ||
-                matrix.os == 'windows-latest' && '--win' ||
-                matrix.os == 'ubuntu-latest' && '--linux' }}
+            --publish always
+            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
+                matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
+                matrix.os == 'ubuntu-latest' && '--linux --config.productName="Fyenance"' }}
 
       - name: Sign Windows Build
         if: matrix.os == 'windows-latest'
@@ -155,11 +155,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      # Download artifacts from build jobs (you'll need to upload them in the build job)
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
           path: dist
+
       - name: Create or Update Release
         uses: softprops/action-gh-release@v1
         with:
@@ -168,5 +168,12 @@ jobs:
           draft: false
           prerelease: false
           token: ${{ secrets.GH_TOKEN }}
-          files: dist/**/*
+          files: |
+            dist/**/*.dmg
+            dist/**/*.exe
+            dist/**/*.AppImage
+            dist/**/*.snap
+            dist/**/*.zip
+            dist/**/*.yml
+            dist/**/*.blockmap
 
