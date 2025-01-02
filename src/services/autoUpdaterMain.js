@@ -16,39 +16,12 @@ function setupAutoUpdater(mainWindow, database) {
   autoUpdater.logger.transports.file.level = 'debug';
   electronLog.info('Auto Updater starting...');
 
-  // Force enable updates even in dev mode
-  // autoUpdater.forceDevUpdateConfig = true;
-  // autoUpdater.allowDowngrade = true;
-
-  // On macOS, only setup version checking until we have code signing
-  if (process.platform === 'darwin') {
-    electronLog.info('Auto-updater download disabled on macOS - only version checking enabled');
-    
-    safeIpcHandle('check-for-updates', async () => {
-      try {
-        electronLog.info('Checking for updates...');
-        electronLog.info('Current version:', app.getVersion());
-        
-        const result = await autoUpdater.checkForUpdates();
-        electronLog.info('Check result:', result);
-        return {
-          updateAvailable: result.updateInfo.version !== app.getVersion(),
-          currentVersion: app.getVersion(),
-          latestVersion: result.updateInfo.version,
-          ...result
-        };
-      } catch (error) {
-        electronLog.error('Update check error:', error);
-        throw error;
-      }
-    });
-
-    return;
-  }
-
-  // Continue with full auto-update setup for other platforms
+  // Configure updater options
+  autoUpdater.autoDownload = false;
+  autoUpdater.fullChangelog = true;
   autoUpdater.allowPrerelease = process.env.NODE_ENV === 'development';
 
+  // Set up GitHub feed URL
   autoUpdater.setFeedURL({
     provider: 'github',
     owner: 'ltalebli99',
@@ -56,11 +29,7 @@ function setupAutoUpdater(mainWindow, database) {
     private: true
   });
 
-  electronLog.info('Current version:', app.getVersion());
-
-  // Configure updater options
-  autoUpdater.autoDownload = false;
-  autoUpdater.fullChangelog = true;
+  let updatePopupShown = false;
 
   // Helper function to send status to window
   function sendStatusToWindow(text) {
@@ -69,7 +38,35 @@ function setupAutoUpdater(mainWindow, database) {
     }
   }
 
-  // Auto-updater events with enhanced error logging
+  // Single check-for-updates handler for all platforms
+  safeIpcHandle('check-for-updates', async () => {
+    try {
+      electronLog.info('Checking for updates...');
+      electronLog.info('Current version:', app.getVersion());
+      
+      const result = await autoUpdater.checkForUpdates();
+      
+      // Log the raw result to see its structure
+      electronLog.info('Raw update check result:', JSON.stringify(result, null, 2));
+
+      // Create a serializable response object
+      const response = {
+        updateAvailable: result.updateInfo.version !== app.getVersion(),
+        currentVersion: app.getVersion(),
+        latestVersion: result.updateInfo.version,
+        releaseNotes: result.updateInfo.releaseNotes || null,
+        releaseDate: result.updateInfo.releaseDate || null
+      };
+
+      electronLog.info('Serialized response:', response);
+      return response;
+    } catch (error) {
+      electronLog.error('Update check error:', error);
+      throw new Error(`Update check failed: ${error.message}`);
+    }
+  });
+
+  // Auto-updater events
   autoUpdater.on('error', (error) => {
     electronLog.error('Auto-updater error:', {
       message: error.message,
@@ -80,8 +77,6 @@ function setupAutoUpdater(mainWindow, database) {
     sendStatusToWindow(`Update error: ${error.message || 'Unknown error'}`);
   });
 
-  let updatePopupShown = false;
-
   autoUpdater.on('checking-for-update', () => {
     updatePopupShown = false;
     electronLog.info('Checking for updates...');
@@ -91,12 +86,22 @@ function setupAutoUpdater(mainWindow, database) {
   autoUpdater.on('update-available', (info) => {
     electronLog.info('Update available:', info);
     sendStatusToWindow('Update available.');
-    mainWindow.webContents.send('update-available', info);
     
+    // Send update info to renderer immediately
+    mainWindow.webContents.send('update-available', {
+      version: info.version,
+      releaseNotes: info.releaseNotes,
+      releaseDate: info.releaseDate
+    });
+    
+    // Show popup after delay if not shown yet
     if (!updatePopupShown) {
       updatePopupShown = true;
       setTimeout(() => {
-        mainWindow.webContents.send('show-update-popup', info);
+        mainWindow.webContents.send('show-update-popup', {
+          version: info.version,
+          releaseNotes: info.releaseNotes
+        });
       }, 30000);
     }
   });
@@ -135,60 +140,7 @@ function setupAutoUpdater(mainWindow, database) {
     }
   });
 
-  safeIpcHandle('check-for-updates', async () => {
-    try {
-      electronLog.info('Checking for updates...');
-      electronLog.info('Current version:', app.getVersion());
-      
-      const result = await autoUpdater.checkForUpdates();
-      
-      // Log the raw result to see its structure
-      electronLog.info('Raw update check result:', JSON.stringify(result, null, 2));
-
-      // Safely access properties with null checks
-      const updateInfo = result?.updateInfo || {};
-      
-      // Create a serializable response object with safe fallbacks
-      const response = {
-        updateAvailable: false, // default value
-        currentVersion: app.getVersion(),
-        latestVersion: null,
-        releaseNotes: null,
-        releaseDate: null,
-        files: []
-      };
-
-      // Only set properties if they exist
-      if (updateInfo.version) {
-        response.updateAvailable = updateInfo.version !== app.getVersion();
-        response.latestVersion = updateInfo.version;
-      }
-
-      if (updateInfo.releaseNotes) {
-        response.releaseNotes = updateInfo.releaseNotes;
-      }
-
-      if (updateInfo.releaseDate) {
-        response.releaseDate = updateInfo.releaseDate;
-      }
-
-      if (Array.isArray(updateInfo.files)) {
-        response.files = updateInfo.files.map(f => ({
-          url: f.url || null,
-          size: f.size || 0,
-          sha512: f.sha512 || null
-        }));
-      }
-
-      electronLog.info('Serialized response:', response);
-      return response;
-      
-    } catch (error) {
-      electronLog.error('Update check error:', error);
-      throw new Error(`Update check failed: ${error.message}`);
-    }
-  });
-
+  // Handle the start-update IPC call
   safeIpcHandle('start-update', async () => {
     try {
       electronLog.info('Starting update download...');

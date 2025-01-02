@@ -116,17 +116,24 @@ export function initializeVersionControl() {
 function setupUpdateEventListeners() {
     // Handle update available
     window.updateApi.onUpdateAvailable((info) => {
+        console.log('Update available event received:', info);
         const updateStatus = document.getElementById('update-status');
         const startUpdateBtn = document.getElementById('start-update-btn');
         
         if (updateStatus && startUpdateBtn) {
             updateStatus.textContent = `New version ${info.version} available!`;
             startUpdateBtn.style.display = 'block';
+        } else {
+            console.warn('Update UI elements not found:', {
+                updateStatus: !!updateStatus,
+                startUpdateBtn: !!startUpdateBtn
+            });
         }
     });
     
-    // Handle update messages
+    // Handle update messages with logging
     window.updateApi.onUpdateMessage((message) => {
+        console.log('Update message received:', message);
         const updateStatus = document.getElementById('update-status');
         if (updateStatus) {
             updateStatus.textContent = message;
