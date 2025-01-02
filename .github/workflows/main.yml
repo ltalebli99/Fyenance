@@ -101,11 +101,10 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          release: true
+          release: false
           mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
-            --publish always
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
                 matrix.os == 'ubuntu-latest' && '--linux --config.productName="Fyenance"' }}
@@ -169,11 +168,16 @@ jobs:
           prerelease: false
           token: ${{ secrets.GH_TOKEN }}
           files: |
-            dist/**/*.dmg
-            dist/**/*.exe
+            dist/**/*-arm64.dmg
+            dist/**/*-x64.dmg
+            dist/**/*-Setup-*.exe
             dist/**/*.AppImage
-            dist/**/*.snap
-            dist/**/*.zip
-            dist/**/*.yml
-            dist/**/*.blockmap
+            dist/**/*-arm64.zip
+            dist/**/*-x64.zip
+            dist/**/*-arm64.dmg.blockmap
+            dist/**/*-x64.dmg.blockmap
+            dist/**/*-arm64.zip.blockmap
+            dist/**/*-x64.zip.blockmap
+            dist/**/*-Setup-*.exe.blockmap
+            dist/**/latest*.yml
 
