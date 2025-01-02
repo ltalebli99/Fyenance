@@ -114,6 +114,9 @@ contextBridge.exposeInMainWorld('updateApi', {
     },
     onUpdateProgress: (callback) => {
         ipcRenderer.on('download-progress', (_, progressObj) => callback(progressObj));
+    },
+    onShowUpdatePopup: (callback) => {
+        ipcRenderer.on('show-update-popup', (_, info) => callback(info));
     }
 });
 

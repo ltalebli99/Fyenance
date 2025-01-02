@@ -160,4 +160,46 @@ export function closeModal(modalId) {
     }, 3000);
   }
 
+  export function showUpdatePopup(version) {
+    const popup = document.createElement('div');
+    popup.className = 'update-popup';
+    popup.innerHTML = `
+      <div class="update-popup-content">
+        <i class="fas fa-sync-alt"></i>
+        <h3>New Update Available!</h3>
+        <p>Version ${version} is ready to install</p>
+        <div class="update-popup-actions">
+          <button class="primary-btn" id="update-now-btn">Update Now</button>
+          <button class="secondary-btn" id="update-later-btn">Later</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+    
+    // Add show class after a small delay for animation
+    setTimeout(() => popup.classList.add('show'), 10);
+
+    // Event handlers
+    popup.querySelector('#update-now-btn').addEventListener('click', async () => {
+      popup.classList.remove('show');
+      setTimeout(() => popup.remove(), 300);
+      
+      // Navigate to settings and start update
+      const settingsBtn = document.querySelector('[data-section="Settings"]');
+      if (settingsBtn) {
+        settingsBtn.click();
+        setTimeout(() => {
+          const startUpdateBtn = document.getElementById('start-update-btn');
+          if (startUpdateBtn) startUpdateBtn.click();
+        }, 500);
+      }
+    });
+
+    popup.querySelector('#update-later-btn').addEventListener('click', () => {
+      popup.classList.remove('show');
+      setTimeout(() => popup.remove(), 300);
+    });
+  }
+
 

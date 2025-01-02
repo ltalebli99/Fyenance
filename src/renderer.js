@@ -38,6 +38,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     initializeDatabaseControls();
     
+    // Add this near the initialization code
+    window.updateApi.onShowUpdatePopup((info) => {
+      // Import the showUpdatePopup function
+      import('./utils/utils.js').then(({ showUpdatePopup }) => {
+        showUpdatePopup(info.version);
+      });
+    });
+    
   } catch (error) {
     console.error('Error during application initialization:', error);
   }

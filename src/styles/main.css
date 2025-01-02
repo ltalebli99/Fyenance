@@ -2486,3 +2486,56 @@
   font-size: 0.8em;
   margin-right: 2px;
 }
+
+/* Add after the success-popup styles */
+.update-popup {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: var(--background);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 20px;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
+  min-width: 300px;
+}
+
+.update-popup.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.update-popup-content {
+  text-align: center;
+}
+
+.update-popup-content i {
+  font-size: 24px;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.update-popup-content h3 {
+  margin: 10px 0;
+  color: var(--text);
+}
+
+.update-popup-content p {
+  margin: 10px 0;
+  color: var(--text-light);
+}
+
+.update-popup-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: center;
+}
+
+.update-popup-actions button {
+  padding: 8px 16px;
+}

@@ -89,6 +89,10 @@ function setupAutoUpdater(mainWindow, database) {
     electronLog.info('Update available:', info);
     sendStatusToWindow('Update available.');
     mainWindow.webContents.send('update-available', info);
+    // Wait 30 seconds before showing the popup
+    setTimeout(() => {
+      mainWindow.webContents.send('show-update-popup', info);
+    }, 30000);
   });
 
   autoUpdater.on('update-not-available', (info) => {
