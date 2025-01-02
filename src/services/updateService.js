@@ -35,6 +35,7 @@ export async function checkForUpdates() {
     }
 }
 
+
 // Start update process
 export async function startUpdate() {
     const updateStatus = document.getElementById('update-status');
