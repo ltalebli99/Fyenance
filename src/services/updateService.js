@@ -21,24 +21,9 @@ export async function checkForUpdates() {
         }
 
         if (updateCheck.updateAvailable) {
-            if (window.electronAPI.platform === 'darwin') {
-                // For macOS, show download link
-                updateStatus.innerHTML = `Version ${updateCheck.latestVersion} is now available! ` +
-                    `<a href="#" class="download-link">Click here to download</a>`;
-                
-                // Add click handler for the download link
-                const downloadLink = updateStatus.querySelector('.download-link');
-                if (downloadLink) {
-                    downloadLink.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        window.electronAPI.openExternal('https://www.fyenanceapp.com/success');
-                    });
-                }
-            } else {
-                // For Windows/Linux, show update button
-                updateStatus.textContent = `Version ${updateCheck.latestVersion} is now available!`;
-                startUpdateBtn.style.display = 'block';
-            }
+            // Show update button for all platforms
+            updateStatus.textContent = `Version ${updateCheck.latestVersion} is now available!`;
+            startUpdateBtn.style.display = 'block';
         } else {
             updateStatus.textContent = 'You are using the latest version.';
             startUpdateBtn.style.display = 'none';
