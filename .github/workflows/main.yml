@@ -106,7 +106,7 @@ jobs:
           mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
-            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --debug' ||
+            ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64' ||
                 matrix.os == 'windows-latest' && '--win' ||
                 matrix.os == 'ubuntu-latest' && '--linux' }}
 
