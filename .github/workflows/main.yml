@@ -9,19 +9,28 @@ permissions:
   contents: write
 
 jobs:
-  get-version:
+  prepare-release:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get-version.outputs.version }}
     steps:
       - uses: actions/checkout@v3
+      
       - name: Get version from package.json
         id: get-version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
+      - name: Create or Update Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get-version.outputs.version }}
+          name: Release ${{ steps.get-version.outputs.version }}
+          draft: true
+          prerelease: false
+          token: ${{ secrets.GH_TOKEN }}
+
   build:
-    needs: get-version
-    timeout-minutes: 180
+    needs: prepare-release
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
@@ -56,14 +65,8 @@ jobs:
           echo "Importing certificate..."
           security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
           
-          echo "Verifying import..."
-          security find-identity -v -p codesigning build.keychain || { echo "No valid signing identity found"; exit 1; }
-          
           echo "Setting key partition list..."
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-
-          echo "Testing codesign access..."
-          security find-certificate -a -c "Developer ID Application" build.keychain || { echo "Developer ID certificate not found"; exit 1; }
 
           echo "Cleaning up..."
           rm certificate.p12
@@ -88,8 +91,6 @@ jobs:
           npm install --save-dev dmg-license
           npm install --save-dev electron-builder@24.9.1
           npm install --save-dev @electron/notarize@2.3.2
-          npm ls electron-builder  # Debug: verify installed version
-          npm ls @electron/notarize  # Debug: verify installed version
 
       - name: Build/Release Electron app
         uses: samuelmeuli/action-electron-builder@v1
@@ -101,10 +102,11 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          release: false
+          release: true
           mac_certs: ${{ secrets.MACOS_CERTIFICATE }}
           mac_certs_password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           args: >
+            --publish always
             ${{ matrix.os == 'macos-latest' && '--mac --x64 --arm64 --config.mac.target=dmg --config.mac.target=zip --config.mac.minimumSystemVersion=10.12' ||
                 matrix.os == 'windows-latest' && '--win --config.productName="Fyenance"' ||
                 matrix.os == 'ubuntu-latest' && '--linux --config.productName="Fyenance"' }}
@@ -148,30 +150,16 @@ jobs:
           path: dist/
           retention-days: 1
 
-  create-release:
-    needs: [get-version, build]
+  publish-release:
+    needs: [prepare-release, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: dist
-
-      - name: Create or Update Release
+      - name: Publish Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ needs.get-version.outputs.version }}
-          name: Release ${{ needs.get-version.outputs.version }}
+          tag_name: v${{ needs.prepare-release.outputs.version }}
+          name: Release ${{ needs.prepare-release.outputs.version }}
           draft: false
           prerelease: false
           token: ${{ secrets.GH_TOKEN }}
-          files: |
-            dist/**/*.dmg
-            dist/**/*.exe
-            dist/**/*.AppImage
-            dist/**/*.zip
-            dist/**/*.blockmap
-            dist/**/latest*.yml
 
