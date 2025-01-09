@@ -6,10 +6,9 @@ import { initializeSmartImport } from './smartImport.js';
 import { showCreateFirstModal } from '../utils/modals.js';
 import { showError } from '../utils/utils.js';
 import { updateLicenseInfo } from './license.js';
-import { getAllCurrencies, setCurrencyPreference, getCurrencyPreference } from '../services/currencyService.js';
+import { getAllCurrencies, setCurrencyPreference, getCurrencyPreference, convertCurrency } from '../services/currencyService.js';
 import { refreshData } from '../utils/refresh.js';
 import { showConfirmationModal } from '../utils/modals.js';
-
 
 export function initializeSettings() {
     // Theme Toggle
@@ -175,6 +174,9 @@ export function initializeSettings() {
     });
 
     // Support email uses default mailto: behavior
+
+    // Initialize exchange rate calculator
+    initializeExchangeCalculator();
 }
 
 // Add event listener for settings tab activation
@@ -308,4 +310,99 @@ window.deleteBackup = async (backupPath) => {
         }
     });
 };
+
+// Initialize exchange rate calculator
+function initializeExchangeCalculator() {
+    const fromSelect = document.getElementById('from-currency');
+    const toSelect = document.getElementById('to-currency');
+    const amountInput = document.getElementById('exchange-amount');
+    const resultInput = document.getElementById('exchange-result');
+    
+    let lastValidAmount = '1';
+    
+    // Format number with currency code
+    const formatExchangeAmount = (amount, currencyCode) => {
+        const num = parseFloat(amount) || 0;
+        return num.toLocaleString(undefined, {
+            style: 'currency',
+            currency: currencyCode
+        });
+    };
+
+    // Format number only (no currency)
+    const formatNumber = (amount) => {
+        const num = parseFloat(amount) || 0;
+        return num.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    };
+    
+    // Populate currency dropdowns
+    const currencies = getAllCurrencies();
+    const options = currencies.map(c => `
+        <option value="${c.code}">${c.code} - ${c.name}</option>
+    `).join('');
+    
+    fromSelect.innerHTML = options;
+    toSelect.innerHTML = options;
+    
+    // Set default values
+    fromSelect.value = getCurrencyPreference();
+    toSelect.value = 'USD';
+    
+    // Update calculation on any change
+    const updateCalculation = () => {
+        const amount = parseFloat(lastValidAmount) || 0;
+        const converted = convertCurrency(amount, fromSelect.value, toSelect.value);
+        resultInput.value = formatExchangeAmount(converted, toSelect.value);
+    };
+    
+    // Add change handlers for currency selection
+    [fromSelect, toSelect].forEach(el => 
+        el.addEventListener('change', updateCalculation)
+    );
+    
+    // Handle input changes
+    amountInput.addEventListener('input', (e) => {
+        // Remove any non-numeric characters except decimal point
+        const cleanValue = e.target.value.replace(/[^\d.]/g, '');
+        // Ensure only one decimal point
+        const parts = cleanValue.split('.');
+        const newValue = parts[0] + (parts.length > 1 ? '.' + parts[1] : '');
+        
+        // Store the new value if it's valid
+        if (newValue !== '') {
+            lastValidAmount = newValue;
+            e.target.value = lastValidAmount;
+        }
+        
+        updateCalculation();
+    });
+
+    // Add exchange icon click handler to swap currencies
+    const swapButton = document.getElementById('swap-currencies');
+    if (swapButton) {
+        swapButton.addEventListener('click', () => {
+            // Get the current converted amount
+            const currentAmount = parseFloat(lastValidAmount) || 0;
+            const convertedAmount = convertCurrency(currentAmount, fromSelect.value, toSelect.value);
+            
+            // Swap currencies
+            const tempValue = fromSelect.value;
+            fromSelect.value = toSelect.value;
+            toSelect.value = tempValue;
+            
+            // Update input with the converted amount
+            lastValidAmount = convertedAmount.toString();
+            amountInput.value = formatNumber(convertedAmount);
+            
+            updateCalculation();
+        });
+    }
+
+    // Initial setup
+    amountInput.value = lastValidAmount;
+    updateCalculation();
+}
 

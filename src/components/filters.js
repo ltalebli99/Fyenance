@@ -231,17 +231,25 @@ window.addEventListener('scroll', () => {
   
   // Update existing handler functions to include search term
   export function handleTransactionFiltersChange() {
+    const accountId = document.getElementById('transaction-account-filter')?.value || 'all';
+    const type = document.getElementById('transaction-type-filter')?.value || 'all';
+    const category = document.getElementById('transaction-category-filter')?.value || 'all';
+    const sort = document.getElementById('transaction-sort')?.value || 'date-desc';
+    const searchTerm = document.querySelector('#Transactions .search-input')?.value || '';
+
     const filters = {
-      type: document.getElementById('transaction-type-filter')?.value || 'all',
-      category: document.getElementById('transaction-category-filter')?.value || 'all',
-      sort: document.getElementById('transaction-sort')?.value || 'date-desc',
-      search: document.querySelector('#Transactions .search-input')?.value || ''
+      accounts: [accountId],
+      type,
+      category,
+      sort,
+      search: searchTerm
     };
+
     fetchTransactions(filters);
   }
   
   export function handleRecurringFiltersChange() {
-    const accountId = document.getElementById('recurring-account-selector')?.value || 'all';
+    const accountId = document.getElementById('recurring-account-filter')?.value || 'all';
     const type = document.getElementById('recurring-type-filter')?.value || 'all';
     const category = document.getElementById('recurring-category-filter')?.value || 'all';
     const status = document.getElementById('recurring-status-filter')?.value || 'all';
@@ -262,12 +270,12 @@ window.addEventListener('scroll', () => {
   // Update the event listeners in DOMContentLoaded
   document.addEventListener('DOMContentLoaded', () => {
     // Transaction filters and sorts
-    ['transaction-type-filter', 'transaction-category-filter', 'transaction-sort'].forEach(id => {
+    ['transaction-type-filter', 'transaction-category-filter', 'transaction-sort', 'transaction-account-filter'].forEach(id => {
       document.getElementById(id)?.addEventListener('change', handleTransactionFiltersChange);
     });
     
     // Recurring filters and sorts
-    ['recurring-type-filter', 'recurring-category-filter', 'recurring-sort'].forEach(id => {
+    ['recurring-type-filter', 'recurring-category-filter', 'recurring-sort', 'recurring-account-filter'].forEach(id => {
       document.getElementById(id)?.addEventListener('change', handleRecurringFiltersChange);
     });
     

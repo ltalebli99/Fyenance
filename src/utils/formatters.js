@@ -1,18 +1,30 @@
-import { getCurrencySymbol } from '../services/currencyService.js';
+import { getCurrencySymbol, getCurrencyLocale } from '../services/currencyService.js';
 
 // Utility function to format numbers as currency
 function formatCurrency(amount) {
     const symbol = getCurrencySymbol();
+    const locale = getCurrencyLocale();
     
     // Convert to number and handle invalid inputs
     const numAmount = parseFloat(amount);
-    if (isNaN(numAmount)) return `${symbol}0.00`;
+    
+    // Special handling for Serbian Dinar
+    if (symbol === ' дин.') {
+        if (isNaN(numAmount)) return `0,00 ${symbol}`;
+        const formatted = numAmount.toLocaleString('sr-RS', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        return `${formatted}${symbol}`;
+    }
 
-    // Format with fixed decimal places and explicit US formatting
-    return `${symbol}${numAmount.toLocaleString('en-US', {
+    // Default handling for other currencies
+    if (isNaN(numAmount)) return `${symbol}0.00`;
+    const formatted = numAmount.toLocaleString(locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    })}`;
+    });
+    return `${symbol}${formatted}`;
 }
 
 // Capitalize first letter of a string
@@ -117,68 +129,58 @@ function getOrdinalSuffix(day) {
 
 function formatAmountInput(input) {
   const symbol = getCurrencySymbol();
+  const locale = getCurrencyLocale();
   
-  // Store cursor position relative to the end of the input
+  // Get locale-specific separators
+  const format = new Intl.NumberFormat(locale).format(1111.1);
+  const thousandSep = format.charAt(1);
+  const decimalSep = format.charAt(5);
+  
+  // Store cursor position relative to the end
   const cursorFromEnd = input.value.length - input.selectionStart;
   
-  // Remove currency symbol and allow decimal point
+  // Remove currency symbol
   let value = input.value.replace(symbol, '');
   
-  // Then remove all non-numeric characters except decimal point
-  value = value.replace(/[^\d.]/g, '');
+  // Handle the case where user just typed a decimal separator
+  const lastChar = value.slice(-1);
+  const isNewDecimal = (lastChar === '.' || lastChar === ',');
   
-  // Ensure only one decimal point
-  const parts = value.split('.');
-  if (parts.length > 2) {
-    parts[1] = parts.slice(1).join('');
-    value = parts.join('.');
-  }
+  // Remove existing thousand separators
+  value = value.replace(new RegExp(`\\${thousandSep}`, 'g'), '');
   
-  // Limit decimal places to 2
-  if (parts.length === 2) {
-    parts[1] = parts[1].slice(0, 2);
-    value = parts.join('.');
-  }
+  // Convert any existing periods or commas to the locale decimal separator
+  value = value.replace(/[.,]/g, decimalSep);
   
-  // Format with commas for thousands
-  let [integerPart, decimalPart] = value.split('.');
-  if (!integerPart && value.startsWith('.')) {
-    integerPart = '0';
-  }
+  // Split by decimal separator
+  const parts = value.split(decimalSep);
   
+  // Only keep the first decimal separator
+  let integerPart = parts[0].replace(/\D/g, '');
+  let decimalPart = parts.length > 1 ? parts[1].replace(/\D/g, '').slice(0, 2) : '';
+  
+  // Add thousand separators to integer part if it exists
   if (integerPart) {
-    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandSep);
   }
   
-  // Reconstruct the value
-  value = integerPart || '0';
-  if (decimalPart !== undefined) {
-    value += '.' + decimalPart;
+  // Reconstruct value, keeping decimal separator if just typed
+  value = (integerPart || '0');
+  if (decimalPart || isNewDecimal) {
+    value += decimalSep + (decimalPart || '');
   }
   
-  // Store the raw numeric value without commas
-  input.dataset.amount = value.replace(/,/g, '');
+  // Store numeric value
+  const numericValue = parseFloat(value.replace(new RegExp(`\\${thousandSep}`, 'g'), '').replace(decimalSep, '.'));
+  input.dataset.amount = isNaN(numericValue) ? '0' : numericValue.toString();
   
-  // Add symbol while typing
+  // Add currency symbol
   const newValue = symbol + value;
   input.value = newValue;
   
-  // Restore cursor position
+  // Restore cursor position from end
   const newPosition = newValue.length - cursorFromEnd;
   input.setSelectionRange(newPosition, newPosition);
-  
-  // Add blur handler to format when input loses focus
-  input.onblur = () => {
-    const numValue = parseFloat(value.replace(/,/g, ''));
-    if (!isNaN(numValue)) {
-      // Format with commas and currency symbol
-      const formatted = formatCurrency(Math.abs(numValue));
-      input.value = formatted;
-    } else {
-      input.value = symbol;
-      input.setSelectionRange(symbol.length, symbol.length);
-    }
-  };
 }
 
 // When initializing an empty input, set cursor after symbol
@@ -195,10 +197,16 @@ function getAmountValue(input) {
     return null;
   }
   
-  // Remove currency symbol and any formatting characters
+  const locale = getCurrencyLocale();
+  const format = new Intl.NumberFormat(locale).format(1111.1);
+  const thousandSep = format.charAt(1);
+  const decimalSep = format.charAt(5);
+  
+  // Remove currency symbol and clean the value
   const value = input.value
     .replace(getCurrencySymbol(), '')
-    .replace(/,/g, '')
+    .replace(new RegExp(`\\${thousandSep}`, 'g'), '')  // Remove thousand separators
+    .replace(decimalSep, '.')  // Convert locale decimal to period
     .trim();
     
   // If empty after cleaning, return null

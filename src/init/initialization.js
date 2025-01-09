@@ -1,7 +1,7 @@
 import { fetchTotalBalance, updateReports, setupReportsEventListeners, markReportsInitialized } from '../services/reportsService.js';
 import { fetchAccounts } from '../services/accountsService.js';
 import { fetchCategories } from '../services/categoriesService.js';
-import { populateAccountDropdowns, populateCategoryDropdowns } from '../utils/dropdownHelpers.js';
+import { populateAccountDropdowns, populateCategoryDropdowns, populateAccountFilters } from '../utils/dropdownHelpers.js';
 import { fetchTransactions } from '../services/transactionsService.js';
 import { renderDashboardCharts } from '../services/chartsService.js';
 import { fetchRecurring } from '../services/recurringService.js';
@@ -11,6 +11,7 @@ import { setupLicenseHandlers } from '../components/license.js';
 import { initializeCategories } from '../components/categories.js';
 import { initializeProjects } from '../components/projects.js';
 import { fetchProjects } from '../services/projectsService.js';
+import { initializeExchangeRates } from '../services/currencyService.js';
 
 
 const checkLicense = () => window.licenseApi.checkLicenseExists();
@@ -73,6 +74,7 @@ export async function initializeMainApp() {
       fetchCategories().catch(err => console.error('Failed to fetch categories:', err)),
       populateAccountDropdowns().catch(err => console.error('Failed to populate dropdowns:', err)),
       populateCategoryDropdowns().catch(err => console.error('Failed to populate category dropdowns:', err)),
+      populateAccountFilters().catch(err => console.error('Failed to populate account filters:', err)),
       fetchTransactions().catch(err => console.error('Failed to fetch transactions:', err)),
       fetchProjects().catch(err => console.error('Failed to fetch projects:', err)),
       fetchRecurring().catch(err => console.error('Failed to fetch recurring:', err)),
@@ -87,6 +89,7 @@ export async function initializeMainApp() {
     // Set up reports components
     setupReportsEventListeners();
     markReportsInitialized();
+    initializeExchangeRates();
     await updateReports('month', 'all').catch(err => console.error('Failed to update reports:', err));
 
     // Update UI states last

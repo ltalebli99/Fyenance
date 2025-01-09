@@ -116,3 +116,30 @@ export async function populateProjectDropdowns(multiSelect = false) {
         console.error('Error populating project dropdowns:', err);
     }
 }
+
+export async function populateAccountFilters() {
+  try {
+    const { data: accounts, error } = await window.databaseApi.fetchAccounts();
+    if (error) throw error;
+
+    const transactionFilter = document.getElementById('transaction-account-filter');
+    const recurringFilter = document.getElementById('recurring-account-filter');
+
+    const options = accounts.map(account => 
+      `<option value="${account.id}">${account.name}</option>`
+    ).join('');
+
+    const defaultOption = '<option value="all">All Accounts</option>';
+
+    if (transactionFilter) {
+      transactionFilter.innerHTML = defaultOption + options;
+    }
+
+    if (recurringFilter) {
+      recurringFilter.innerHTML = defaultOption + options;
+    }
+  } catch (error) {
+    console.error('Error populating account filters:', error);
+    showError('Failed to load account filters');
+  }
+}

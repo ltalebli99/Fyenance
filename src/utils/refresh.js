@@ -6,7 +6,7 @@ import { fetchRecurring } from '../services/recurringService.js';
 import { fetchProjects } from '../services/projectsService.js';
 import { renderDashboardCharts } from '../services/chartsService.js';
 import { updateEmptyStates } from '../utils/emptyStates.js';
-import { populateAccountDropdowns, populateCategoryDropdowns, populateProjectDropdowns } from '../utils/dropdownHelpers.js';
+import { populateAccountDropdowns, populateCategoryDropdowns, populateProjectDropdowns, populateAccountFilters } from '../utils/dropdownHelpers.js';
 import { loadTransactions } from '../components/transactions.js';
 import { updateBannerData } from '../components/dashboard.js';
 
@@ -66,6 +66,7 @@ export async function refreshData(options = { all: true }) {
         if (options.all || options.dropdowns) {
             await Promise.all([
                 populateAccountDropdowns(),
+                populateAccountFilters(),
                 populateCategoryDropdowns(),
                 populateProjectDropdowns()
             ]);

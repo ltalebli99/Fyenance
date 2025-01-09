@@ -19,10 +19,25 @@ export async function fetchTransactions(filters = {}) {
     };
 
     // Fetch transactions from database
-    const { data: transactions, error } = await window.databaseApi.fetchTransactions(safeFilters.accounts);
+    const { data: transactions, error } = await window.databaseApi.fetchTransactions(safeFilters.accounts, {
+      limit: safeFilters.limit,
+      offset: safeFilters.offset,
+      type: safeFilters.type,
+      category: safeFilters.category,
+      sort: safeFilters.sort,
+      search: safeFilters.search
+    });
+    
     if (error) throw error;
 
     let filteredData = [...transactions];
+
+    // Apply account filter
+    if (!safeFilters.accounts.includes('all')) {
+      filteredData = filteredData.filter(t => 
+        safeFilters.accounts.includes(t.account_id.toString())
+      );
+    }
 
     // Apply type filter
     if (safeFilters.type !== 'all') {
@@ -131,13 +146,13 @@ export function createTransactionRow(transaction) {
     timeZone: 'UTC' 
   });
 
-  // Extract type from category_name
   const transactionType = transaction.category_name?.split('-')[0]?.trim().toLowerCase() || 'expense';
 
   const row = document.createElement('tr');
   row.dataset.transactionId = transaction.id;
   row.innerHTML = `
     <td>${formattedDate}</td>
+    <td>${transaction.account_name || 'Unknown Account'}</td>
     <td>${capitalizeFirstLetter(transactionType)}</td>
     <td>${transaction.category_name?.split('-')[1]?.trim() || 'Uncategorized'}</td>
     <td class="${transactionType === 'income' ? 'positive' : 'negative'}">

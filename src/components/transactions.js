@@ -388,11 +388,16 @@ export async function loadTransactions(filters = {}) {
       transactionsPagination = new TablePagination('transactions-table-body', {
         itemsPerPage: 10,
         onPageChange: async (page) => {
+          // Get selected account from the select element
+          const accountSelect = document.getElementById('transaction-account-filter');
+          const selectedAccount = accountSelect?.value || 'all';
+
           const filters = {
             type: document.getElementById('transaction-type-filter')?.value || 'all',
             category: document.getElementById('transaction-category-filter')?.value || 'all',
             sort: document.getElementById('transaction-sort')?.value || 'date-desc',
             search: document.querySelector('#Transactions .search-input')?.value || '',
+            accounts: selectedAccount === 'all' ? ['all'] : [selectedAccount],
             limit: transactionsPagination.getLimit(),
             offset: transactionsPagination.getOffset()
           };
@@ -434,6 +439,7 @@ export async function loadTransactions(filters = {}) {
       const row = document.createElement('tr');
       row.innerHTML = `
         <td>${new Date(transaction.date).toLocaleDateString()}</td>
+        <td>${transaction.account_name || 'Unknown Account'}</td>
         <td>${capitalizeFirstLetter(transaction.type)}</td>
         <td>${transaction.category_name || 'Uncategorized'}</td>
         <td class="${transaction.type === 'expense' ? 'negative' : 'positive'}">
@@ -490,26 +496,24 @@ export async function handleTransactionFiltersChange() {
     });
   }
 
-  // Get all selected account IDs
-  const accountCheckboxes = document.querySelectorAll('#transactions-account-selector .options-container input:checked');
-  const selectedAccountIds = Array.from(accountCheckboxes)
-    .map(cb => cb.value)
-    .filter(id => id !== 'all');
+  // Get selected account from the select element
+  const accountSelect = document.getElementById('transaction-account-filter');
+  const selectedAccount = accountSelect?.value || 'all';
+
+  // Reset pagination to first page
+  if (transactionsPagination) {
+    transactionsPagination.currentPage = 1;
+  }
 
   const filters = {
     type: document.getElementById('transaction-type-filter')?.value || 'all',
     category: document.getElementById('transaction-category-filter')?.value || 'all',
     sort: document.getElementById('transaction-sort')?.value || 'date-desc',
     search: document.querySelector('#Transactions .search-input')?.value || '',
-    accounts: selectedAccountIds.length > 0 ? selectedAccountIds : ['all'],
+    accounts: selectedAccount === 'all' ? ['all'] : [selectedAccount],
     limit: transactionsPagination.getLimit(),
     offset: transactionsPagination.getOffset()
   };
-
-  // Reset to first page when filters change
-  if (transactionsPagination) {
-    transactionsPagination.currentPage = 1;
-  }
 
   await loadTransactions(filters);
 }
@@ -587,16 +591,19 @@ function initializeTransactionFilters() {
   document.getElementById('reset-transaction-filters')?.addEventListener('click', async () => {
     // Reset all filter values
     if (document.getElementById('transaction-type-filter')) {
-      document.getElementById('transaction-type-filter').value = 'all';
+        document.getElementById('transaction-type-filter').value = 'all';
     }
     if (document.getElementById('transaction-category-filter')) {
-      document.getElementById('transaction-category-filter').value = 'all';
+        document.getElementById('transaction-category-filter').value = 'all';
     }
     if (document.getElementById('transaction-sort')) {
-      document.getElementById('transaction-sort').value = 'date-desc';
+        document.getElementById('transaction-sort').value = 'date-desc';
+    }
+    if (document.getElementById('transaction-account-filter')) {
+        document.getElementById('transaction-account-filter').value = 'all';
     }
     if (searchInput) {
-      searchInput.value = '';
+        searchInput.value = '';
     }
 
     // Apply the filter changes
@@ -617,14 +624,14 @@ function initializeTransactionFilters() {
   }
 
   // Individual filter change handlers
-  ['transaction-type-filter', 'transaction-category-filter', 'transaction-sort'].forEach(id => {
+  ['transaction-type-filter', 'transaction-category-filter', 'transaction-sort', 'transaction-account-filter'].forEach(id => {
     const element = document.getElementById(id);
     if (element) {
-      const newElement = element.cloneNode(true);
-      element.parentNode.replaceChild(newElement, element);
-      newElement.addEventListener('change', async () => {
-        await handleTransactionFiltersChange();
-      });
+        const newElement = element.cloneNode(true);
+        element.parentNode.replaceChild(newElement, element);
+        newElement.addEventListener('change', async () => {
+            await handleTransactionFiltersChange();
+        });
     }
   });
 }

@@ -19,7 +19,7 @@ contextBridge.exposeInMainWorld('databaseApi', {
     deleteAccount: (id) => ipcRenderer.invoke('db:deleteAccount', id),
     
     // Transactions
-    fetchTransactions: (accountId) => ipcRenderer.invoke('db:getTransactions', accountId),
+    fetchTransactions: (accountIds, options) => ipcRenderer.invoke('db:getTransactions', accountIds, options),
     getAllTransactions: (accountId) => ipcRenderer.invoke('db:getAllTransactions', accountId),
     addTransaction: (transaction) => ipcRenderer.invoke('db:addTransaction', transaction),
     updateTransaction: (id, data) => ipcRenderer.invoke('db:updateTransaction', id, data),
@@ -137,7 +137,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('window-state-change', (_, { isMaximized }) => {
             callback(isMaximized);
         });
-    }
+    },
+    fetchExchangeRates: () => ipcRenderer.invoke('fetch-exchange-rates'),
 });
 
 contextBridge.exposeInMainWorld('licenseApi', {

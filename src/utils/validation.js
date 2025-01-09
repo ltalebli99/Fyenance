@@ -54,16 +54,10 @@ export function initializeAmountInputs() {
     input.addEventListener('blur', (e) => {
       clearTimeout(e.target.formatTimeout);
       if (e.target.value) {
-        const value = e.target.value
-          .replace(getCurrencySymbol(), '')
-          .replace(/,/g, '')  // Remove commas before parsing
-          .trim();
-          
-        if (value) {
-          const numValue = parseFloat(value);
-          if (!isNaN(numValue)) {
-            e.target.value = formatCurrency(numValue);  // Use the same formatter as everywhere else
-          }
+        // Use the stored numeric value from the dataset instead of parsing the display value
+        const numValue = parseFloat(e.target.dataset.amount);
+        if (!isNaN(numValue)) {
+          e.target.value = formatCurrency(numValue);
         }
       }
     });

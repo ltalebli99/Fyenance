@@ -1,0 +1,130 @@
+.exchange-rate-header {
+    display: flex;
+    flex-direction: column;
+    gap: 64px;
+    margin-bottom: 8px;
+}
+
+@media (max-width: 1024px) {
+    .exchange-rate-header {
+        gap: 12px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .exchange-rate-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.header-left {
+    flex: 0 0 auto;
+}
+
+.header-left h3 {
+    margin: 0 0 4px 0;
+}
+
+.header-left .settings-description {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.currency-converter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface-2);
+    padding: 12px 0px 12px 0px;
+    border-radius: 8px;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.currency-converter input,
+.currency-converter select {
+    min-width: 0;
+    max-width: 200px;
+}
+
+.currency-converter input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-1);
+    color: var(--text-1);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.currency-converter input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary);
+}
+
+.currency-converter input:read-only {
+    background: var(--surface-3);
+    border-color: var(--primary-dark);
+    color: var(--text-2);
+}
+
+.currency-converter select {
+    flex: 1.5;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-1);
+    color: var(--text-1);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.currency-converter select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary);
+}
+
+.currency-converter .equals {
+    color: var(--text-2);
+    font-weight: 500;
+    font-size: 1.1rem;
+    margin: 0 4px;
+}
+
+.last-updated {
+    color: var(--text-2);
+    font-size: 0.85rem;
+    display: block;
+    text-align: right;
+}
+
+.currency-converter .swap-btn {
+    background: none;
+    border: none;
+    padding: 10px;
+    border-radius: 20%;
+    width: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 32px;
+    cursor: pointer;
+    color: var(--primary);
+    transition: all 0.2s ease;
+}
+
+.currency-converter .swap-btn:hover {
+    background: var(--primary-dark);
+    color: var(--primary-light);
+}
+
+.currency-converter .swap-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--primary);
+}

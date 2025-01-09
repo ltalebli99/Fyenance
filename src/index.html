@@ -39,6 +39,7 @@
     <link rel="stylesheet" href="styles/components/multiSelect.css">
     <link rel="stylesheet" href="styles/variables.css">
     <link rel="stylesheet" href="styles/components/reports.css">
+    <link rel="stylesheet" href="styles/components/currencyConversion.css">
 </head>
 <body class="preload">
     <!-- Loading Screen -->
@@ -282,6 +283,11 @@
             </div>
             <div class="filters-content">
               <div class="filter-group">
+                <select id="transaction-account-filter" class="select-styled">
+                  <option value="all">All Accounts</option>
+                </select>
+              </div>
+              <div class="filter-group">
                 <select id="transaction-type-filter" class="select-styled">
                   <option value="all">All Types</option>
                   <option value="income">Income</option>
@@ -517,6 +523,7 @@
                       <thead>
                           <tr>
                               <th>Date</th>
+                              <th>Account</th>
                               <th>Type</th>
                               <th>Category</th>
                               <th>Amount</th>
@@ -1040,6 +1047,11 @@
                 </div>
                 <div class="filters-content">
                     <div class="filter-group">
+                        <select id="recurring-account-filter" class="select-styled">
+                            <option value="all">All Accounts</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <select id="recurring-type-filter" class="select-styled">
                             <option value="all">All Types</option>
                             <option value="income">Income</option>
@@ -1157,6 +1169,7 @@
                         <thead>
                             <tr>
                                 <th>Name</th>
+                                <th>Account</th>
                                 <th>Amount</th>
                                 <th>Type</th>
                                 <th>Category</th>
@@ -1299,6 +1312,27 @@
                     </div>
                 </div>
 
+                <!-- Exchange Rates Card -->
+                <div class="settings-card">
+                    <div class="exchange-rate-header">
+                        <div class="header-left">
+                            <h3>Exchange Rates</h3>
+                            <p class="settings-description">View current exchange rates between currencies.</p>
+                        </div>
+                        <div class="currency-converter">
+                            <input type="text" id="exchange-amount" value="1">
+                            <select id="from-currency"></select>
+                            <button type="button" id="swap-currencies" class="swap-btn">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                            <select id="to-currency"></select>
+                            <span class="equals">=</span>
+                            <input type="text" id="exchange-result" readonly>
+                        </div>
+                    </div>
+                    <small class="last-updated">Last updated: <span id="rates-last-updated">...</span></small>
+                </div>
+
                 <!-- Data Management Card -->
                 <div class="settings-card">
                     <h3>Data Management</h3>
@@ -1425,6 +1459,7 @@
                 </div>
 
                 
+
             </div>
         </div>
     </div>

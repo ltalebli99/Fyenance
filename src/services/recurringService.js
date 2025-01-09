@@ -285,6 +285,7 @@ export async function fetchRecurring(accountId = null, filters = {}) {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item.name}</td>
+                    <td>${item.account_name || 'Unknown Account'}</td>
                     <td class="${item.type === 'income' ? 'positive' : 'negative'}">
                         ${item.type === 'income' ? '+' : '-'}${formatCurrency(Math.abs(item.amount))}
                     </td>

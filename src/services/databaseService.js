@@ -204,34 +204,42 @@ class DatabaseService {
   }
 
   // Transactions
-  getTransactions(accountId = null, options = {}) {
+  getTransactions(accountIds = ['all'], options = {}) {
+    // Normalize accountIds to ensure it's always an array
+    const normalizedAccountIds = Array.isArray(accountIds) ? accountIds : ['all'];
+    
     const { offset, limit } = options;
     let query = `
       SELECT t.*, 
              c.name as category_name, 
              a.name as account_name,
-             (SELECT COUNT(*) FROM transactions ${accountId && accountId !== 'all' ? 'WHERE account_id = ?' : ''}) as total_count
-      FROM transactions t
-      LEFT JOIN categories c ON t.category_id = c.id
-      LEFT JOIN accounts a ON t.account_id = a.id
-    `;
+           (SELECT COUNT(*) FROM transactions ${!normalizedAccountIds.includes('all') ? 'WHERE account_id IN (' + normalizedAccountIds.map(() => '?').join(',') + ')' : ''}) as total_count
+    FROM transactions t
+    LEFT JOIN categories c ON t.category_id = c.id
+    LEFT JOIN accounts a ON t.account_id = a.id
+  `;
+  
+  const params = [];
+  
+  if (!normalizedAccountIds.includes('all')) {
+    const placeholders = normalizedAccountIds.map(() => '?').join(',');
+    query += ` WHERE t.account_id IN (${placeholders})`;
+    params.push(...normalizedAccountIds);
     
-    if (accountId && accountId !== 'all') {
-      query += ' WHERE t.account_id = ?';
-      
-      if (limit !== undefined) {
-        query += ' LIMIT ? OFFSET ?';
-        return this.db.prepare(query).all(accountId, accountId, limit, offset || 0);
-      }
-      return this.db.prepare(query).all(accountId);
+    if (normalizedAccountIds.length > 0) {
+      params.push(...normalizedAccountIds); // Add again for the subquery COUNT
     }
-    
-    if (limit !== undefined) {
-      query += ' LIMIT ? OFFSET ?';
-      return this.db.prepare(query).all(limit, offset || 0);
-    }
-    return this.db.prepare(query).all();
   }
+  
+  query += ` ORDER BY t.date DESC`; // Add ORDER BY
+  
+  if (limit !== undefined) {
+    query += ' LIMIT ? OFFSET ?';
+    params.push(limit, offset || 0);
+  }
+  
+  return this.db.prepare(query).all(...params);
+}
 
   addTransaction(transaction) {
     const stmt = this.db.prepare(`
