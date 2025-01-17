@@ -103,22 +103,35 @@ export async function fetchRecurring(accountId = null, filters = {}) {
         // Initialize pagination if not already done
         if (!recurringPagination) {
             recurringPagination = new TablePagination('recurring-table-body', {
-                itemsPerPage: 10
+                itemsPerPage: 10,
+                onPageChange: async (page) => {
+                    const currentFilters = {
+                        type: document.getElementById('recurring-type-filter')?.value || 'all',
+                        category: document.getElementById('recurring-category-filter')?.value || 'all',
+                        status: document.getElementById('recurring-status-filter')?.value || 'all',
+                        search: document.querySelector('#Recurring .search-input')?.value || '',
+                        account: document.getElementById('recurring-account-filter')?.value || 'all'
+                    };
+                    
+                    await fetchRecurring(null, {
+                        ...currentFilters,
+                        limit: recurringPagination.getLimit(),
+                        offset: (page - 1) * recurringPagination.getLimit()
+                    });
+                }
             });
-            recurringPagination.onPageChange = (page) => {
-                fetchRecurring(accountId, filters);
-            };
         }
 
         // Get filter values
         const typeFilter = filters.type || 'all';
         const categoryFilter = filters.category || 'all';
         const statusFilter = filters.status || 'all';
+        const accountFilter = filters.account || accountId || 'all';
         const sortBy = filters.sort || 'name-asc';
         const searchTerm = typeof filters.search === 'string' ? filters.search : '';
 
         // Get all data first for total count
-        const { data: allData } = await window.databaseApi.getAllRecurring(accountId);
+        const { data: allData } = await window.databaseApi.getAllRecurring(accountFilter === 'all' ? null : accountFilter);
         
         // Apply filters to get total filtered count
         let filteredData = [...allData];
@@ -268,13 +281,22 @@ export async function fetchRecurring(accountId = null, filters = {}) {
         const totalCount = filteredData.length;
 
         // Apply pagination
-        const offset = recurringPagination.getOffset();
-        const limit = recurringPagination.getLimit();
+        const offset = filters.offset || 0;
+        const limit = filters.limit || recurringPagination?.getLimit() || 10;
         filteredData = filteredData.slice(offset, offset + limit);
 
         // Update pagination with total count
-        recurringPagination.updatePagination(totalCount);
+        if (recurringPagination) {
+            recurringPagination.totalItems = totalCount;
+            // Only update current page if offset is provided (i.e., not a filter change)
+            if (filters.offset !== undefined) {
+                recurringPagination.currentPage = Math.floor(offset / limit) + 1;
+            }
+            recurringPagination.updatePagination(totalCount);
+        }
 
+        // Don't update pagination here - let the component handle it
+        
         const tableBody = document.getElementById('recurring-table-body');
         tableBody.innerHTML = '';
 
@@ -361,9 +383,9 @@ export async function fetchRecurring(accountId = null, filters = {}) {
             `;
         }
 
-        return { data: filteredData, error: null };
+        return { success: true, totalCount, filteredData };
     } catch (error) {
         console.error('Error fetching recurring:', error);
-        return { data: null, error: error.message };
+        return { success: false, error: error.message };
     }
 }

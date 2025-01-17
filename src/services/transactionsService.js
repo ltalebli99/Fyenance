@@ -20,8 +20,6 @@ export async function fetchTransactions(filters = {}) {
 
     // Fetch transactions from database
     const { data: transactions, error } = await window.databaseApi.fetchTransactions(safeFilters.accounts, {
-      limit: safeFilters.limit,
-      offset: safeFilters.offset,
       type: safeFilters.type,
       category: safeFilters.category,
       sort: safeFilters.sort,
@@ -32,70 +30,27 @@ export async function fetchTransactions(filters = {}) {
 
     let filteredData = [...transactions];
 
-    // Apply account filter
-    if (!safeFilters.accounts.includes('all')) {
-      filteredData = filteredData.filter(t => 
-        safeFilters.accounts.includes(t.account_id.toString())
-      );
-    }
-
-    // Apply type filter
+    // Apply filters
     if (safeFilters.type !== 'all') {
       filteredData = filteredData.filter(t => t.type === safeFilters.type);
     }
-
-    // Apply category filter
     if (safeFilters.category !== 'all') {
       filteredData = filteredData.filter(t => t.category_id === parseInt(safeFilters.category));
     }
-
-    // Apply search filter
     if (safeFilters.search) {
-      const searchTerm = safeFilters.search.toLowerCase();
-      const searchResult = parseSearchDate(searchTerm);
-      
-      filteredData = filteredData.filter(t => {
-        // Check for date match first
-        if (searchResult) {
-          if (searchResult.type === 'year') {
-            return new Date(t.date).getUTCFullYear() === searchResult.value;
-          }
-          
-          if (searchResult.type === 'full-date') {
-            const transactionDate = new Date(t.date);
-            
-            // If no year was specified in search, match any year
-            if (!searchResult.yearSpecified) {
-              return transactionDate.getUTCMonth() === searchResult.month &&
-                     transactionDate.getUTCDate() === searchResult.day;
-            }
-            
-            // If year was specified, use exact match
-            const searchDate = new Date(Date.UTC(
-              searchResult.year,
-              searchResult.month,
-              searchResult.day
-            ));
-            return isSameDay(transactionDate, searchDate);
-          }
-        }
-
-        // Check other fields
-        const searchableFields = [
-          t.description,
-          t.amount.toString(),
-          t.type,
-          t.category_name,
-          new Date(t.date).toLocaleDateString(),
-        ].filter(Boolean);
-        
-        return searchableFields.some(field => 
-          field.toLowerCase().includes(searchTerm)
-        );
-      });
+      const searchLower = safeFilters.search.toLowerCase();
+      filteredData = filteredData.filter(t => 
+        t.description?.toLowerCase().includes(searchLower) ||
+        t.category_name?.toLowerCase().includes(searchLower) ||
+        t.account_name?.toLowerCase().includes(searchLower)
+      );
+    }
+    // Add account filtering
+    if (!safeFilters.accounts.includes('all')) {
+      filteredData = filteredData.filter(t => safeFilters.accounts.includes(t.account_id.toString()));
     }
 
-    // Get total count before pagination
+    // Store total count AFTER filtering but BEFORE pagination
     const totalCount = filteredData.length;
 
     // Apply sorting
@@ -122,12 +77,15 @@ export async function fetchTransactions(filters = {}) {
     });
 
     // Apply pagination
-    filteredData = filteredData.slice(safeFilters.offset, safeFilters.offset + safeFilters.limit);
+    const start = safeFilters.offset;
+    const end = start + safeFilters.limit;
+    filteredData = filteredData.slice(start, end);
 
-    // Add total_count to first item for pagination
-    if (filteredData.length > 0) {
-      filteredData[0].total_count = totalCount;
-    }
+    // Add total_count to all items
+    filteredData = filteredData.map(item => ({
+      ...item,
+      total_count: totalCount
+    }));
 
     return { data: filteredData, error: null };
   } catch (error) {

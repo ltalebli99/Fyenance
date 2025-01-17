@@ -159,8 +159,20 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
       resetFormAndInputs(addRecurringForm);
       closeModal('add-recurring-modal');
   
-      refreshData({
+      await refreshData({
         all: true
+      });
+  
+      // First update pagination UI
+      if (recurringPagination) {
+          recurringPagination.currentPage = 1;
+          recurringPagination.updatePagination(recurringPagination.totalItems);
+      }
+  
+      // Then fetch with correct offset
+      await fetchRecurring(null, {
+          offset: 0,
+          limit: recurringPagination?.getLimit() || 10
       });
   
     } catch (err) {
@@ -324,6 +336,19 @@ document.getElementById('edit-recurring-form')?.addEventListener('submit', async
         await refreshData({
             all: true
         });
+
+        // First update pagination UI
+        if (recurringPagination) {
+            recurringPagination.currentPage = 1;
+            recurringPagination.updatePagination(recurringPagination.totalItems);
+        }
+
+        // Then fetch with correct offset
+        await fetchRecurring(null, {
+            offset: 0,
+            limit: recurringPagination?.getLimit() || 10
+        });
+
     } catch (error) {
         console.error('Error updating recurring transaction:', error);
         showError('Failed to update recurring transaction');
@@ -404,6 +429,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.querySelector('#Recurring .search-input')) {
       document.querySelector('#Recurring .search-input').value = '';
     }
+    // Add account filter reset
+    if (document.getElementById('recurring-account-filter')) {
+        document.getElementById('recurring-account-filter').value = 'all';
+    }
 
     // Apply the filter changes
     await handleRecurringFiltersChange();
@@ -442,45 +471,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Add the filter handling function
 export async function handleRecurringFiltersChange() {
-  // Initialize pagination if not already done
-  if (!recurringPagination) {
-    recurringPagination = new TablePagination('recurring-table-body', {
-      itemsPerPage: 10
+    const filters = getRecurringFilters();
+    
+    // Fetch data with reset offset
+    await fetchRecurring(null, {
+        ...filters,
+        limit: 10,
+        offset: 0
     });
-  }
-
-  const type = document.getElementById('recurring-type-filter')?.value || 'all';
-  const category = document.getElementById('recurring-category-filter')?.value || 'all';
-  const status = document.getElementById('recurring-status-filter')?.value || 'all';
-  const searchTerm = document.querySelector('#Recurring .search-input')?.value || '';
-  
-  const filters = {
-    type: type !== 'all' ? type : null,
-    category: category !== 'all' ? category : null,
-    status: status !== 'all' ? status : null,
-    search: searchTerm,
-    limit: recurringPagination.getLimit(),
-    offset: recurringPagination.getOffset()
-  };
-
-  // Reset to first page when filters change
-  recurringPagination.currentPage = 1;
-  await fetchRecurring(null, filters);
 }
 
-// Add export to the loading function
+// Add helper function to get current filters
+function getRecurringFilters() {
+  return {
+    type: document.getElementById('recurring-type-filter')?.value || 'all',
+    category: document.getElementById('recurring-category-filter')?.value || 'all',
+    status: document.getElementById('recurring-status-filter')?.value || 'all',
+    search: document.querySelector('#Recurring .search-input')?.value || ''
+  };
+}
+
+// Update the loading function
 export async function loadRecurringTransactions(accountId = null) {
     try {
         // Initialize pagination if not already done
         if (!recurringPagination) {
             recurringPagination = new TablePagination('recurring-table-body', {
-                itemsPerPage: 10
+                itemsPerPage: 10,
+                onPageChange: async (page) => {
+                    const filters = getRecurringFilters();
+                    await fetchRecurring(null, {
+                        ...filters,
+                        limit: recurringPagination.getLimit(),
+                        offset: (page - 1) * recurringPagination.getLimit()
+                    });
+                }
             });
-            recurringPagination.onPageChange = (page) => {
-                fetchRecurring(accountId);
-            };
         }
-        await fetchRecurring(accountId);
+        
+        const filters = getRecurringFilters();
+        await fetchRecurring(accountId, {
+            ...filters,
+            limit: recurringPagination.getLimit(),
+            offset: 0
+        });
     } catch (error) {
         console.error('Error loading recurring transactions:', error);
         showError('Failed to load recurring transactions');
@@ -492,28 +526,10 @@ window.addEventListener('recurring-updated', () => {
     loadRecurringTransactions();
 });
 
-// Add this after your existing DOMContentLoaded event listener
+// Update the search input handler
 document.querySelector('#Recurring .search-input')?.addEventListener('input', 
-    debounce(async (e) => {
-        // Initialize pagination if not already done
-        if (!recurringPagination) {
-            recurringPagination = new TablePagination('recurring-table-body', {
-                itemsPerPage: 10
-            });
-        }
-
-        const filters = {
-            type: document.getElementById('recurring-type-filter')?.value || 'all',
-            category: document.getElementById('recurring-category-filter')?.value || 'all',
-            status: document.getElementById('recurring-status-filter')?.value || 'all',
-            search: e.target.value,
-            limit: recurringPagination.getLimit(),
-            offset: recurringPagination.getOffset()
-        };
-        
-        // Reset to first page when search changes
-        recurringPagination.currentPage = 1;
-        await fetchRecurring(null, filters);
+    debounce(async () => {
+        await handleRecurringFiltersChange();
     }, 300)
 );
 

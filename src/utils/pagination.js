@@ -18,6 +18,14 @@ export class TablePagination {
     }
   }
 
+  resetToFirstPage() {
+    this.currentPage = 1;
+    this.updatePagination(this.totalItems);
+    if (this.onPageChangeCallback) {
+      this.onPageChangeCallback(1);
+    }
+  }
+
   createPaginationContainer() {
     const container = document.createElement('div');
     container.className = 'pagination';

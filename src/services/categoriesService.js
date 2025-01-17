@@ -21,16 +21,16 @@ export async function fetchCategories(filters = {}) {
             usage: document.getElementById('category-usage-filter')?.value || 'all',
             sort: document.getElementById('category-sort')?.value || 'name-asc',
             search: document.querySelector('#Categories .search-input')?.value || '',
-            limit: 10,
-            offset: (page - 1) * 10
+            limit: categoriesPagination.getLimit(),
+            offset: (page - 1) * categoriesPagination.getLimit()
           };
           await fetchCategories(currentFilters);
         }
       });
     }
 
-    // If there's a search term or filter change, reset to page 1
-    if (filters.search || filters.type !== 'all' || filters.usage !== 'all') {
+    // Only reset pagination if it's a new filter (not a page change)
+    if (!filters.hasOwnProperty('offset') && (filters.search || filters.type || filters.usage)) {
       categoriesPagination.currentPage = 1;
       filters.offset = 0;
     }
@@ -102,7 +102,7 @@ export async function fetchCategories(filters = {}) {
 
     // Apply pagination
     const start = filters.offset || 0;
-    const end = start + (filters.limit || 10);
+    const end = start + (filters.limit || categoriesPagination?.getLimit() || 10);
     filteredData = filteredData.slice(start, end);
 
     const tableBody = document.getElementById('categories-table-body');
@@ -110,8 +110,14 @@ export async function fetchCategories(filters = {}) {
 
     tableBody.innerHTML = '';
 
-    // Update pagination with total count
-    categoriesPagination.updatePagination(totalCount);
+    // Update pagination with total count and current page
+    if (categoriesPagination) {
+      categoriesPagination.totalItems = totalCount;
+      if (filters.offset !== undefined) {
+        categoriesPagination.currentPage = Math.floor(filters.offset / categoriesPagination.getLimit()) + 1;
+      }
+      categoriesPagination.updatePagination(totalCount);
+    }
 
     if (filteredData.length > 0) {
       filteredData.forEach(category => {

@@ -9,60 +9,8 @@ import { showDeleteConfirmationModal } from '../utils/modals.js';
 // Add form references
 const addCategoryForm = document.getElementById('add-category-form');
 const editCategoryForm = document.getElementById('edit-category-form');
-
-// Category event handlers
-export async function handleAddCategory(e) {
-    e.preventDefault();
-    const name = document.getElementById('add-category-name').value;
-    const type = document.getElementById('add-category-type').value;
-    const budgetAmount = getAmountValue(document.getElementById('add-category-budget'));
-    const budgetFrequency = document.getElementById('add-category-frequency').value;
   
-    const { error } = await window.databaseApi.addCategory({ 
-      name, 
-      type,
-      budget_amount: budgetAmount || "0.00",
-      budget_frequency: budgetFrequency || "monthly"
-    });
-    if (error) {
-      console.error('Error adding category:', error);
-    } else {
-      closeModal('add-category-modal');
-      await refreshData({
-        all: true
-      });
-      resetFormAndInputs(addCategoryForm);
-    }
-  }
-  
-  export async function handleEditCategory(e) {
-    e.preventDefault();
-    const id = document.getElementById('edit-category-id').value;
-    const name = document.getElementById('edit-category-name').value;
-    const type = document.getElementById('edit-category-type').value;
-    const budgetAmount = getAmountValue(document.getElementById('edit-category-budget'));
-    const budgetFrequency = document.getElementById('edit-category-frequency').value;
-  
-    const { error } = await window.databaseApi.updateCategory(id, { 
-      name, 
-      type,
-      budget_amount: budgetAmount || "0.00",
-      budget_frequency: budgetFrequency || "monthly"
-    });
-  
-    if (error) {
-      console.error('Error updating category:', error);
-      return;
-    }
-  
-    closeModal('edit-category-modal');
-    await refreshData({
-        all: true
-    });
-    resetFormAndInputs(editCategoryForm);
-  }
-  
-  export async function handleDeleteCategory(categoryId) {
+export async function handleDeleteCategory(categoryId) {
     showDeleteConfirmationModal({
         title: 'Delete Category',
         message: 'Are you sure you want to delete this category? Associated transactions will become uncategorized.',
@@ -75,6 +23,16 @@ export async function handleAddCategory(e) {
                 } else {
                     await refreshData({
                         all: true
+                    });
+                    // First update pagination UI
+                    if (categoriesPagination) {
+                        categoriesPagination.currentPage = 1;
+                        categoriesPagination.updatePagination(categoriesPagination.totalItems);
+                    }
+                    // Then fetch with correct offset
+                    await fetchCategories({
+                        offset: 0,
+                        limit: categoriesPagination?.getLimit() || 10
                     });
                 }
             } catch (error) {
@@ -133,6 +91,17 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
     await refreshData({
         all: true
     });
+
+    // First update pagination UI
+    if (categoriesPagination) {
+      categoriesPagination.currentPage = 1;
+      categoriesPagination.updatePagination(categoriesPagination.totalItems);
+    }
+    // Then fetch with correct offset
+    await fetchCategories({
+      offset: 0,
+      limit: categoriesPagination?.getLimit() || 10
+    });
     resetFormAndInputs(editCategoryForm);
   });
   
@@ -157,6 +126,17 @@ document.getElementById('edit-category-form')?.addEventListener('submit', async 
       closeModal('add-category-modal');
       await refreshData({
         all: true
+      });
+
+      // First update pagination UI
+      if (categoriesPagination) {
+        categoriesPagination.currentPage = 1;
+        categoriesPagination.updatePagination(categoriesPagination.totalItems);
+      }
+      // Then fetch with correct offset
+      await fetchCategories({
+        offset: 0,
+        limit: categoriesPagination?.getLimit() || 10
       });
     } catch (error) {
       console.error('Error adding category:', error);
@@ -277,19 +257,31 @@ function initializeCategoryFilters() {
 
   // Reset filters button handler
   document.getElementById('reset-category-filters')?.addEventListener('click', async () => {
+    // Reset all filter inputs
     if (document.getElementById('category-type-filter')) {
-      document.getElementById('category-type-filter').value = 'all';
+        document.getElementById('category-type-filter').value = 'all';
     }
     if (document.getElementById('category-usage-filter')) {
-      document.getElementById('category-usage-filter').value = 'all';
+        document.getElementById('category-usage-filter').value = 'all';
     }
     if (document.getElementById('category-sort')) {
-      document.getElementById('category-sort').value = 'name-asc';
+        document.getElementById('category-sort').value = 'name-asc';
     }
     if (searchInput) {
-      searchInput.value = '';
+        searchInput.value = '';
     }
-    await fetchCategories({});
+
+    // Reset pagination to first page
+    if (categoriesPagination) {
+        categoriesPagination.currentPage = 1;
+    }
+
+    // Fetch with reset filters and pagination
+    await fetchCategories({
+        offset: 0,
+        limit: categoriesPagination?.getLimit() || 10
+    });
+    
     filtersPanel.classList.remove('show');
   });
 
@@ -338,10 +330,13 @@ export async function handleCategoriesFilterChange() {
     });
   }
 
-  const filters = getCurrentFilters();
-  
-  // Reset to first page when filters change
+  // Reset to first page when filters change AND update UI
   categoriesPagination.currentPage = 1;
+  categoriesPagination.updatePagination(categoriesPagination.totalItems);
+
+  const filters = getCurrentFilters();
+  filters.offset = 0; // Reset offset when filters change
+  
   await fetchCategories(filters);
 }
 

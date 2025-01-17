@@ -2,6 +2,7 @@ import { TransactionParser } from '../utils/transactionParser.js';
 import { refreshData } from '../utils/refresh.js';
 import { showError } from '../utils/utils.js';
 import { getAmountValue } from '../utils/formatters.js';
+import { transactionsPagination } from './transactions.js';
 
 // Quick Entry Handler
 export function initializeQuickEntry() {
@@ -130,8 +131,14 @@ export function initializeQuickEntry() {
                     return;
                 }
 
-                // Clear input and refresh
+                // Clear input
                 e.target.value = '';
+
+                // Reset pagination before refreshing data
+                if (transactionsPagination) {
+                    transactionsPagination.resetToFirstPage();
+                }
+
                 await refreshData({
                     all: true
                 });

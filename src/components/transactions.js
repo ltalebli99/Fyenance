@@ -16,7 +16,7 @@ import { TablePagination } from '../utils/pagination.js';
 import { resetFormAndInputs } from '../utils/initInputs.js';
 import { populateAccountTabs } from './accounts.js';
 
-let transactionsPagination;
+export let transactionsPagination;
 
 const editTransactionForm = document.getElementById('edit-transaction-form');
 const accountSelector = document.getElementById('transactions-account-selector');
@@ -115,17 +115,32 @@ if (addTransactionForm) {
 
         // Add project associations if any projects were selected
         if (projectIds && projectIds.length > 0) {
-            console.log('Adding projects:', { transactionId, projectIds }); // Debug log
             const { error: projectError } = await window.databaseApi.addTransactionProjects(
-                transactionId,  // Already the ID number, no need for parseInt
-                projectIds.map(id => parseInt(id, 10))  // Ensure base-10 parsing
+                transactionId,
+                projectIds.map(id => parseInt(id, 10))
             );
             if (projectError) throw projectError;
         }
 
         resetFormAndInputs(addTransactionForm);
         closeModal('add-transaction-modal');
-        await refreshData({ all: true });
+
+        // Reset pagination and reload with first page
+        if (transactionsPagination) {
+            transactionsPagination.currentPage = 1;
+            transactionsPagination.updatePagination(transactionsPagination.totalItems);
+        }
+
+        await refreshData({
+            all: true
+        });
+
+        // Then fetch with correct offset
+        await loadTransactions({
+            offset: 0,
+            limit: transactionsPagination?.getLimit() || 10
+        });
+
     } catch (err) {
         console.error('Error adding transaction:', err);
         showError('Failed to create transaction');
@@ -277,9 +292,19 @@ export async function showEditTransactionForm(transaction) {
             closeModal('edit-transaction-modal');
             
             await refreshData({
-                transactions: true,
-                projects: true,
-                dropdowns: true
+                all: true
+            });
+
+            // First update pagination UI
+            if (transactionsPagination) {
+                transactionsPagination.currentPage = 1;
+                transactionsPagination.updatePagination(transactionsPagination.totalItems);
+            }
+
+            // Then fetch with correct offset
+            await loadTransactions({
+                offset: 0,
+                limit: transactionsPagination?.getLimit() || 10
             });
 
         } catch (error) {
@@ -388,38 +413,28 @@ export async function loadTransactions(filters = {}) {
       transactionsPagination = new TablePagination('transactions-table-body', {
         itemsPerPage: 10,
         onPageChange: async (page) => {
-          // Get selected account from the select element
-          const accountSelect = document.getElementById('transaction-account-filter');
-          const selectedAccount = accountSelect?.value || 'all';
-
-          const filters = {
-            type: document.getElementById('transaction-type-filter')?.value || 'all',
-            category: document.getElementById('transaction-category-filter')?.value || 'all',
-            sort: document.getElementById('transaction-sort')?.value || 'date-desc',
-            search: document.querySelector('#Transactions .search-input')?.value || '',
-            accounts: selectedAccount === 'all' ? ['all'] : [selectedAccount],
+          const currentFilters = {
+            ...getTransactionFilters(),
             limit: transactionsPagination.getLimit(),
-            offset: transactionsPagination.getOffset()
+            offset: (page - 1) * transactionsPagination.getLimit()
           };
-          await loadTransactions(filters);
+          await loadTransactions(currentFilters);
         }
       });
     }
 
-    const { data: transactions, error } = await fetchTransactions({
-      ...filters,
-      limit: transactionsPagination.getLimit(),
-      offset: transactionsPagination.getOffset()
-    });
-
+    const { data: transactions, error } = await fetchTransactions(filters);
     if (error) throw error;
 
     const tbody = document.getElementById('transactions-table-body');
     tbody.innerHTML = '';
 
-    // Update pagination with total count from first transaction
-    const totalCount = transactions[0]?.total_count || 0;
-    transactionsPagination.updatePagination(totalCount);
+    // Update pagination with total count from the first transaction
+    if (transactions && transactions.length > 0) {
+      transactionsPagination.updatePagination(transactions[0].total_count);
+    } else {
+      transactionsPagination.updatePagination(0);
+    }
 
     if (!transactions || transactions.length === 0) {
       const emptyRow = document.createElement('tr');
@@ -487,32 +502,36 @@ export async function loadTransactions(filters = {}) {
   }
 }
 
-// Replace your existing handleTransactionFiltersChange function
+// Add this helper function to get current filters
+function getTransactionFilters() {
+  const accountSelect = document.getElementById('transaction-account-filter');
+  const selectedAccount = accountSelect?.value || 'all';
+
+  return {
+    type: document.getElementById('transaction-type-filter')?.value || 'all',
+    category: document.getElementById('transaction-category-filter')?.value || 'all',
+    sort: document.getElementById('transaction-sort')?.value || 'date-desc',
+    search: document.querySelector('#Transactions .search-input')?.value || '',
+    accounts: selectedAccount === 'all' ? ['all'] : [selectedAccount]
+  };
+}
+
+// Update handleTransactionFiltersChange to preserve pagination state
 export async function handleTransactionFiltersChange() {
-  // Initialize pagination if not already done
   if (!transactionsPagination) {
     transactionsPagination = new TablePagination('transactions-table-body', {
       itemsPerPage: 10
     });
   }
 
-  // Get selected account from the select element
-  const accountSelect = document.getElementById('transaction-account-filter');
-  const selectedAccount = accountSelect?.value || 'all';
-
-  // Reset pagination to first page
-  if (transactionsPagination) {
-    transactionsPagination.currentPage = 1;
-  }
+  // Reset to first page when filters change AND update UI
+  transactionsPagination.currentPage = 1;
+  transactionsPagination.updatePagination(transactionsPagination.totalItems);
 
   const filters = {
-    type: document.getElementById('transaction-type-filter')?.value || 'all',
-    category: document.getElementById('transaction-category-filter')?.value || 'all',
-    sort: document.getElementById('transaction-sort')?.value || 'date-desc',
-    search: document.querySelector('#Transactions .search-input')?.value || '',
-    accounts: selectedAccount === 'all' ? ['all'] : [selectedAccount],
+    ...getTransactionFilters(),
     limit: transactionsPagination.getLimit(),
-    offset: transactionsPagination.getOffset()
+    offset: 0 // Reset offset when filters change
   };
 
   await loadTransactions(filters);
