@@ -67,26 +67,23 @@ if (addTransactionForm) {
     e.preventDefault();
     
     try {
-        // Get form elements using the correct IDs
-        const accountId = document.getElementById('add-transaction-account')?.value;
-        const categoryId = document.getElementById('add-transaction-category')?.value;
+        const type = document.getElementById('add-transaction-type')?.value;
+        const fromAccountId = document.getElementById('add-transaction-account')?.value;
         const amountInput = document.getElementById('add-transaction-amount');
         const amount = getAmountValue(amountInput);
         const date = document.getElementById('add-transaction-date')?.value;
         const description = document.getElementById('add-transaction-description')?.value;
 
-        // Get category type from selected option
-        const categorySelect = document.getElementById('add-transaction-category');
-        const selectedOption = categorySelect?.options[categorySelect.selectedIndex];
-        const categoryText = selectedOption?.textContent || '';
-        
-        // The category format is "Type - Name", so we split and get the type
-        const type = categoryText.split('-')[0].trim().toLowerCase();
+        // Get selected project IDs, with null check for the select element
+        const projectSelect = document.getElementById('transaction-projects');
+        const projectIds = projectSelect ? Array.from(projectSelect.selectedOptions)
+            .map(option => option.value)
+            .filter(id => id !== '') : [];
 
         // Validate required fields with specific error messages
         const missingFields = [];
-        if (!accountId) missingFields.push('Account');
-        if (!categoryId) missingFields.push('Category');
+        if (!fromAccountId) missingFields.push('Account');
+        if (!type) missingFields.push('Type');
         if (!amount) missingFields.push('Amount');
         if (!date) missingFields.push('Date');
 
@@ -95,37 +92,114 @@ if (addTransactionForm) {
             return;
         }
 
-        // Get selected project IDs, with null check for the select element
-        const projectSelect = document.getElementById('transaction-projects');
-        const projectIds = projectSelect ? Array.from(projectSelect.selectedOptions)
-            .map(option => option.value)  // Don't parse as int yet
-            .filter(id => id !== '') : [];  // Filter empty strings instead of NaN
+        if (type === 'transfer') {
+            try {
+                const toAccountId = document.getElementById('add-transaction-category-or-account')?.value;
+                if (!toAccountId) {
+                    showError('Please select a target account for the transfer');
+                    return;
+                }
 
-        // Add the transaction
-        const { data: transactionId, error } = await window.databaseApi.addTransaction({
-            account_id: accountId,
-            category_id: categoryId,
-            type,
-            amount: parseFloat(amount),
-            date,
-            description: description || ''
-        });
+                // Create withdrawal transaction
+                const withdrawalResult = await window.databaseApi.addTransaction({
+                    account_id: parseInt(fromAccountId, 10),
+                    category_id: null,
+                    amount: parseFloat(amount),
+                    type: 'expense',
+                    date,
+                    description: description || '',
+                    is_transfer: 1,
+                    transfer_pair_id: null
+                });
 
-        if (error) throw error;
+                if (withdrawalResult.error) {
+                    console.error('Withdrawal error:', withdrawalResult.error);
+                    throw new Error(withdrawalResult.error);
+                }
 
-        // Add project associations if any projects were selected
-        if (projectIds && projectIds.length > 0) {
-            const { error: projectError } = await window.databaseApi.addTransactionProjects(
-                transactionId,
-                projectIds.map(id => parseInt(id, 10))
-            );
-            if (projectError) throw projectError;
+                const withdrawalId = withdrawalResult.data;
+
+                // Create deposit transaction
+                const depositResult = await window.databaseApi.addTransaction({
+                    account_id: parseInt(toAccountId, 10),
+                    category_id: null,
+                    amount: parseFloat(amount),
+                    type: 'income',
+                    date,
+                    description: description || '',
+                    is_transfer: 1,
+                    transfer_pair_id: withdrawalId
+                });
+
+                if (depositResult.error) {
+                    console.error('Deposit error:', depositResult.error);
+                    throw new Error(depositResult.error);
+                }
+
+                const depositId = depositResult.data;
+
+                // Update withdrawal with deposit's ID
+                const { error: updateError } = await window.databaseApi.updateTransaction(withdrawalId, {
+                    transfer_pair_id: parseInt(depositId, 10)
+                });
+                if (updateError) throw updateError;
+
+                // Add project associations if any projects were selected
+                if (projectIds.length > 0) {
+                    // Add to withdrawal
+                    const { error: projectError1 } = await window.databaseApi.addTransactionProjects(
+                        withdrawalId,
+                        projectIds.map(id => parseInt(id, 10))
+                    );
+                    if (projectError1) throw projectError1;
+
+                    // Add to deposit
+                    const { error: projectError2 } = await window.databaseApi.addTransactionProjects(
+                        depositId,
+                        projectIds.map(id => parseInt(id, 10))
+                    );
+                    if (projectError2) throw projectError2;
+                }
+
+            } catch (error) {
+                console.error('Transfer error:', error);
+                showError(error.message || 'Failed to create transfer');
+                return;
+            }
+        } else {
+            // Handle regular transaction (existing logic)
+            const categoryId = document.getElementById('add-transaction-category-or-account')?.value;
+            if (!categoryId) {
+                showError('Please select a category');
+                return;
+            }
+
+            const { data: transactionId, error } = await window.databaseApi.addTransaction({
+                account_id: parseInt(fromAccountId, 10),
+                category_id: parseInt(categoryId, 10),
+                type,
+                amount: parseFloat(amount),
+                date,
+                description: description || '',
+                is_transfer: 0,
+                transfer_pair_id: null
+            });
+
+            if (error) throw error;
+
+            // Add project associations if any projects were selected
+            if (projectIds.length > 0) {
+                const { error: projectError } = await window.databaseApi.addTransactionProjects(
+                    transactionId,
+                    projectIds.map(id => parseInt(id, 10))
+                );
+                if (projectError) throw projectError;
+            }
         }
 
         resetFormAndInputs(addTransactionForm);
         closeModal('add-transaction-modal');
 
-        // Reset pagination and reload with first page
         if (transactionsPagination) {
             transactionsPagination.currentPage = 1;
             transactionsPagination.updatePagination(transactionsPagination.totalItems);
@@ -135,7 +209,6 @@ if (addTransactionForm) {
             all: true
         });
 
-        // Then fetch with correct offset
         await loadTransactions({
             offset: 0,
             limit: transactionsPagination?.getLimit() || 10
@@ -159,10 +232,7 @@ export async function deleteTransaction(id) {
         
         // Then refresh the data
         await refreshData({
-            transactions: true,
-            projects: true,
-            charts: true,
-            reports: true
+            all: true
         });
 
         return { success: true };
@@ -205,12 +275,13 @@ export async function showEditTransactionForm(transaction) {
             populateProjectDropdowns(true)
         ]);
 
-        
         // Ensure all form elements exist
         const form = document.getElementById('edit-transaction-form');
         const projectSelect = document.getElementById('edit-transaction-projects');
+        const typeSelect = document.getElementById('edit-transaction-type');
+        const categorySelect = document.getElementById('edit-transaction-category');
         
-        if (!form || !projectSelect) {
+        if (!form || !projectSelect || !typeSelect || !categorySelect) {
             console.error('Edit transaction form elements not found');
             throw new Error('Form elements not found');
         }
@@ -218,11 +289,14 @@ export async function showEditTransactionForm(transaction) {
         // Populate form fields
         document.getElementById('edit-transaction-id').value = transaction.id;
         document.getElementById('edit-transaction-account').value = transaction.account_id;
-        document.getElementById('edit-transaction-category').value = transaction.category_id;
         document.getElementById('edit-transaction-amount').value = formatInitialAmount(transaction.amount);
         initializeAmountInput(document.getElementById('edit-transaction-amount'));
         document.getElementById('edit-transaction-date').value = formatDateForInput(transaction.date);
         document.getElementById('edit-transaction-description').value = transaction.description || '';
+
+        // Set transaction type and update categories
+        typeSelect.value = transaction.type;
+        await updateEditCategoryDropdown(transaction.type, transaction.category_id);
 
         // Get and set selected projects
         const { data: projectIds, error: projectError } = await window.databaseApi.getTransactionProjects(transaction.id);
@@ -233,7 +307,6 @@ export async function showEditTransactionForm(transaction) {
                 option.selected = projectIds.includes(parseInt(option.value));
             });
         } else {
-            // Clear any existing selections
             Array.from(projectSelect.options).forEach(option => {
                 option.selected = false;
             });
@@ -245,6 +318,38 @@ export async function showEditTransactionForm(transaction) {
         showError('Failed to load transaction details');
     }
 }
+
+// Add this helper function to update category dropdown based on type
+async function updateEditCategoryDropdown(type, selectedCategoryId = null) {
+    const categorySelect = document.getElementById('edit-transaction-category');
+    categorySelect.disabled = !type;
+    
+    if (!type) {
+        categorySelect.innerHTML = '<option value="">Select Category</option>';
+        return;
+    }
+
+    try {
+        const { data: categories } = await window.databaseApi.fetchCategories();
+        
+        categorySelect.innerHTML = '<option value="" disabled selected>Select Category</option>';
+        categories
+            .filter(cat => cat.type === type)
+            .forEach(cat => {
+                const option = new Option(cat.name, cat.id);
+                option.selected = cat.id === parseInt(selectedCategoryId);
+                categorySelect.add(option);
+            });
+    } catch (error) {
+        console.error('Error updating categories:', error);
+        categorySelect.innerHTML = '<option value="">Error loading categories</option>';
+    }
+}
+
+// Add event listener for type change
+document.getElementById('edit-transaction-type')?.addEventListener('change', async (e) => {
+    await updateEditCategoryDropdown(e.target.value);
+});
   
   // Add event listener for the edit transaction form
   if (editTransactionForm) {
@@ -252,13 +357,7 @@ export async function showEditTransactionForm(transaction) {
         e.preventDefault();
         try {
             const transactionId = document.getElementById('edit-transaction-id').value;
-            
-            // Get category type from selected option
-            const categorySelect = document.getElementById('edit-transaction-category');
-            const selectedOption = categorySelect?.options[categorySelect.selectedIndex];
-            const categoryText = selectedOption?.textContent || '';
-            const type = categoryText.split('-')[0].trim().toLowerCase();
-
+            const type = document.getElementById('edit-transaction-type').value;
             const amountInput = document.getElementById('edit-transaction-amount');
             const amount = getAmountValue(amountInput);
 
@@ -271,23 +370,22 @@ export async function showEditTransactionForm(transaction) {
                 description: document.getElementById('edit-transaction-description').value
             };
             
-            // Get selected project IDs, filtering out empty values
+            // Get selected project IDs
             const projectIds = Array.from(document.getElementById('edit-transaction-projects').selectedOptions)
                 .map(option => option.value)
-                .filter(id => id !== ''); // Filter out empty values
+                .filter(id => id !== '');
 
-            // First update the transaction
+            // Update the transaction
             const { error } = await window.databaseApi.updateTransaction(transactionId, updateData);
             if (error) throw error;
 
-            // Then update the project associations (even if empty)
+            // Update project associations
             const { error: projectError } = await window.databaseApi.updateTransactionProjects(
                 transactionId,
                 projectIds
             );
             if (projectError) throw projectError;
 
-            // Only refresh after both operations are complete
             resetFormAndInputs(editTransactionForm);
             closeModal('edit-transaction-modal');
             
@@ -295,13 +393,11 @@ export async function showEditTransactionForm(transaction) {
                 all: true
             });
 
-            // First update pagination UI
             if (transactionsPagination) {
                 transactionsPagination.currentPage = 1;
                 transactionsPagination.updatePagination(transactionsPagination.totalItems);
             }
 
-            // Then fetch with correct offset
             await loadTransactions({
                 offset: 0,
                 limit: transactionsPagination?.getLimit() || 10
@@ -322,6 +418,66 @@ export async function showEditTransactionForm(transaction) {
 
 export function initializeTransactions() {
   try {
+    // Initialize transaction form type handling
+    const typeSelect = document.getElementById('add-transaction-type');
+    const categoryOrAccountSelect = document.getElementById('add-transaction-category-or-account');
+    const categoryOrAccountLabel = categoryOrAccountSelect?.previousElementSibling;
+    const fromAccountSelect = document.getElementById('add-transaction-account');
+
+    async function updateTargetDropdown() {
+        const selectedType = typeSelect.value;
+        const fromAccountId = fromAccountSelect.value;
+        const currentValue = categoryOrAccountSelect.value;
+
+        // Disable and reset the target dropdown while loading
+        categoryOrAccountSelect.disabled = true;
+        categoryOrAccountLabel.textContent = selectedType === 'transfer' ? 'To Account' : 'Category';
+        categoryOrAccountSelect.innerHTML = '<option value="">Loading...</option>';
+
+        try {
+            if (selectedType === 'transfer') {
+                // For transfers, fetch fresh accounts to ensure list is up-to-date
+                const { data: accounts } = await window.databaseApi.fetchAccounts();
+                
+                categoryOrAccountSelect.innerHTML = '<option value="" disabled selected>Select Target Account</option>';
+                accounts
+                    .filter(account => account.id !== parseInt(fromAccountId, 10)) // Convert to number for strict comparison
+                    .forEach(account => {
+                        const option = new Option(account.name, account.id);
+                        option.selected = account.id === parseInt(currentValue, 10);
+                        categoryOrAccountSelect.add(option);
+                    });
+            } else if (selectedType) {
+                // For regular transactions, fetch categories filtered by type
+                const { data: categories } = await window.databaseApi.fetchCategories();
+                
+                categoryOrAccountSelect.innerHTML = '<option value="" disabled selected>Select Category</option>';
+                categories
+                    .filter(cat => cat.type === selectedType)
+                    .forEach(cat => {
+                        const option = new Option(cat.name, cat.id);
+                        option.selected = cat.id === parseInt(currentValue, 10);
+                        categoryOrAccountSelect.add(option);
+                    });
+            } else {
+                categoryOrAccountSelect.innerHTML = '<option value="" disabled selected>Select...</option>';
+            }
+        } catch (error) {
+            console.error('Error updating dropdown:', error);
+            categoryOrAccountSelect.innerHTML = '<option value="" disabled>Error loading options</option>';
+        } finally {
+            categoryOrAccountSelect.disabled = !selectedType;
+        }
+    }
+
+    // Event listeners
+    typeSelect?.addEventListener('change', updateTargetDropdown);
+    fromAccountSelect?.addEventListener('change', async (e) => {
+        if (typeSelect.value === 'transfer') {
+            await updateTargetDropdown();
+        }
+    });
+
     // Initialize filters first
     initializeTransactionFilters();
 
@@ -452,39 +608,64 @@ export async function loadTransactions(filters = {}) {
     // Render transactions
     transactions.forEach(transaction => {
       const row = document.createElement('tr');
+      
+      // Add data attribute for transfers before setting innerHTML
+      if (transaction.is_transfer) {
+        row.setAttribute('data-transfer-group', 
+          transaction.transfer_pair_id ? 
+          Math.min(transaction.id, transaction.transfer_pair_id) : 
+          transaction.id
+        );
+      }
+
       row.innerHTML = `
         <td>${new Date(transaction.date).toLocaleDateString()}</td>
         <td>${transaction.account_name || 'Unknown Account'}</td>
-        <td>${capitalizeFirstLetter(transaction.type)}</td>
-        <td>${transaction.category_name || 'Uncategorized'}</td>
+        <td>${
+          transaction.is_transfer 
+            ? `Transfer`
+            : capitalizeFirstLetter(transaction.type)
+        }</td>
+        <td>${
+          transaction.is_transfer 
+            ? `${transaction.transfer_account_name}`
+            : (transaction.category_name || 'Uncategorized')
+        }</td>
         <td class="${transaction.type === 'expense' ? 'negative' : 'positive'}">
           ${transaction.type === 'expense' ? '-' : '+'}${formatCurrency(transaction.amount)}
         </td>
         <td>${transaction.description || ''}</td>
         <td class="action-buttons text-right">
-          <button class="action-btn edit-btn" title="Edit">
-            <i class="fas fa-edit"></i>
-          </button>
+          ${!transaction.is_transfer ? `
+            <button class="action-btn edit-btn" title="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+          ` : ''}
           <button class="action-btn delete-btn" title="Delete">
             <i class="fas fa-trash-alt"></i>
           </button>
         </td>
       `;
 
-      // Add event listeners
+      // Add event listeners and append row
       const editBtn = row.querySelector('.edit-btn');
       const deleteBtn = row.querySelector('.delete-btn');
 
       editBtn?.addEventListener('click', () => showEditTransactionForm(transaction));
       deleteBtn?.addEventListener('click', () => {
+        const isTransfer = transaction.is_transfer;
+        const message = isTransfer
+          ? 'Are you sure you want to delete this transfer? Both sides of the transfer will be deleted.'
+          : 'Are you sure you want to delete this transaction?';
+
         showDeleteConfirmationModal({
-          title: 'Delete Transaction',
-          message: 'Are you sure you want to delete this transaction?',
+          title: isTransfer ? 'Delete Transfer' : 'Delete Transaction',
+          message: message,
           onConfirm: async () => {
             try {
               const result = await deleteTransaction(transaction.id);
               if (!result.success) throw new Error(result.error);
-              await loadTransactions(filters); // Reload the transactions with current filters
+              await loadTransactions(filters);
             } catch (error) {
               console.error('Error deleting transaction:', error);
               showError('Failed to delete transaction');
@@ -660,4 +841,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('input[type="text"][class*="amount"]').forEach(input => {
         initializeAmountInput(input);
     });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const table = document.querySelector('#transactions-table-body');
+  
+  table.addEventListener('mouseover', (e) => {
+    const row = e.target.closest('tr[data-transfer-group]');
+    if (!row) return;
+    
+    const transferGroup = row.getAttribute('data-transfer-group');
+    const style = document.createElement('style');
+    
+    style.textContent = `
+      tr[data-transfer-group="${transferGroup}"] {
+        background-color: var(--gray-50) !important;
+      }
+    `;
+    
+    document.head.appendChild(style);
+    
+    row.addEventListener('mouseleave', () => {
+      style.remove();
+    }, { once: true });
+  });
 });

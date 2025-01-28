@@ -6,7 +6,7 @@ import { initializeSmartImport } from './smartImport.js';
 import { showCreateFirstModal } from '../utils/modals.js';
 import { showError } from '../utils/utils.js';
 import { updateLicenseInfo } from './license.js';
-import { getAllCurrencies, setCurrencyPreference, getCurrencyPreference, convertCurrency } from '../services/currencyService.js';
+import { getAllCurrencies, setCurrencyPreference, getCurrencyPreference, convertCurrency, defaultCurrencies } from '../services/currencyService.js';
 import { refreshData } from '../utils/refresh.js';
 import { showConfirmationModal } from '../utils/modals.js';
 
@@ -322,8 +322,20 @@ function initializeExchangeCalculator() {
     
     // Format number with currency code
     const formatExchangeAmount = (amount, currencyCode) => {
+        const currency = defaultCurrencies.find(c => c.code === currencyCode);
         const num = parseFloat(amount) || 0;
-        return num.toLocaleString(undefined, {
+        
+        // Special handling for Serbian Dinar
+        if (currency.symbol === ' дин.') {
+            const formatted = num.toLocaleString('sr-RS', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            return `${formatted}${currency.symbol}`;
+        }
+        
+        // Use currency's locale for formatting
+        return num.toLocaleString(currency.locale, {
             style: 'currency',
             currency: currencyCode
         });

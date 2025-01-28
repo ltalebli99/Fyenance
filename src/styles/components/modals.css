@@ -278,7 +278,8 @@
       }
 
       .confirmation-modal .danger-btn:hover {
-        background-color: var(--danger-dark);
+        color: var(--danger);
+        background: rgba(211, 47, 47, 0.1);
       }
 
       /* Add fade out animation */

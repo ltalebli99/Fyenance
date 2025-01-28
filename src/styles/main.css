@@ -681,6 +681,28 @@
       width: 100%;
     }
 
+    [data-transfer-group] {
+      transition: background-color 0.2s ease;
+    }
+
+/* Reset hover state for transfer rows to prevent double highlighting */
+tr[data-transfer-group]:hover {
+  background-color: transparent;
+}
+
+/* Highlight all rows with matching transfer group when any member is hovered */
+tr[data-transfer-group]:hover,
+tr[data-transfer-group]:hover ~ tr[data-transfer-group][data-transfer-group=""],
+tr:hover ~ tr[data-transfer-group][data-transfer-group=""] {
+  background-color: var(--gray-50) !important;
+}
+
+/* Use attribute selector to match specific transfer groups */
+tr[data-transfer-group]:hover ~ tr[data-transfer-group][data-transfer-group="%attr%"],
+tr:hover[data-transfer-group] ~ tr[data-transfer-group][data-transfer-group="%attr%"] {
+  background-color: var(--gray-50) !important;
+}
+
     /* Remove any overflow settings from other containers */
     .transactions-container,
     .recurring-container,

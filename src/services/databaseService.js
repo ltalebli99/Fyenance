@@ -44,11 +44,13 @@ class DatabaseService {
       CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         account_id INTEGER NOT NULL,
-        category_id INTEGER NOT NULL,
+        category_id INTEGER,
         type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
         amount DECIMAL(10,2) NOT NULL,
         date DATETIME DEFAULT CURRENT_TIMESTAMP,
         description TEXT,
+        is_transfer INTEGER DEFAULT 0,
+        transfer_pair_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (account_id) REFERENCES accounts(id),
         FOREIGN KEY (category_id) REFERENCES categories(id)
@@ -180,15 +182,15 @@ class DatabaseService {
   }
 
   updateAccount(id, balance, name) {
-    console.log('DatabaseService updateAccount called with:', { id, balance, name });
+    // console.log('DatabaseService updateAccount called with:', { id, balance, name });
     
     try {
         const stmt = this.db.prepare('UPDATE accounts SET balance = ?, name = ? WHERE id = ?');
-        console.log('SQL Statement:', stmt.source);
-        console.log('Parameters:', [balance, name, id]);
+        // console.log('SQL Statement:', stmt.source);
+        // console.log('Parameters:', [balance, name, id]);
         
         const result = stmt.run(balance, name, id);
-        console.log('Update result:', result);
+        // console.log('Update result:', result);
         
         return result;
     } catch (error) {
@@ -213,10 +215,22 @@ class DatabaseService {
       SELECT t.*, 
              c.name as category_name, 
              a.name as account_name,
+             ta.name as transfer_account_name,
            (SELECT COUNT(*) FROM transactions ${!normalizedAccountIds.includes('all') ? 'WHERE account_id IN (' + normalizedAccountIds.map(() => '?').join(',') + ')' : ''}) as total_count
     FROM transactions t
     LEFT JOIN categories c ON t.category_id = c.id
     LEFT JOIN accounts a ON t.account_id = a.id
+    LEFT JOIN accounts ta ON (
+        CASE 
+          WHEN t.is_transfer AND t.type = 'expense' THEN (
+            SELECT account_id FROM transactions WHERE id = t.transfer_pair_id
+          )
+          WHEN t.is_transfer AND t.type = 'income' THEN (
+            SELECT account_id FROM transactions WHERE transfer_pair_id = t.id
+          )
+          ELSE NULL
+        END
+      ) = ta.id
   `;
   
   const params = [];
@@ -242,50 +256,147 @@ class DatabaseService {
 }
 
   addTransaction(transaction) {
-    const stmt = this.db.prepare(`
-        INSERT INTO transactions (
-            account_id, category_id, type, amount, date, description
-        ) VALUES (?, ?, ?, ?, datetime(? || 'T00:00:00Z'), ?)
-    `);
-    
-    const result = stmt.run(
-        transaction.account_id,
-        transaction.category_id,
-        transaction.type,
-        transaction.amount,
-        transaction.date,
-        transaction.description
-    );
+    try {
+        // Enhanced debug logging
+        console.log('Adding transaction - Raw input:', transaction);
+        console.log('Account ID type:', typeof transaction.account_id);
+        console.log('Account ID value:', transaction.account_id);
 
-    return result.lastInsertRowid;  // Return just the ID
+        // Validate required fields
+        if (!transaction.account_id && transaction.account_id !== 0) {
+            throw new Error('account_id is required');
+        }
+
+        // Ensure account_id is an integer
+        const accountId = typeof transaction.account_id === 'string' 
+            ? parseInt(transaction.account_id, 10) 
+            : transaction.account_id;
+
+        console.log('Processed Account ID:', accountId);
+
+        // Validate the account exists
+        const accountExists = this.db.prepare('SELECT id FROM accounts WHERE id = ?').get(accountId);
+        if (!accountExists) {
+            throw new Error(`Account with ID ${accountId} does not exist`);
+        }
+
+        const stmt = this.db.prepare(`
+            INSERT INTO transactions (
+                account_id, category_id, type, amount, date, description, is_transfer, transfer_pair_id
+            ) VALUES (?, ?, ?, ?, datetime(? || 'T00:00:00Z'), ?, ?, ?)
+        `);
+        
+        const params = [
+            accountId,
+            transaction.category_id,
+            transaction.type,
+            transaction.amount,
+            transaction.date,
+            transaction.description,
+            transaction.is_transfer || 0,
+            transaction.transfer_pair_id || null
+        ];
+
+        console.log('SQL Parameters:', params);
+
+        const result = stmt.run(...params);
+        console.log('Insert result:', result);
+
+        return { data: result.lastInsertRowid, error: null };
+    } catch (error) {
+        console.error('Database error:', error);
+        return { error };
+    }
+}
+
+  updateTransaction(id, updates) {
+    try {
+        // Build the update query dynamically based on provided fields
+        const updateFields = [];
+        const params = [];
+        
+        if (updates.account_id !== undefined) {
+            updateFields.push('account_id = ?');
+            params.push(updates.account_id);
+        }
+        if (updates.category_id !== undefined) {
+            updateFields.push('category_id = ?');
+            params.push(updates.category_id);
+        }
+        if (updates.type !== undefined) {
+            updateFields.push('type = ?');
+            params.push(updates.type);
+        }
+        if (updates.amount !== undefined) {
+            updateFields.push('amount = ?');
+            params.push(updates.amount);
+        }
+        if (updates.date !== undefined) {
+            updateFields.push('date = datetime(? || \'T00:00:00Z\')');
+            params.push(updates.date);
+        }
+        if (updates.description !== undefined) {
+            updateFields.push('description = ?');
+            params.push(updates.description);
+        }
+        if (updates.is_transfer !== undefined) {
+            updateFields.push('is_transfer = ?');
+            params.push(updates.is_transfer);
+        }
+        if (updates.transfer_pair_id !== undefined) {
+            updateFields.push('transfer_pair_id = ?');
+            params.push(updates.transfer_pair_id);
+        }
+
+        // Add the ID to params
+        params.push(id);
+
+        // Only proceed if there are fields to update
+        if (updateFields.length === 0) {
+            return { data: 0, error: 'No fields to update' };
+        }
+
+        const query = `
+            UPDATE transactions 
+            SET ${updateFields.join(', ')}
+            WHERE id = ?
+        `;
+
+        const result = this.db.prepare(query).run(...params);
+        return { data: result.changes, error: null };
+    } catch (error) {
+        console.error('Error updating transaction:', error);
+        return { error: error.message };
+    }
+}
+
+deleteTransaction(id) {
+  try {
+      const deleteTransactions = this.db.transaction((id) => {
+          // Delete both the transaction and its pair (if it exists)
+          this.db.prepare(`
+              DELETE FROM transactions 
+              WHERE id = ? 
+              OR id IN (SELECT id FROM transactions WHERE transfer_pair_id = ?)
+              OR transfer_pair_id = ?
+          `).run(id, id, id);
+      });
+
+      deleteTransactions(id);
+      return { success: true, error: null };
+  } catch (error) {
+      console.error('Error deleting transaction:', error);
+      return { error: error.message };
   }
+}
 
-  updateTransaction(id, transaction) {
+  updateTransferPairId(transactionId, pairId) {
     const stmt = this.db.prepare(`
       UPDATE transactions 
-      SET account_id = ?,
-          category_id = ?,
-          type = ?,
-          amount = ?,
-          date = datetime(? || 'T00:00:00Z'),
-          description = ?
+      SET transfer_pair_id = ? 
       WHERE id = ?
     `);
-    
-    return stmt.run(
-      transaction.account_id,
-      transaction.category_id,
-      transaction.type,
-      transaction.amount,
-      transaction.date,
-      transaction.description,
-      id
-    );
-  }
-
-  deleteTransaction(id) {
-    const stmt = this.db.prepare('DELETE FROM transactions WHERE id = ?');
-    return stmt.run(id);
+    return stmt.run(pairId, transactionId);
   }
 
   // Categories
@@ -579,9 +690,9 @@ class DatabaseService {
 
     const params = accountId !== 'all' ? [accountId, accountId] : [];
 
-    console.log('Top spending categories query:', query);
+    // console.log('Top spending categories query:', query);
     const result = this.db.prepare(query).all(...params);
-    console.log('Top spending categories result:', result);
+    // console.log('Top spending categories result:', result);
     return result;
   }
 
@@ -673,7 +784,7 @@ class DatabaseService {
         });
         
         this.db.prepare('BEGIN TRANSACTION').run();
-        
+
         try {
             // Drop views first
             this.db.exec('DROP VIEW IF EXISTS category_usage');
@@ -1112,11 +1223,8 @@ checkAndRunMigrations() {
     if (currentVersion < 1) this.runMigrationV1();
     if (currentVersion < 2) this.runMigrationV2();
     if (currentVersion < 3) this.runMigrationV3();
-    // Remove any V4 version entries if they exist
-    if (currentVersion === 4) {
-      this.db.prepare('DELETE FROM schema_versions WHERE version = 4').run();
-      console.log('Reverted to database version 3');
-    }
+
+    if (currentVersion < 4) this.runMigrationV4();
     // Add future migrations here
   } catch (error) {
     console.error('Migration failed:', error);
@@ -1134,6 +1242,7 @@ runMigrationV1() {
     // First drop the view and index
     this.db.exec('DROP VIEW IF EXISTS category_usage');
     this.db.exec('DROP INDEX IF EXISTS idx_transactions_date');
+    this.db.exec('DROP TABLE IF EXISTS transactions_new');
     
     // Create new table with desired schema
     this.db.exec(`
@@ -1382,6 +1491,108 @@ runMigrationV3() {
     console.error('Migration v3 failed:', error);
     throw error;
   }
+}
+
+runMigrationV4() {
+    console.log('Running migration V4: Updating transactions table schema');
+    
+    try {
+        this.db.prepare('BEGIN TRANSACTION').run();
+
+        // Drop the view first
+        this.db.prepare('DROP VIEW IF EXISTS category_usage').run();
+
+        this.db.exec('DROP TABLE IF EXISTS transactions_new');
+
+        // Create new table with correct schema
+        this.db.prepare(`
+            CREATE TABLE transactions_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL,
+                category_id INTEGER,
+                type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
+                amount DECIMAL(10,2) NOT NULL,
+                date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                description TEXT,
+                is_transfer INTEGER DEFAULT 0,
+                transfer_pair_id INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (account_id) REFERENCES accounts(id),
+                FOREIGN KEY (category_id) REFERENCES categories(id),
+                FOREIGN KEY (transfer_pair_id) REFERENCES transactions(id)
+            )
+        `).run();
+
+        // Copy existing data
+        this.db.prepare(`
+            INSERT INTO transactions_new 
+            SELECT 
+                id,
+                account_id,
+                category_id,
+                type,
+                amount,
+                date,
+                description,
+                0 as is_transfer,
+                NULL as transfer_pair_id,
+                created_at
+            FROM transactions
+        `).run();
+
+        // Drop old table
+        this.db.prepare('DROP TABLE transactions').run();
+
+        // Rename new table
+        this.db.prepare('ALTER TABLE transactions_new RENAME TO transactions').run();
+
+        // Recreate indexes
+        this.db.prepare('CREATE INDEX idx_transactions_account_id ON transactions(account_id)').run();
+        this.db.prepare('CREATE INDEX idx_transactions_category_id ON transactions(category_id)').run();
+        this.db.prepare('CREATE INDEX idx_transactions_date ON transactions(date)').run();
+
+        // Recreate the view
+        this.db.prepare(`
+            CREATE VIEW category_usage AS
+            WITH usage_data AS (
+                -- Count from transactions
+                SELECT category_id,
+                       COUNT(*) as use_count,
+                       MAX(date) as last_used
+                FROM transactions
+                WHERE category_id IS NOT NULL
+                GROUP BY category_id
+                
+                UNION ALL
+                
+                -- Count from recurring transactions
+                SELECT category_id,
+                       COUNT(*) as use_count,
+                       MAX(created_at) as last_used
+                FROM recurring
+                WHERE category_id IS NOT NULL
+                GROUP BY category_id
+            )
+            SELECT 
+                category_id,
+                SUM(use_count) as total_uses,
+                MAX(last_used) as last_used
+            FROM usage_data
+            GROUP BY category_id
+        `).run();
+
+        // Update schema version
+        this.db.prepare('INSERT INTO schema_versions (version) VALUES (4)').run();
+
+        // Commit transaction
+        this.db.prepare('COMMIT').run();
+        console.log('Migration V4 complete');
+    } catch (error) {
+        // Rollback on error
+        this.db.prepare('ROLLBACK').run();
+        console.error('Migration failed:', error);
+        throw error;
+    }
 }
 
 getCashFlowData(accountIds, period = 'month') {
@@ -2081,7 +2292,7 @@ getNetWorth(accountId = 'all') {
 }
 
 getMonthlyComparison(accountId = 'all') {
-    console.log('DATABASE SERVICE: Monthly comparison called');
+    // console.log('DATABASE SERVICE: Monthly comparison called');
     
     // First get transactions for current and previous month
     const query = `
@@ -2108,7 +2319,7 @@ getMonthlyComparison(accountId = 'all') {
     const transactionResults = this.db.prepare(query).all(...params);
     
     // After getting transaction results
-    console.log('Transaction Results:', transactionResults);
+    // console.log('Transaction Results:', transactionResults);
     
     // Get recurring items
     const recurringQuery = `
@@ -2120,7 +2331,7 @@ getMonthlyComparison(accountId = 'all') {
     const recurring = this.db.prepare(recurringQuery).all(...params);
     
     // After getting recurring items
-    console.log('Recurring Items:', recurring);
+    // console.log('Recurring Items:', recurring);
     
     // Calculate dates for current and previous month
     const now = new Date();
@@ -2133,8 +2344,8 @@ getMonthlyComparison(accountId = 'all') {
     const lastMonthNum = lastMonth.getMonth();
     
     // After calculating dates
-    console.log('Current Month/Year:', currentMonth, currentYear);
-    console.log('Last Month/Year:', lastMonthNum, lastMonthYear);
+    // console.log('Current Month/Year:', currentMonth, currentYear);
+    // console.log('Last Month/Year:', lastMonthNum, lastMonthYear);
     
     // Calculate recurring amounts for both months
     const currentMonthRecurring = recurring
@@ -2186,7 +2397,7 @@ getMonthlyComparison(accountId = 'all') {
         }, 0);
     
     // After calculating current month recurring
-    console.log('Current Month Recurring:', currentMonthRecurring);
+    // console.log('Current Month Recurring:', currentMonthRecurring);
     
     const lastMonthRecurring = recurring
         .filter(r => r.is_active)
@@ -2236,7 +2447,7 @@ getMonthlyComparison(accountId = 'all') {
         }, 0);
     
     // After calculating last month recurring
-    console.log('Last Month Recurring:', lastMonthRecurring);
+    // console.log('Last Month Recurring:', lastMonthRecurring);
     
     // Get transaction amounts
     const currentMonthTx = transactionResults.find(r => 
@@ -2245,22 +2456,22 @@ getMonthlyComparison(accountId = 'all') {
         r.month === lastMonth.toISOString().substring(0, 7))?.expense_amount || 0;
     
     // After getting transaction amounts
-    console.log('Current Month Tx:', currentMonthTx);
-    console.log('Last Month Tx:', lastMonthTx);
+    // console.log('Current Month Tx:', currentMonthTx);
+    // console.log('Last Month Tx:', lastMonthTx);
     
     // Calculate totals
     const thisMonthTotal = currentMonthTx + currentMonthRecurring;
     const lastMonthTotal = lastMonthTx + lastMonthRecurring;
     
     // Final totals
-    console.log('This Month Total:', thisMonthTotal);
-    console.log('Last Month Total:', lastMonthTotal);
+    // console.log('This Month Total:', thisMonthTotal);
+    // console.log('Last Month Total:', lastMonthTotal);
     
     // Calculate percentage change
     const percentChange = lastMonthTotal ? 
         ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
     
-    console.log('Percent Change:', percentChange);
+    // console.log('Percent Change:', percentChange);
 
     return {
         percentChange,

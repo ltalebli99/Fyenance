@@ -193,7 +193,12 @@ export async function showProjectDetails(projectId) {
                     <div class="transaction-info">
                         <div class="transaction-name">${tx.description}</div>
                         <div class="transaction-meta">
-                            <span class="category">${tx.category_name || 'Uncategorized'}</span>
+                            <span class="category">
+                                ${tx.is_transfer 
+                                  ? `Transfer ${tx.type === 'expense' ? 'to' : 'from'} ${tx.transfer_account_name}`
+                                  : (tx.category_name || 'Uncategorized')
+                                }
+                            </span>
                             <span class="date">${formatDate(tx.date)}</span>
                         </div>
                     </div>

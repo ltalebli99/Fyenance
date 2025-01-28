@@ -42,14 +42,14 @@ function setupAnalyticsHandlers(database) {
 
   safeIpcHandle('db:getMonthlyComparison', async (event, accountId = 'all') => {
     try {
-        console.log('Starting monthly comparison calculation...');
+        // console.log('Starting monthly comparison calculation...');
         
         // Get transactions and recurring items for specific account(s)
         const transactions = database.getTransactions(accountId);
         const recurring = database.getRecurring(accountId);
         
-        console.log('Transactions:', transactions);
-        console.log('Recurring:', recurring);
+        // console.log('Transactions:', transactions);
+        // console.log('Recurring:', recurring);
         
         // Get current and last month dates
         const now = new Date();
@@ -58,8 +58,8 @@ function setupAnalyticsHandlers(database) {
         const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
 
-        console.log('Current Month/Year:', currentMonth, currentYear);
-        console.log('Last Month/Year:', lastMonth, lastMonthYear);
+        // console.log('Current Month/Year:', currentMonth, currentYear);
+        // console.log('Last Month/Year:', lastMonth, lastMonthYear);
 
         // Calculate one-time transactions
         const currentMonthOneTime = transactions
@@ -151,10 +151,10 @@ function setupAnalyticsHandlers(database) {
                 return sum + (parseFloat(r.amount) * occurrences);
             }, 0);
 
-        console.log('Current Month One-Time:', currentMonthOneTime);
-        console.log('Current Month Recurring:', currentMonthRecurring);
-        console.log('Last Month One-Time:', lastMonthOneTime);
-        console.log('Last Month Recurring:', lastMonthRecurring);
+        // console.log('Current Month One-Time:', currentMonthOneTime);
+        // console.log('Current Month Recurring:', currentMonthRecurring);
+        // console.log('Last Month One-Time:', lastMonthOneTime);
+        // console.log('Last Month Recurring:', lastMonthRecurring);
 
         const currentMonthExpenses = currentMonthOneTime + currentMonthRecurring;
         const lastMonthExpenses = lastMonthOneTime + lastMonthRecurring;
@@ -162,9 +162,9 @@ function setupAnalyticsHandlers(database) {
         const percentChange = lastMonthExpenses ? 
             ((currentMonthExpenses - lastMonthExpenses) / lastMonthExpenses) * 100 : 0;
 
-        console.log('Current Month Total:', currentMonthExpenses);
-        console.log('Last Month Total:', lastMonthExpenses);
-        console.log('Percent Change:', percentChange);
+        // console.log('Current Month Total:', currentMonthExpenses);
+        // console.log('Last Month Total:', lastMonthExpenses);
+        // console.log('Percent Change:', percentChange);
 
         return { 
             data: { 

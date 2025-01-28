@@ -1,4 +1,4 @@
-const defaultCurrencies = [
+export const defaultCurrencies = [
     { code: 'USD', symbol: '$', name: 'US Dollar', locale: 'en-US', rate: 1 },
     { code: 'EUR', symbol: '€', name: 'Euro', locale: 'de-DE', rate: 1.09 },
     { code: 'GBP', symbol: '£', name: 'British Pound', locale: 'en-GB', rate: 1.27 },
@@ -8,7 +8,8 @@ const defaultCurrencies = [
     { code: 'INR', symbol: '₹', name: 'Indian Rupee', locale: 'en-IN', rate: 0.012 },
     { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', locale: 'zh-CN', rate: 0.14 },
     { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', locale: 'pt-BR', rate: 0.21 },
-    { code: 'RSD', symbol: ' дин.', name: 'Serbian Dinar', locale: 'sr-RS', symbolAfter: true, rate: 0.0093 }
+    { code: 'RSD', symbol: ' дин.', name: 'Serbian Dinar', locale: 'sr-RS', symbolAfter: true, rate: 0.0093 },
+    { code: 'PLN', symbol: 'zł', name: 'Polish Złoty', locale: 'pl-PL', symbolAfter: true, rate: 0.25 }
 ];
   
   export function getCurrencyPreference() {

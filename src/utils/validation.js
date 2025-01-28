@@ -3,6 +3,7 @@ import { showError } from './utils.js';
 import { getCurrencySymbol } from '../services/currencyService.js';
 import { initializeAmountInput } from './formatters.js';
 import { formatCurrency } from './formatters.js';
+import { getAmountValue } from './formatters.js';
 
 export function validateProjectDates(startDate, endDate) {
     if (!startDate || !endDate) return true;
@@ -54,10 +55,9 @@ export function initializeAmountInputs() {
     input.addEventListener('blur', (e) => {
       clearTimeout(e.target.formatTimeout);
       if (e.target.value) {
-        // Use the stored numeric value from the dataset instead of parsing the display value
-        const numValue = parseFloat(e.target.dataset.amount);
-        if (!isNaN(numValue)) {
-          e.target.value = formatCurrency(numValue);
+        const value = getAmountValue(e.target);
+        if (value !== null) {
+          e.target.value = formatCurrency(value);
         }
       }
     });

@@ -96,10 +96,12 @@ function setupDatabaseHandlers(database, backupService) {
 
   safeIpcHandle('db:addTransaction', async (event, transaction) => {
     try {
-      const result = database.addTransaction(transaction);
-      return { data: result, error: null };
+        const { data: id, error } = database.addTransaction(transaction);
+        if (error) throw error;
+        return { data: id, error: null };
     } catch (error) {
-      return { data: null, error: error.message };
+        console.error('Error adding transaction:', error);
+        return { data: null, error: error.message };
     }
   });
 

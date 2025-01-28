@@ -1,30 +1,22 @@
-import { getCurrencySymbol, getCurrencyLocale } from '../services/currencyService.js';
+import { getCurrencySymbol, getCurrencyLocale, getCurrencyPreference, defaultCurrencies } from '../services/currencyService.js';
 
 // Utility function to format numbers as currency
 function formatCurrency(amount) {
-    const symbol = getCurrencySymbol();
+    const code = getCurrencyPreference();
     const locale = getCurrencyLocale();
-    
-    // Convert to number and handle invalid inputs
     const numAmount = parseFloat(amount);
     
-    // Special handling for Serbian Dinar
-    if (symbol === ' дин.') {
-        if (isNaN(numAmount)) return `0,00 ${symbol}`;
-        const formatted = numAmount.toLocaleString('sr-RS', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+    if (isNaN(numAmount)) {
+        return numAmount.toLocaleString(locale, {
+            style: 'currency',
+            currency: code
         });
-        return `${formatted}${symbol}`;
     }
-
-    // Default handling for other currencies
-    if (isNaN(numAmount)) return `${symbol}0.00`;
-    const formatted = numAmount.toLocaleString(locale, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+    
+    return numAmount.toLocaleString(locale, {
+        style: 'currency',
+        currency: code
     });
-    return `${symbol}${formatted}`;
 }
 
 // Capitalize first letter of a string
@@ -128,59 +120,98 @@ function getOrdinalSuffix(day) {
 }
 
 function formatAmountInput(input) {
-  const symbol = getCurrencySymbol();
-  const locale = getCurrencyLocale();
-  
-  // Get locale-specific separators
-  const format = new Intl.NumberFormat(locale).format(1111.1);
-  const thousandSep = format.charAt(1);
-  const decimalSep = format.charAt(5);
-  
-  // Store cursor position relative to the end
-  const cursorFromEnd = input.value.length - input.selectionStart;
-  
-  // Remove currency symbol
-  let value = input.value.replace(symbol, '');
-  
-  // Handle the case where user just typed a decimal separator
-  const lastChar = value.slice(-1);
-  const isNewDecimal = (lastChar === '.' || lastChar === ',');
-  
-  // Remove existing thousand separators
-  value = value.replace(new RegExp(`\\${thousandSep}`, 'g'), '');
-  
-  // Convert any existing periods or commas to the locale decimal separator
-  value = value.replace(/[.,]/g, decimalSep);
-  
-  // Split by decimal separator
-  const parts = value.split(decimalSep);
-  
-  // Only keep the first decimal separator
-  let integerPart = parts[0].replace(/\D/g, '');
-  let decimalPart = parts.length > 1 ? parts[1].replace(/\D/g, '').slice(0, 2) : '';
-  
-  // Add thousand separators to integer part if it exists
-  if (integerPart) {
-    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandSep);
-  }
-  
-  // Reconstruct value, keeping decimal separator if just typed
-  value = (integerPart || '0');
-  if (decimalPart || isNewDecimal) {
-    value += decimalSep + (decimalPart || '');
-  }
-  
-  // Store numeric value
-  const numericValue = parseFloat(value.replace(new RegExp(`\\${thousandSep}`, 'g'), '').replace(decimalSep, '.'));
-  input.dataset.amount = isNaN(numericValue) ? '0' : numericValue.toString();
-  
-  // Add currency symbol
-  const newValue = symbol + value;
-  input.value = newValue;
-  
-  // Restore cursor position from end
-  const newPosition = newValue.length - cursorFromEnd;
-  input.setSelectionRange(newPosition, newPosition);
+    const currency = defaultCurrencies.find(c => c.code === getCurrencyPreference());
+    const locale = currency.locale;
+    const symbol = currency.symbol;
+    const symbolAfter = currency.symbolAfter;
+    
+    // Special handling for Polish currency to prevent truncation
+    const isPolish = locale.startsWith('pl');
+    
+    // Get format information from locale
+    const format = new Intl.NumberFormat(locale).format(1111.1);
+    const thousandSep = format.charAt(1);
+    const decimalSep = format.charAt(5);
+    
+    // Store cursor position relative to the end
+    const cursorFromEnd = input.value.length - input.selectionStart;
+    
+    // Remove currency symbol from either end
+    let value = input.value
+        .replace(new RegExp(`^${symbol}`), '')  // Start
+        .replace(new RegExp(`${symbol}$`), '')  // End
+        .trim();
+    
+    // Handle the case where user just typed a decimal separator
+    const lastChar = value.slice(-1);
+    const isNewDecimal = (lastChar === '.' || lastChar === ',');
+    
+    if (isPolish) {
+        // For Polish, first remove all spaces (thousand separators)
+        value = value.replace(/\s/g, '');
+        // Convert any periods to commas for decimal handling
+        value = value.replace(/\./g, ',');
+    } else {
+        // Remove existing thousand separators
+        value = value.replace(new RegExp(`\\${thousandSep}`, 'g'), '');
+        // Convert any existing periods or commas to the locale decimal separator
+        value = value.replace(/[.,]/g, decimalSep);
+    }
+    
+    // Split by appropriate decimal separator
+    const parts = isPolish ? value.split(',') : value.split(decimalSep);
+    
+    // Only keep the first decimal separator
+    let integerPart = parts[0].replace(/\D/g, '');
+    let decimalPart = parts.length > 1 ? parts[1].replace(/\D/g, '').slice(0, 2) : '';
+    
+    // Add thousand separators to integer part if it exists
+    if (integerPart) {
+        if (isPolish) {
+            // Format the integer part without parsing it first
+            integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        } else {
+            integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandSep);
+        }
+    }
+    
+    value = (integerPart || '0');
+    if (decimalPart || isNewDecimal) {
+        value += (isPolish ? ',' : decimalSep) + (decimalPart || '');
+    }
+    
+    // Add debug logging
+    console.log('Original Input:', input.value);
+    console.log('Parts:', parts);
+    console.log('Integer Part:', integerPart);
+    console.log('Decimal Part:', decimalPart);
+    
+    if (isPolish) {
+        // First remove spaces and get the raw number parts
+        const cleanValue = value.replace(/\s/g, '');
+        const [wholeNum, decimal] = cleanValue.split(',');
+        
+        // Debug logging
+        console.log('Clean Value:', cleanValue);
+        console.log('Whole Number:', wholeNum);
+        console.log('Decimal:', decimal);
+        
+        // FIXED: Don't override existing decimal part
+        const decimalPart = decimal || '00';
+        
+        // Store the raw string with proper decimal formatting
+        const fullNumber = wholeNum + '.' + decimalPart;
+        input.dataset.amount = fullNumber;
+        
+        // Debug logging
+        console.log('Stored Amount:', input.dataset.amount);
+    }
+    
+    const newValue = symbolAfter ? `${value} ${symbol}` : `${symbol}${value}`;
+    input.value = newValue;
+    
+    const newPosition = newValue.length - cursorFromEnd;
+    input.setSelectionRange(newPosition, newPosition);
 }
 
 // When initializing an empty input, set cursor after symbol
@@ -198,16 +229,48 @@ function getAmountValue(input) {
   }
   
   const locale = getCurrencyLocale();
+  const isPolish = locale.startsWith('pl');
+  const currencyCode = getCurrencyPreference();
+  const isJPY = currencyCode === 'JPY';
+  
+  // For Polish currency, use the stored dataset value
+  if (isPolish && input.dataset.amount) {
+    return input.dataset.amount;
+  }
+
+  // For Japanese Yen, handle whole numbers only
+  if (isJPY) {
+    // Remove currency symbol and any non-digit characters
+    const value = input.value
+      .replace(getCurrencySymbol(), '')
+      .replace(/[^0-9-]/g, '');
+    
+    // If empty after cleaning, return null
+    if (!value) return null;
+    
+    // Convert to number and validate
+    const numValue = parseInt(value, 10);
+    return isNaN(numValue) ? null : numValue.toString();
+  }
+  
   const format = new Intl.NumberFormat(locale).format(1111.1);
   const thousandSep = format.charAt(1);
   const decimalSep = format.charAt(5);
   
   // Remove currency symbol and clean the value
-  const value = input.value
+  let value = input.value
     .replace(getCurrencySymbol(), '')
-    .replace(new RegExp(`\\${thousandSep}`, 'g'), '')  // Remove thousand separators
-    .replace(decimalSep, '.')  // Convert locale decimal to period
     .trim();
+
+  if (isPolish) {
+    // For Polish, first remove all spaces (thousand separators)
+    value = value.replace(/\s/g, '')
+      .replace(decimalSep, '.');  // Convert locale decimal to period
+  } else {
+    value = value
+      .replace(new RegExp(`\\${thousandSep}`, 'g'), '')  // Remove thousand separators
+      .replace(decimalSep, '.');  // Convert locale decimal to period
+  }
     
   // If empty after cleaning, return null
   if (!value) return null;

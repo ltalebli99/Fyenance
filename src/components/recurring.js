@@ -75,37 +75,70 @@ export async function toggleRecurringStatus(id, newStatus, item) {
     }
 }
 
+// Add this helper function to update category dropdown based on type
+async function updateRecurringCategoryDropdown(type, selectedCategoryId = null, isEdit = false) {
+    const prefix = isEdit ? 'edit' : 'add';
+    const categorySelect = document.getElementById(`${prefix}-recurring-category`);
+    categorySelect.disabled = !type;
+    
+    if (!type) {
+        categorySelect.innerHTML = '<option value="">Select Category</option>';
+        return;
+    }
 
-// Add recurring form handler
+    try {
+        const { data: categories } = await window.databaseApi.fetchCategories();
+        
+        categorySelect.innerHTML = '<option value="" disabled selected>Select Category</option>';
+        categories
+            .filter(cat => cat.type === type)
+            .forEach(cat => {
+                const option = new Option(cat.name, cat.id);
+                option.selected = cat.id === parseInt(selectedCategoryId);
+                categorySelect.add(option);
+            });
+    } catch (error) {
+        console.error('Error updating categories:', error);
+        categorySelect.innerHTML = '<option value="">Error loading categories</option>';
+    }
+}
+
+// Add event listeners for type changes
+document.getElementById('add-recurring-type')?.addEventListener('change', async (e) => {
+    await updateRecurringCategoryDropdown(e.target.value);
+});
+
+document.getElementById('edit-recurring-type')?.addEventListener('change', async (e) => {
+    await updateRecurringCategoryDropdown(e.target.value, null, true);
+});
+
+// Update the add recurring form handler
 document.getElementById('add-recurring-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
   
     // Get all required form elements
     const accountSelect = document.getElementById('add-recurring-account');
     const nameInput = document.getElementById('add-recurring-name');
-    const amountInput = document.getElementById('add-recurring-amount');
+    const typeSelect = document.getElementById('add-recurring-type');
     const categorySelect = document.getElementById('add-recurring-category');
+    const amountInput = document.getElementById('add-recurring-amount');
     const startDateInput = document.getElementById('add-recurring-start-date');
     const endDateInput = document.getElementById('add-recurring-end-date');
     const frequencySelect = document.getElementById('add-recurring-frequency');
     const descriptionInput = document.getElementById('add-recurring-description');
   
     // Validate that all required elements exist
-    if (!accountSelect || !nameInput || !amountInput || !categorySelect || 
-        !startDateInput || !frequencySelect) {
-      console.error('Required form elements not found');
-      return;
+    if (!accountSelect || !nameInput || !typeSelect || !categorySelect || 
+        !amountInput || !startDateInput || !frequencySelect) {
+        console.error('Required form elements not found');
+        return;
     }
   
-    // Get category type from selected option
-    const selectedOption = categorySelect.options[categorySelect.selectedIndex];
-    const categoryText = selectedOption?.textContent || '';
-    const type = categoryText.split('-')[0].trim().toLowerCase();
-    
-    // Validate the type
-    if (type !== 'income' && type !== 'expense') {
-      console.error('Invalid category type:', type);
-      return;
+    // Get and validate type
+    const type = typeSelect.value;
+    if (!type || (type !== 'income' && type !== 'expense')) {
+        console.error('Invalid transaction type:', type);
+        return;
     }
 
     // Validate dates
@@ -118,87 +151,86 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
     }
   
     try {
-      // Create dates in UTC
-      const startDateObj = new Date(startDate + 'T00:00:00Z');
-      
-      let endDateObj = null;
-      if (endDate) {
-        endDateObj = new Date(endDate + 'T00:00:00Z');
-      }
+        // Create dates in UTC
+        const startDateObj = new Date(startDate + 'T00:00:00Z');
+        
+        let endDateObj = null;
+        if (endDate) {
+            endDateObj = new Date(endDate + 'T00:00:00Z');
+        }
 
-      const recurring = {
-        account_id: parseInt(accountSelect.value, 10),
-        name: nameInput.value.trim(),
-        amount: parseFloat(getAmountValue(amountInput)),
-        category_id: parseInt(categorySelect.value, 10),
-        start_date: startDateObj.toISOString().split('T')[0],
-        end_date: endDateObj ? endDateObj.toISOString().split('T')[0] : null,
-        frequency: frequencySelect.value,
-        description: (descriptionInput?.value || '').trim(),
-        type,
-        is_active: 1
-      };
+        const recurring = {
+            account_id: parseInt(accountSelect.value, 10),
+            name: nameInput.value.trim(),
+            amount: parseFloat(getAmountValue(amountInput)),
+            category_id: parseInt(categorySelect.value, 10),
+            type: type,
+            start_date: startDateObj.toISOString().split('T')[0],
+            end_date: endDateObj ? endDateObj.toISOString().split('T')[0] : null,
+            frequency: frequencySelect.value,
+            description: (descriptionInput?.value || '').trim(),
+            is_active: 1
+        };
   
-      // Validate the data types
-      if (isNaN(recurring.account_id) || isNaN(recurring.amount) || 
-          isNaN(recurring.category_id)) {
-        console.error('Invalid numeric values in form');
-        return;
-      }
+        // Validate the data types
+        if (isNaN(recurring.account_id) || isNaN(recurring.amount) || 
+            isNaN(recurring.category_id)) {
+            console.error('Invalid numeric values in form');
+            return;
+        }
   
-      const projectIds = Array.from(document.getElementById('add-recurring-projects').selectedOptions)
-          .map(option => parseInt(option.value))
-          .filter(id => !isNaN(id));
+        const projectIds = Array.from(document.getElementById('add-recurring-projects').selectedOptions)
+            .map(option => parseInt(option.value))
+            .filter(id => !isNaN(id));
   
-      const { data: recurringId, error } = await window.databaseApi.addRecurring({
-        ...recurring,
-        projectIds
-      });
-      if (error) throw error;
+        const { data: recurringId, error } = await window.databaseApi.addRecurring({
+            ...recurring,
+            projectIds
+        });
+        if (error) throw error;
 
-      resetFormAndInputs(addRecurringForm);
-      closeModal('add-recurring-modal');
+        resetFormAndInputs(addRecurringForm);
+        closeModal('add-recurring-modal');
   
-      await refreshData({
-        all: true
-      });
+        await refreshData({
+            all: true
+        });
   
-      // First update pagination UI
-      if (recurringPagination) {
-          recurringPagination.currentPage = 1;
-          recurringPagination.updatePagination(recurringPagination.totalItems);
-      }
+        // First update pagination UI
+        if (recurringPagination) {
+            recurringPagination.currentPage = 1;
+            recurringPagination.updatePagination(recurringPagination.totalItems);
+        }
   
-      // Then fetch with correct offset
-      await fetchRecurring(null, {
-          offset: 0,
-          limit: recurringPagination?.getLimit() || 10
-      });
+        // Then fetch with correct offset
+        await fetchRecurring(null, {
+            offset: 0,
+            limit: recurringPagination?.getLimit() || 10
+        });
   
     } catch (err) {
-      console.error('Error adding recurring transaction:', err);
-      showError('Failed to create recurring transaction');
+        console.error('Error adding recurring transaction:', err);
+        showError('Failed to create recurring transaction');
     }
+});
+
+// Add recurring account selector
+const recurringSelector = document.getElementById('recurring-account-selector');
+if (recurringSelector) {
+  recurringSelector.addEventListener('change', async () => {
+    await fetchRecurring(recurringSelector.value);
   });
-  
-  // Add recurring account selector
-  const recurringSelector = document.getElementById('recurring-account-selector');
-  if (recurringSelector) {
-    recurringSelector.addEventListener('change', async () => {
-      await fetchRecurring(recurringSelector.value);
-    });
-  }
-
-
-  function formatDateForInput(dateString) {
-    if (!dateString) return '';
-    // Create date and adjust for timezone
-    const date = new Date(dateString);
-    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
-    return date.toISOString().split('T')[0];
 }
 
-  export async function showEditRecurringForm(recurring) {
+function formatDateForInput(dateString) {
+  if (!dateString) return '';
+  // Create date and adjust for timezone
+  const date = new Date(dateString);
+  date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+  return date.toISOString().split('T')[0];
+}
+
+export async function showEditRecurringForm(recurring) {
     try {
         // Populate all dropdowns first
         await Promise.all([
@@ -211,8 +243,9 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
         const form = document.getElementById('edit-recurring-form');
         const accountSelect = document.getElementById('edit-recurring-account');
         const nameInput = document.getElementById('edit-recurring-name');
-        const amountInput = document.getElementById('edit-recurring-amount');
+        const typeSelect = document.getElementById('edit-recurring-type');
         const categorySelect = document.getElementById('edit-recurring-category');
+        const amountInput = document.getElementById('edit-recurring-amount');
         const frequencySelect = document.getElementById('edit-recurring-frequency');
         const startDateInput = document.getElementById('edit-recurring-start-date');
         const endDateInput = document.getElementById('edit-recurring-end-date');
@@ -220,8 +253,9 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
         const projectSelect = document.getElementById('edit-recurring-projects');
 
         // Validate that all required elements exist
-        if (!form || !accountSelect || !nameInput || !amountInput || !categorySelect || 
-            !frequencySelect || !startDateInput || !endDateInput || !descriptionInput || !projectSelect) {
+        if (!form || !accountSelect || !nameInput || !typeSelect || !categorySelect || 
+            !amountInput || !frequencySelect || !startDateInput || !endDateInput || 
+            !descriptionInput || !projectSelect) {
             throw new Error('Required form elements not found');
         }
 
@@ -229,9 +263,10 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
         form.dataset.recurringId = recurring.id;
         accountSelect.value = recurring.account_id;
         nameInput.value = recurring.name;
+        typeSelect.value = recurring.type;
+        await updateRecurringCategoryDropdown(recurring.type, recurring.category_id, true);
         amountInput.value = formatInitialAmount(recurring.amount);
-        initializeAmountInput(document.getElementById('edit-recurring-amount'));
-        categorySelect.value = recurring.category_id;
+        initializeAmountInput(amountInput);
         frequencySelect.value = recurring.frequency || 'monthly';
         startDateInput.value = formatDateForInput(recurring.start_date);
         endDateInput.value = recurring.end_date ? formatDateForInput(recurring.end_date) : '';
@@ -258,17 +293,17 @@ document.getElementById('add-recurring-form')?.addEventListener('submit', async 
         console.error('Error showing edit form:', error);
         showError('Failed to show edit form');
     }
-  }
-  
-  document.getElementById('cancel-edit-recurring').addEventListener('click', () => {
-    closeModal('edit-recurring-modal');
-  });
-  
-  document.getElementById('close-edit-recurring').addEventListener('click', () => {
-    closeModal('edit-recurring-modal');
-  });
+}
 
-  // Edit recurring form handler
+document.getElementById('cancel-edit-recurring').addEventListener('click', () => {
+  closeModal('edit-recurring-modal');
+});
+
+document.getElementById('close-edit-recurring').addEventListener('click', () => {
+  closeModal('edit-recurring-modal');
+});
+
+// Update the edit form handler
 document.getElementById('edit-recurring-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -282,8 +317,9 @@ document.getElementById('edit-recurring-form')?.addEventListener('submit', async
 
         const accountSelect = document.getElementById('edit-recurring-account');
         const nameInput = document.getElementById('edit-recurring-name');
-        const amountInput = document.getElementById('edit-recurring-amount');
+        const typeSelect = document.getElementById('edit-recurring-type');
         const categorySelect = document.getElementById('edit-recurring-category');
+        const amountInput = document.getElementById('edit-recurring-amount');
         const startDateInput = document.getElementById('edit-recurring-start-date');
         const endDateInput = document.getElementById('edit-recurring-end-date');
         const frequencySelect = document.getElementById('edit-recurring-frequency');
@@ -291,27 +327,23 @@ document.getElementById('edit-recurring-form')?.addEventListener('submit', async
         const projectSelect = document.getElementById('edit-recurring-projects');
 
         // Validate that all required elements exist
-        if (!accountSelect || !nameInput || !amountInput || !categorySelect || 
-            !startDateInput || !frequencySelect) {
+        if (!accountSelect || !nameInput || !typeSelect || !categorySelect || 
+            !amountInput || !startDateInput || !frequencySelect) {
             throw new Error('Required form elements not found');
         }
 
-        // Get category type from selected option
-        const selectedOption = categorySelect.options[categorySelect.selectedIndex];
-        const categoryText = selectedOption?.textContent || '';
-        const type = categoryText.split('-')[0].trim().toLowerCase();
-
-        // Validate the type
-        if (type !== 'income' && type !== 'expense') {
-            throw new Error('Invalid category type');
+        // Get and validate type
+        const type = typeSelect.value;
+        if (!type || (type !== 'income' && type !== 'expense')) {
+            throw new Error('Invalid transaction type');
         }
 
         const updateData = {
             account_id: parseInt(accountSelect.value),
             name: nameInput.value.trim(),
+            type: type,
             amount: parseFloat(getAmountValue(amountInput)),
             category_id: parseInt(categorySelect.value),
-            type: type,
             start_date: startDateInput.value,
             end_date: endDateInput.value || null,
             frequency: frequencySelect.value,
@@ -355,7 +387,6 @@ document.getElementById('edit-recurring-form')?.addEventListener('submit', async
     }
 });
 
-  
 // Add cancel button event listener for edit form
 document.getElementById('cancel-edit-recurring')?.addEventListener('click', () => {
     document.getElementById('edit-recurring-card').style.display = 'none';
