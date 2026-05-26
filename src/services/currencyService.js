@@ -1,19 +1,34 @@
+// Currencies available as app display preference (amount formatting throughout the app)
 export const defaultCurrencies = [
-    { code: 'USD', symbol: '$', name: 'US Dollar', locale: 'en-US', rate: 1 },
+    { code: 'USD', symbol: '$', name: 'Dollar', locale: 'en-US', rate: 1 },
     { code: 'EUR', symbol: '€', name: 'Euro', locale: 'de-DE', rate: 1.09 },
     { code: 'GBP', symbol: '£', name: 'British Pound', locale: 'en-GB', rate: 1.27 },
     { code: 'JPY', symbol: '¥', name: 'Japanese Yen', locale: 'ja-JP', rate: 0.0067 },
-    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', locale: 'en-CA', rate: 0.74 },
-    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', locale: 'en-AU', rate: 0.66 },
     { code: 'INR', symbol: '₹', name: 'Indian Rupee', locale: 'en-IN', rate: 0.012 },
     { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', locale: 'zh-CN', rate: 0.14 },
     { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', locale: 'pt-BR', rate: 0.21 },
     { code: 'RSD', symbol: ' дин.', name: 'Serbian Dinar', locale: 'sr-RS', symbolAfter: true, rate: 0.0093 },
     { code: 'PLN', symbol: 'zł', name: 'Polish Złoty', locale: 'pl-PL', symbolAfter: true, rate: 0.25 }
 ];
+
+// Conversion-only (exchange calculator); excluded from app currency preference
+const conversionOnlyCurrencies = [
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', locale: 'en-CA', rate: 0.74 },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', locale: 'en-AU', rate: 0.66 }
+];
+
+function findCurrency(code) {
+    return defaultCurrencies.find(c => c.code === code)
+        ?? conversionOnlyCurrencies.find(c => c.code === code);
+}
   
   export function getCurrencyPreference() {
-    return localStorage.getItem('currencyPreference') || 'USD';
+    const stored = localStorage.getItem('currencyPreference') || 'USD';
+    if (!defaultCurrencies.some(c => c.code === stored)) {
+      localStorage.setItem('currencyPreference', 'USD');
+      return 'USD';
+    }
+    return stored;
   }
   
   export function getCurrencySymbol() {
@@ -29,8 +44,12 @@ export const defaultCurrencies = [
     }
   }
   
-  export function getAllCurrencies() {
+  export function getPreferenceCurrencies() {
     return defaultCurrencies;
+  }
+
+  export function getAllCurrencies() {
+    return [...defaultCurrencies, ...conversionOnlyCurrencies];
   }
   
   export function getCurrencyLocale() {
@@ -41,8 +60,8 @@ export const defaultCurrencies = [
   
   // Convert amount from one currency to another
   export function convertCurrency(amount, fromCurrency, toCurrency) {
-    const from = defaultCurrencies.find(c => c.code === fromCurrency);
-    const to = defaultCurrencies.find(c => c.code === toCurrency);
+    const from = findCurrency(fromCurrency);
+    const to = findCurrency(toCurrency);
     
     if (!from || !to) {
         console.log('Currency not found:', { fromCurrency, toCurrency });
@@ -58,8 +77,8 @@ export const defaultCurrencies = [
   
   // Get exchange rate between two currencies
   export function getExchangeRate(fromCurrency, toCurrency) {
-    const from = defaultCurrencies.find(c => c.code === fromCurrency);
-    const to = defaultCurrencies.find(c => c.code === toCurrency);
+    const from = findCurrency(fromCurrency);
+    const to = findCurrency(toCurrency);
     
     if (!from || !to) return 1;
     return to.rate / from.rate;
@@ -77,7 +96,7 @@ export const defaultCurrencies = [
             throw new Error(error || 'Failed to fetch exchange rates');
         }
         
-        defaultCurrencies.forEach(currency => {
+        getAllCurrencies().forEach(currency => {
             if (currency.code !== 'USD') {
                 currency.rate = data.rates[currency.code];
             }

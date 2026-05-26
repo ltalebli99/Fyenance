@@ -1,5 +1,5 @@
 import { openSection } from '../utils/utils.js';
-import { getAllCurrencies, setCurrencyPreference } from '../services/currencyService.js';
+import { getPreferenceCurrencies, setCurrencyPreference } from '../services/currencyService.js';
 
 export class Tutorial {
     constructor() {
@@ -324,7 +324,7 @@ export class Tutorial {
             });
 
             if (step.type === 'currency-select') {
-                const currencies = getAllCurrencies();
+                const currencies = getPreferenceCurrencies();
                 tooltip.innerHTML = `
                     <p>${step.message}</p>
                     <p class="tutorial-sub-message">${step.subMessage}</p>

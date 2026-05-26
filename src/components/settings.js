@@ -6,7 +6,7 @@ import { initializeSmartImport } from './smartImport.js';
 import { showCreateFirstModal } from '../utils/modals.js';
 import { showError } from '../utils/utils.js';
 import { updateLicenseInfo } from './license.js';
-import { getAllCurrencies, setCurrencyPreference, getCurrencyPreference, convertCurrency, defaultCurrencies } from '../services/currencyService.js';
+import { getAllCurrencies, getPreferenceCurrencies, setCurrencyPreference, getCurrencyPreference, convertCurrency } from '../services/currencyService.js';
 import { refreshData } from '../utils/refresh.js';
 import { showConfirmationModal } from '../utils/modals.js';
 
@@ -124,7 +124,7 @@ export function initializeSettings() {
     const currencySelect = document.getElementById('currency-preference-setting');
     if (currencySelect) {
         // Populate currency options
-        const currencies = getAllCurrencies();
+        const currencies = getPreferenceCurrencies();
         currencySelect.innerHTML = currencies.map(c => `
             <option value="${c.code}">${c.name} (${c.symbol})</option>
         `).join('');
@@ -322,9 +322,10 @@ function initializeExchangeCalculator() {
     
     // Format number with currency code
     const formatExchangeAmount = (amount, currencyCode) => {
-        const currency = defaultCurrencies.find(c => c.code === currencyCode);
+        const currency = getAllCurrencies().find(c => c.code === currencyCode);
         const num = parseFloat(amount) || 0;
-        
+        if (!currency) return formatNumber(amount);
+
         // Special handling for Serbian Dinar
         if (currency.symbol === ' дин.') {
             const formatted = num.toLocaleString('sr-RS', {

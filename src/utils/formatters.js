@@ -1,5 +1,10 @@
 import { getCurrencySymbol, getCurrencyLocale, getCurrencyPreference, defaultCurrencies } from '../services/currencyService.js';
 
+function stripCurrencySymbol(value, symbol) {
+    if (!symbol) return value.trim();
+    return value.split(symbol).join('').trim();
+}
+
 // Utility function to format numbers as currency
 function formatCurrency(amount) {
     const code = getCurrencyPreference();
@@ -136,11 +141,8 @@ function formatAmountInput(input) {
     // Store cursor position relative to the end
     const cursorFromEnd = input.value.length - input.selectionStart;
     
-    // Remove currency symbol from either end
-    let value = input.value
-        .replace(new RegExp(`^${symbol}`), '')  // Start
-        .replace(new RegExp(`${symbol}$`), '')  // End
-        .trim();
+    // Remove currency symbol (split/join avoids regex issues with $ in A$, C$, R$, etc.)
+    let value = stripCurrencySymbol(input.value, symbol);
     
     // Handle the case where user just typed a decimal separator
     const lastChar = value.slice(-1);
@@ -180,31 +182,14 @@ function formatAmountInput(input) {
         value += (isPolish ? ',' : decimalSep) + (decimalPart || '');
     }
     
-    // Add debug logging
-    console.log('Original Input:', input.value);
-    console.log('Parts:', parts);
-    console.log('Integer Part:', integerPart);
-    console.log('Decimal Part:', decimalPart);
-    
     if (isPolish) {
         // First remove spaces and get the raw number parts
         const cleanValue = value.replace(/\s/g, '');
         const [wholeNum, decimal] = cleanValue.split(',');
         
-        // Debug logging
-        console.log('Clean Value:', cleanValue);
-        console.log('Whole Number:', wholeNum);
-        console.log('Decimal:', decimal);
-        
-        // FIXED: Don't override existing decimal part
         const decimalPart = decimal || '00';
-        
-        // Store the raw string with proper decimal formatting
         const fullNumber = wholeNum + '.' + decimalPart;
         input.dataset.amount = fullNumber;
-        
-        // Debug logging
-        console.log('Stored Amount:', input.dataset.amount);
     }
     
     const newValue = symbolAfter ? `${value} ${symbol}` : `${symbol}${value}`;
@@ -238,11 +223,12 @@ function getAmountValue(input) {
     return input.dataset.amount;
   }
 
+  const symbol = getCurrencySymbol();
+
   // For Japanese Yen, handle whole numbers only
   if (isJPY) {
     // Remove currency symbol and any non-digit characters
-    const value = input.value
-      .replace(getCurrencySymbol(), '')
+    const value = stripCurrencySymbol(input.value, symbol)
       .replace(/[^0-9-]/g, '');
     
     // If empty after cleaning, return null
@@ -258,9 +244,7 @@ function getAmountValue(input) {
   const decimalSep = format.charAt(5);
   
   // Remove currency symbol and clean the value
-  let value = input.value
-    .replace(getCurrencySymbol(), '')
-    .trim();
+  let value = stripCurrencySymbol(input.value, symbol);
 
   if (isPolish) {
     // For Polish, first remove all spaces (thousand separators)
@@ -298,5 +282,6 @@ export { formatCurrency,
     formatAmountInput,
     getAmountValue,
     initializeAmountInput,
-    formatInitialAmount
+    formatInitialAmount,
+    stripCurrencySymbol
 };

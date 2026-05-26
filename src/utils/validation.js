@@ -30,36 +30,45 @@ export function validateProjectForm(project) {
     return true;
 }
 
-export function initializeAmountInputs() {
-  // Find all number inputs with step="0.01"
-  const amountInputs = document.querySelectorAll('input[type="number"][step="0.01"]');
-  
-  amountInputs.forEach(input => {
-    // Convert to text type to allow formatting
-    input.type = 'text';
-    
-    // Initialize the input
-    initializeAmountInput(input);
+function setupAmountInput(input) {
+  if (input.dataset.amountField === 'true') return;
 
-    // Add input event listener
-    input.addEventListener('input', (e) => {
-      formatAmountInput(e.target);
-    });
+  input.type = 'text';
+  input.dataset.amountField = 'true';
+  initializeAmountInput(input);
 
-    // Handle focus to select all text
-    input.addEventListener('focus', (e) => {
-      e.target.select();
-    });
+  input.addEventListener('input', (e) => {
+    formatAmountInput(e.target);
+  });
 
-    // Handle blur to ensure proper formatting
-    input.addEventListener('blur', (e) => {
-      clearTimeout(e.target.formatTimeout);
-      if (e.target.value) {
-        const value = getAmountValue(e.target);
-        if (value !== null) {
-          e.target.value = formatCurrency(value);
-        }
+  input.addEventListener('focus', (e) => {
+    e.target.select();
+  });
+
+  input.addEventListener('blur', (e) => {
+    clearTimeout(e.target.formatTimeout);
+    if (e.target.value) {
+      const value = getAmountValue(e.target);
+      if (value !== null) {
+        e.target.value = formatCurrency(value);
       }
-    });
+    }
   });
 }
+
+export function initializeAmountInputs() {
+  const amountInputs = document.querySelectorAll(
+    'input[type="number"][step="0.01"], input[data-amount-field="true"]'
+  );
+
+  amountInputs.forEach(setupAmountInput);
+}
+
+export function refreshAmountInputsForCurrency() {
+  document.querySelectorAll('input[data-amount-field="true"]').forEach((input) => {
+    delete input.dataset.amount;
+    initializeAmountInput(input);
+  });
+}
+
+window.addEventListener('currencyPreferenceChanged', refreshAmountInputsForCurrency);
